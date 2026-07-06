@@ -43,7 +43,7 @@ export function EditableListTitle({
         }
       }}
       aria-label="List name"
-      className="w-full rounded border border-transparent bg-transparent px-1 -mx-1 text-sm font-medium outline-none hover:border-input focus:border-input focus:bg-background"
+      className="w-full rounded border border-transparent bg-transparent px-1 -mx-1 text-sm font-semibold outline-none hover:border-input focus:border-input focus:bg-background"
     />
   );
 }

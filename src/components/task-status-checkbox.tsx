@@ -32,6 +32,7 @@ export function TaskStatusCheckbox({
       }}
       onClick={(e) => e.stopPropagation()}
       aria-label={completed ? "Mark task incomplete" : "Mark task complete"}
+      className="data-checked:border-success data-checked:bg-success data-checked:text-success-foreground"
     />
   );
 }

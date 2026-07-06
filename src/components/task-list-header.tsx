@@ -16,23 +16,32 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { deleteTaskList } from "@/app/(app)/projects/[slug]/tasks/actions";
+import { getListAccentColor } from "@/lib/list-colors";
 
 export function TaskListHeader({
   taskListId,
   projectSlug,
-  name,
+  listName,
   count,
 }: {
   taskListId: string;
   projectSlug: string;
-  name: string;
+  listName: string;
   count: number;
 }) {
   const [isPending, startTransition] = useTransition();
+  const accentColor = getListAccentColor(listName);
 
   return (
     <div className="flex items-center justify-between gap-2 border-b bg-muted/30 px-3 py-2">
-      <EditableListTitle taskListId={taskListId} projectSlug={projectSlug} name={name} />
+      <div className="flex min-w-0 flex-1 items-center gap-2">
+        <span
+          className="h-2 w-2 shrink-0 rounded-full"
+          style={{ backgroundColor: accentColor }}
+          aria-hidden
+        />
+        <EditableListTitle taskListId={taskListId} projectSlug={projectSlug} name={listName} />
+      </div>
       <div className="flex shrink-0 items-center gap-1.5">
         <span className="text-xs text-muted-foreground">{count}</span>
         <AlertDialog>
@@ -50,7 +59,7 @@ export function TaskListHeader({
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete &ldquo;{name}&rdquo;?</AlertDialogTitle>
+              <AlertDialogTitle>Delete &ldquo;{listName}&rdquo;?</AlertDialogTitle>
               <AlertDialogDescription>
                 {count > 0
                   ? `This will permanently delete this list and all ${count} task${count === 1 ? "" : "s"} in it, including their comments and images.`

@@ -20,7 +20,7 @@ export function DueDateBadge({
     <span
       className={cn(
         "inline-flex items-center gap-1 text-xs",
-        overdue ? "font-medium text-destructive" : "text-muted-foreground",
+        overdue ? "font-medium text-warning" : "text-muted-foreground",
         className
       )}
     >

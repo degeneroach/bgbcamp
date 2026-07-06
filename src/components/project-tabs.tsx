@@ -24,9 +24,9 @@ export function ProjectTabs({ slug }: { slug: string }) {
             key={tab.href}
             href={tab.href}
             className={cn(
-              "-mb-px border-b-2 px-3 py-2 text-sm font-medium transition-colors",
+              "-mb-px border-b-2 px-3 py-2 text-sm font-semibold transition-colors",
               active
-                ? "border-foreground text-foreground"
+                ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground"
             )}
           >

@@ -74,7 +74,7 @@ export default async function PeoplePage() {
                     </Badge>
                     <span className="text-xs text-muted-foreground">{open} open</span>
                     {overdue > 0 && (
-                      <span className="text-xs font-medium text-destructive">{overdue} overdue</span>
+                      <span className="text-xs font-medium text-warning">{overdue} overdue</span>
                     )}
                   </div>
                 </div>

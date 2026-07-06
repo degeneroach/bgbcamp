@@ -39,7 +39,7 @@ export function TaskTitleEditor({
           (e.target as HTMLInputElement).blur();
         }
       }}
-      className="w-full rounded-md border border-transparent bg-transparent px-1 -mx-1 text-xl font-normal outline-none hover:border-input focus:border-input focus:bg-background"
+      className="w-full rounded-md border border-transparent bg-transparent px-1 -mx-1 text-xl font-medium outline-none hover:border-input focus:border-input focus:bg-background"
     />
   );
 }

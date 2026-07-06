@@ -31,7 +31,7 @@ export function AddTaskInput({
   if (!open) {
     return (
       <button
-        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-muted-foreground hover:bg-muted/40"
+        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-primary"
         onClick={() => setOpen(true)}
       >
         <Plus className="h-4 w-4" />

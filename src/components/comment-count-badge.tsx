@@ -1,4 +1,3 @@
-import { MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function CommentCountBadge({ count, className }: { count: number; className?: string }) {
@@ -6,9 +5,11 @@ export function CommentCountBadge({ count, className }: { count: number; classNa
 
   return (
     <span
-      className={cn("inline-flex items-center gap-1 text-xs text-muted-foreground", className)}
+      className={cn(
+        "inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[11px] font-bold leading-none text-primary-foreground",
+        className
+      )}
     >
-      <MessageSquare className="h-3 w-3" />
       {count}
     </span>
   );

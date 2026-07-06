@@ -103,15 +103,18 @@ export default async function ProjectTasksPage({
           No task lists yet. Add one to start tracking work.
         </p>
       ) : (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
+        <div className="flex flex-wrap items-start gap-3 md:gap-4">
           {(taskLists as TaskList[]).map((list) => {
             const listTasks = tasksByList.get(list.id) ?? [];
             return (
-              <Card key={list.id} className="flex flex-col overflow-hidden p-0">
+              <Card
+                key={list.id}
+                className="flex w-full shrink-0 flex-col overflow-hidden p-0 sm:w-[320px]"
+              >
                 <TaskListHeader
                   taskListId={list.id}
                   projectSlug={slug}
-                  name={list.name}
+                  listName={list.name}
                   count={listTasks.length}
                 />
                 <div>

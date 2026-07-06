@@ -24,10 +24,7 @@ export function TaskCard({
 
   return (
     <div
-      className={cn(
-        "flex cursor-pointer items-center gap-3 border-b px-3 py-2.5 last:border-b-0 hover:bg-muted/40",
-        completed && "opacity-60"
-      )}
+      className="flex cursor-pointer items-center gap-4 border-b px-3 py-2.5 last:border-b-0 hover:bg-accent/60"
       onClick={() => router.push(`/projects/${projectSlug}/tasks/${task.id}`)}
     >
       <TaskStatusCheckbox
@@ -37,7 +34,12 @@ export function TaskCard({
         taskTitle={task.title}
         initialCompleted={completed}
       />
-      <span className={cn("flex-1 truncate text-sm", completed && "line-through")}>
+      <span
+        className={cn(
+          "flex-1 truncate text-sm font-medium",
+          completed && "text-muted-foreground line-through"
+        )}
+      >
         {task.title}
       </span>
       <CommentCountBadge count={commentCount} />
