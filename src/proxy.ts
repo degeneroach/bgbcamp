@@ -17,30 +17,32 @@ export async function proxy(request: NextRequest) {
   }
 
   let cookiesToApply: { name: string; value: string; options?: Record<string, unknown> }[] = [];
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          cookiesToApply = cookiesToSet;
-        },
-      },
-    }
-  );
-
   let user = null;
+
   try {
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+            cookiesToApply = cookiesToSet;
+          },
+        },
+      }
+    );
+
     const { data } = await supabase.auth.getUser();
     user = data.user;
-  } catch {
-    // Supabase unreachable or session unparsable — treat as signed out
-    // rather than letting an exception surface as a hard proxy failure.
+  } catch (error) {
+    // Bad/missing Supabase env vars, or Supabase unreachable — log it so
+    // it's diagnosable in runtime logs, and degrade to "signed out" rather
+    // than letting an uncaught exception crash every single request.
+    console.error("proxy: failed to resolve Supabase session", error);
     user = null;
   }
 
