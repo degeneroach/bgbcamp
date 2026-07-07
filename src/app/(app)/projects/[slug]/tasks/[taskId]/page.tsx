@@ -10,12 +10,13 @@ import { TaskAssigneesPicker } from "@/components/task-assignees-picker";
 import { TaskDueDatePicker } from "@/components/task-due-date-picker";
 import { TaskStatusCheckbox } from "@/components/task-status-checkbox";
 import { TaskImages } from "@/components/task-images";
+import { TaskFiles } from "@/components/task-files";
 import { TaskCommentSection } from "@/components/task-comment-section";
 import { ActivityItem, type ActivityEventWithRelations } from "@/components/activity-item";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { isTaskCompleted } from "@/lib/tasks";
-import type { Profile, Task, TaskComment, TaskImage } from "@/types/database";
+import type { Profile, Task, TaskComment, TaskImage, TaskFile } from "@/types/database";
 
 export default async function TaskDetailPage({
   params,
@@ -37,8 +38,13 @@ export default async function TaskDetailPage({
 
   if (!task) notFound();
 
-  const [{ data: comments }, { data: images }, { data: events }, { data: assigneeRows }] =
-    await Promise.all([
+  const [
+    { data: comments },
+    { data: images },
+    { data: files },
+    { data: events },
+    { data: assigneeRows },
+  ] = await Promise.all([
       supabase
         .from("task_comments")
         .select("*, author:profiles!author_id(*)")
@@ -46,6 +52,11 @@ export default async function TaskDetailPage({
         .order("created_at", { ascending: true }),
       supabase
         .from("task_images")
+        .select("*")
+        .eq("task_id", taskId)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("task_files")
         .select("*")
         .eq("task_id", taskId)
         .order("created_at", { ascending: false }),
@@ -97,6 +108,16 @@ export default async function TaskDetailPage({
               projectSlug={slug}
               taskTitle={typedTask.title}
               images={(images ?? []) as TaskImage[]}
+            />
+          </Card>
+
+          <Card className="p-4">
+            <TaskFiles
+              taskId={taskId}
+              projectId={project.id}
+              projectSlug={slug}
+              taskTitle={typedTask.title}
+              files={(files ?? []) as TaskFile[]}
             />
           </Card>
 

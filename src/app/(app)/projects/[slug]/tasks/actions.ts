@@ -430,3 +430,53 @@ export async function deleteTaskImage(
   taskPaths(projectSlug, taskId);
   return { ok: true };
 }
+
+export async function recordTaskFile(
+  taskId: string,
+  projectId: string,
+  projectSlug: string,
+  taskTitle: string,
+  file: { storagePath: string; url: string; name: string; mimeType: string; sizeBytes: number }
+): Promise<ActionResult> {
+  const { userId, organization } = await requireCurrentUser();
+  const supabase = await createClient();
+
+  const { error } = await supabase.from("task_files").insert({
+    task_id: taskId,
+    storage_path: file.storagePath,
+    url: file.url,
+    name: file.name,
+    mime_type: file.mimeType,
+    size_bytes: file.sizeBytes,
+    uploaded_by: userId,
+  });
+
+  if (error) return { ok: false, error: error.message };
+
+  await logActivity(supabase, {
+    organizationId: organization.id,
+    projectId,
+    actorId: userId,
+    entityType: "task",
+    entityId: taskId,
+    action: "task.file_added",
+    metadata: { title: taskTitle, fileName: file.name, fileUrl: file.url },
+  });
+
+  taskPaths(projectSlug, taskId);
+  return { ok: true };
+}
+
+export async function deleteTaskFile(
+  fileId: string,
+  storagePath: string,
+  projectSlug: string,
+  taskId: string
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  await supabase.storage.from("attachments").remove([storagePath]);
+  const { error } = await supabase.from("task_files").delete().eq("id", fileId);
+  if (error) return { ok: false, error: error.message };
+  taskPaths(projectSlug, taskId);
+  return { ok: true };
+}

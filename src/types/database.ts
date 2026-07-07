@@ -132,6 +132,18 @@ export type TaskImage = {
   created_at: string;
 };
 
+export type TaskFile = {
+  id: string;
+  task_id: string;
+  storage_path: string;
+  url: string;
+  name: string;
+  mime_type: string | null;
+  size_bytes: number | null;
+  uploaded_by: string | null;
+  created_at: string;
+};
+
 export type ActivityEvent = {
   id: string;
   organization_id: string;
@@ -408,6 +420,32 @@ export type Database = {
           },
           {
             foreignKeyName: "task_images_uploaded_by_fkey";
+            columns: ["uploaded_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      task_files: {
+        Row: TaskFile;
+        Insert: Partial<TaskFile> & {
+          task_id: string;
+          storage_path: string;
+          url: string;
+          name: string;
+        };
+        Update: Partial<TaskFile>;
+        Relationships: [
+          {
+            foreignKeyName: "task_files_task_id_fkey";
+            columns: ["task_id"];
+            isOneToOne: false;
+            referencedRelation: "tasks";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "task_files_uploaded_by_fkey";
             columns: ["uploaded_by"];
             isOneToOne: false;
             referencedRelation: "profiles";

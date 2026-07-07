@@ -3,7 +3,7 @@
 import { createElement, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Paperclip } from "lucide-react";
 import { UserAvatar } from "@/components/user-avatar";
 import { ActivityCommentPreview } from "@/components/activity-comment-preview";
 import { getActivityIcon, describeActivity } from "@/lib/activity-display";
@@ -38,6 +38,7 @@ function ActivityLine({
   const metadata = event.metadata as Record<string, string | undefined>;
   const isComment = COMMENT_ACTIONS.has(event.action);
   const imageUrl = event.action === "task.image_added" ? metadata.imageUrl : undefined;
+  const fileUrl = event.action === "task.file_added" ? metadata.fileUrl : undefined;
   const mirrored = side === "left";
 
   return (
@@ -68,6 +69,17 @@ function ActivityLine({
         <div className="relative mt-1.5 h-20 w-20 overflow-hidden rounded-lg border">
           <Image src={imageUrl} alt="Attached image" fill sizes="80px" className="object-cover" />
         </div>
+      )}
+      {fileUrl && metadata.fileName && (
+        <a
+          href={fileUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-1.5 inline-flex max-w-full items-center gap-1.5 rounded-md border bg-muted/40 px-2 py-1 text-xs hover:bg-muted"
+        >
+          <Paperclip className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          <span className="truncate">{metadata.fileName}</span>
+        </a>
       )}
     </div>
   );
