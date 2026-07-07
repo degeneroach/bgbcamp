@@ -74,14 +74,14 @@ function EmojiPicker({ editor }: { editor: Editor }) {
         <Smile className="h-4 w-4" />
       </Button>
       {open && (
-        <div className="absolute left-0 top-8 z-50 grid grid-cols-6 gap-0.5 rounded-md border bg-popover p-1 shadow-md">
+        <div className="absolute left-0 top-9 z-50 grid grid-cols-4 gap-1 rounded-lg border bg-popover p-2 shadow-md">
           {EMOJIS.map((emoji) => (
             <button
               key={emoji.char}
               type="button"
               title={emoji.label}
               aria-label={emoji.label}
-              className="flex h-7 w-7 items-center justify-center rounded text-base hover:bg-muted"
+              className="flex h-9 w-9 items-center justify-center rounded-md text-xl leading-none hover:bg-muted"
               onClick={() => {
                 editor.chain().focus().insertContent(emoji.char).run();
                 setOpen(false);
