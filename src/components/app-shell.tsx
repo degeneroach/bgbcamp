@@ -5,6 +5,7 @@ import { GlobalSearch } from "@/components/global-search";
 import { NotificationsBell } from "@/components/notifications-bell";
 import { OrganizationNameEditor } from "@/components/organization-name-editor";
 import { BrandMark } from "@/components/brand-mark";
+import { ImageLightboxProvider } from "@/components/image-lightbox";
 import type { Profile, Organization } from "@/types/database";
 import type { NotificationWithRelations } from "@/lib/notifications";
 
@@ -68,7 +69,7 @@ export function AppShell({
       </header>
 
       <main className="mx-auto w-full max-w-[1150px] flex-1 px-4 py-8 md:px-6 md:py-10">
-        {children}
+        <ImageLightboxProvider>{children}</ImageLightboxProvider>
       </main>
     </div>
   );

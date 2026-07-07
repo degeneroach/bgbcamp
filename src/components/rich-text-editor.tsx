@@ -23,6 +23,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { createMentionSuggestion, type MentionCandidate } from "@/lib/tiptap-mention-suggestion";
+import { useImageLightbox } from "@/components/image-lightbox";
 
 function Toolbar({
   editor,
@@ -314,9 +315,20 @@ export function RichTextEditor({
 }
 
 export function RichTextContent({ html, className }: { html: string; className?: string }) {
+  const lightbox = useImageLightbox();
+
+  function handleClick(e: React.MouseEvent<HTMLDivElement>) {
+    const target = e.target as HTMLElement;
+    if (target.tagName === "IMG" && lightbox) {
+      const img = target as HTMLImageElement;
+      lightbox.open(img.currentSrc || img.src, img.alt);
+    }
+  }
+
   return (
     <div
-      className={`prose prose-sm max-w-none dark:prose-invert ${className ?? ""}`}
+      className={`prose prose-sm max-w-none dark:prose-invert [&_img]:cursor-zoom-in ${className ?? ""}`}
+      onClick={handleClick}
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );

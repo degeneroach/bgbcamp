@@ -6,6 +6,7 @@ import { ImagePlus, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { recordTaskImage, deleteTaskImage } from "@/app/(app)/projects/[slug]/tasks/actions";
+import { useImageLightbox } from "@/components/image-lightbox";
 import type { TaskImage } from "@/types/database";
 
 const MAX_SIZE_BYTES = 8 * 1024 * 1024;
@@ -27,7 +28,7 @@ export function TaskImages({
   const [isUploading, startUpload] = useTransition();
   const [isDeleting, startDelete] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [preview, setPreview] = useState<TaskImage | null>(null);
+  const lightbox = useImageLightbox();
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -91,8 +92,8 @@ export function TaskImages({
           {images.map((image) => (
             <div
               key={image.id}
-              className="group relative aspect-square cursor-pointer overflow-hidden rounded-md border"
-              onClick={() => setPreview(image)}
+              className="group relative aspect-square cursor-zoom-in overflow-hidden rounded-md border"
+              onClick={() => lightbox?.open(image.url, "Task attachment")}
             >
               <Image src={image.url} alt="Task attachment" fill sizes="200px" className="object-cover" />
               <button
@@ -111,17 +112,6 @@ export function TaskImages({
               </button>
             </div>
           ))}
-        </div>
-      )}
-
-      {preview && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-8"
-          onClick={() => setPreview(null)}
-        >
-          <div className="relative h-full w-full max-w-3xl">
-            <Image src={preview.url} alt="Task attachment" fill sizes="100vw" className="object-contain" />
-          </div>
         </div>
       )}
     </div>
