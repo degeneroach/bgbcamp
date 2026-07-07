@@ -20,7 +20,7 @@ import {
   ImagePlus,
   Loader2,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { createMentionSuggestion, type MentionCandidate } from "@/lib/tiptap-mention-suggestion";
 
@@ -154,6 +154,40 @@ export function RichTextEditor({
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // The paste/drop handlers below live inside editorProps, which TipTap
+  // captures once at editor creation. Read the latest props/editor through
+  // refs so those handlers always see current values.
+  const editorRef = useRef<Editor | null>(null);
+  const uploadCtxRef = useRef({ projectId, enableImages });
+  useEffect(() => {
+    uploadCtxRef.current = { projectId, enableImages };
+  }, [projectId, enableImages]);
+
+  const uploadImageFile = useCallback(async (file: File) => {
+    const activeEditor = editorRef.current;
+    const ctx = uploadCtxRef.current;
+    if (!activeEditor || !ctx.enableImages || !ctx.projectId) return;
+    if (!file.type.startsWith("image/")) return;
+
+    setIsUploading(true);
+    try {
+      const supabase = createClient();
+      const ext = file.name.split(".").pop();
+      const path = `${ctx.projectId}/${crypto.randomUUID()}${ext ? `.${ext}` : ""}`;
+      const { error } = await supabase.storage
+        .from("attachments")
+        .upload(path, file, { contentType: file.type });
+      if (error) {
+        window.alert(`Could not upload image: ${error.message}`);
+        return;
+      }
+      const { data } = supabase.storage.from("attachments").getPublicUrl(path);
+      activeEditor.chain().focus().setImage({ src: data.publicUrl }).run();
+    } finally {
+      setIsUploading(false);
+    }
+  }, []);
+
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
@@ -206,36 +240,52 @@ export function RichTextEditor({
         class: "prose prose-sm max-w-none focus:outline-none dark:prose-invert",
         style: `min-height: ${minHeight}`,
       },
+      handlePaste: (_view, event) => {
+        const ctx = uploadCtxRef.current;
+        if (!ctx.enableImages || !ctx.projectId) return false;
+        const items = event.clipboardData?.items;
+        if (!items) return false;
+        const images: File[] = [];
+        for (const item of Array.from(items)) {
+          if (item.kind === "file" && item.type.startsWith("image/")) {
+            const file = item.getAsFile();
+            if (file) images.push(file);
+          }
+        }
+        if (images.length === 0) return false;
+        event.preventDefault();
+        images.forEach((file) => void uploadImageFile(file));
+        return true;
+      },
+      handleDrop: (_view, event) => {
+        const ctx = uploadCtxRef.current;
+        if (!ctx.enableImages || !ctx.projectId) return false;
+        const dropEvent = event as DragEvent;
+        const files = dropEvent.dataTransfer?.files;
+        if (!files || files.length === 0) return false;
+        const images = Array.from(files).filter((f) => f.type.startsWith("image/"));
+        if (images.length === 0) return false;
+        event.preventDefault();
+        images.forEach((file) => void uploadImageFile(file));
+        return true;
+      },
     },
     onUpdate: ({ editor }) => onChange(editor.getHTML()),
   }, []);
+
+  useEffect(() => {
+    editorRef.current = editor;
+  }, [editor]);
 
   useEffect(() => {
     return () => editor?.destroy();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
-    if (!file || !editor || !projectId) return;
-    if (!file.type.startsWith("image/")) return;
-
-    setIsUploading(true);
-    try {
-      const supabase = createClient();
-      const ext = file.name.split(".").pop();
-      const path = `${projectId}/${crypto.randomUUID()}${ext ? `.${ext}` : ""}`;
-      const { error } = await supabase.storage.from("attachments").upload(path, file);
-      if (error) {
-        window.alert(`Could not upload image: ${error.message}`);
-        return;
-      }
-      const { data } = supabase.storage.from("attachments").getPublicUrl(path);
-      editor.chain().focus().setImage({ src: data.publicUrl }).run();
-    } finally {
-      setIsUploading(false);
-    }
+    if (file) void uploadImageFile(file);
   }
 
   return (
