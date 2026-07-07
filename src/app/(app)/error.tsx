@@ -26,7 +26,12 @@ export default function AppError({
           That didn&apos;t load correctly — usually a momentary hiccup. Try again.
         </p>
       </div>
-      <Button onClick={() => reset()}>Try again</Button>
+      <div className="flex items-center gap-2">
+        <Button onClick={() => reset()}>Try again</Button>
+        <Button variant="outline" onClick={() => window.location.reload()}>
+          Reload page
+        </Button>
+      </div>
     </div>
   );
 }
