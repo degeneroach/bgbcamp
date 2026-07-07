@@ -4,6 +4,7 @@ import Link from "next/link";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -29,10 +30,12 @@ export function UserMenu({
         <UserAvatar name={name} email={email} avatarUrl={avatarUrl} className="h-8 w-8" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel className="flex flex-col">
-          <span className="font-medium">{displayName({ full_name: name, email })}</span>
-          <span className="text-xs font-normal text-muted-foreground">{email}</span>
-        </DropdownMenuLabel>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="flex flex-col">
+            <span className="font-medium">{displayName({ full_name: name, email })}</span>
+            <span className="text-xs font-normal text-muted-foreground">{email}</span>
+          </DropdownMenuLabel>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem render={<Link href="/profile" />}>
           <UserCog className="h-4 w-4" />
