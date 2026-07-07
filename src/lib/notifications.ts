@@ -92,7 +92,7 @@ export function notificationHref(notification: NotificationWithRelations): strin
     return `/projects/${notification.project.slug}/tasks/${notification.task.id}`;
   }
   if (notification.entity_type === "post_comment" && notification.post) {
-    return `/projects/${notification.project.slug}#post-${notification.post.id}`;
+    return `/projects/${notification.project.slug}/board#post-${notification.post.id}`;
   }
   return `/projects/${notification.project.slug}`;
 }

@@ -68,7 +68,7 @@ export async function runSearch(
       id: p.id,
       title: p.title,
       subtitle: p.projects.name,
-      href: `/projects/${p.projects.slug}#post-${p.id}`,
+      href: `/projects/${p.projects.slug}/board#post-${p.id}`,
     });
   }
   for (const person of people.data ?? []) {

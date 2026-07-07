@@ -89,6 +89,7 @@ export type TaskList = {
   project_id: string;
   name: string;
   position: number;
+  archived_at: string | null;
   created_at: string;
 };
 

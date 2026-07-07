@@ -9,8 +9,8 @@ export function ProjectTabs({ slug }: { slug: string }) {
   const base = `/projects/${slug}`;
 
   const tabs = [
-    { href: base, label: "Message Board", exact: true },
-    { href: `${base}/tasks`, label: "Tasks" },
+    { href: base, label: "Tasks", exact: true },
+    { href: `${base}/board`, label: "Message Board" },
     { href: `${base}/activity`, label: "Activity" },
     { href: `${base}/settings`, label: "Settings" },
   ];

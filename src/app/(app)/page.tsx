@@ -2,6 +2,7 @@ import { requireCurrentUser } from "@/lib/current-user";
 import { createClient } from "@/lib/supabase/server";
 import { ProjectCard, type ProjectCardActivity } from "@/components/project-card";
 import { NewProjectDialog } from "@/components/new-project-dialog";
+import { ArchivedProjectsSection } from "@/components/archived-projects-section";
 import { activitySummary } from "@/lib/activity-summary";
 import type { ActivityEvent, Profile, Project } from "@/types/database";
 
@@ -9,7 +10,7 @@ export default async function DashboardPage() {
   const { userId, organization } = await requireCurrentUser();
   const supabase = await createClient();
 
-  const [{ data: projects }, { data: favorites }] = await Promise.all([
+  const [{ data: projects }, { data: favorites }, { data: archivedProjects }] = await Promise.all([
     supabase
       .from("projects")
       .select("*")
@@ -17,6 +18,12 @@ export default async function DashboardPage() {
       .eq("archived", false)
       .order("created_at", { ascending: true }),
     supabase.from("project_favorites").select("project_id").eq("user_id", userId),
+    supabase
+      .from("projects")
+      .select("*")
+      .eq("organization_id", organization.id)
+      .eq("archived", true)
+      .order("updated_at", { ascending: false }),
   ]);
 
   const projectList = (projects ?? []) as Project[];
@@ -115,6 +122,8 @@ export default async function DashboardPage() {
           </section>
         </>
       )}
+
+      <ArchivedProjectsSection projects={(archivedProjects as Project[]) ?? []} />
     </div>
   );
 }

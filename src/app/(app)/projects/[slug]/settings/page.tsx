@@ -3,8 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 import { getProjectBySlug, getProjectMembers } from "@/lib/projects";
 import { ProjectSettingsForm } from "@/components/project-settings-form";
 import { ProjectMembersManager } from "@/components/project-members-manager";
+import { ArchivedListsSection } from "@/components/archived-lists-section";
 import { Card } from "@/components/ui/card";
-import type { Profile } from "@/types/database";
+import type { Profile, TaskList } from "@/types/database";
 
 export default async function ProjectSettingsPage({
   params,
@@ -17,10 +18,18 @@ export default async function ProjectSettingsPage({
   const project = await getProjectBySlug(supabase, organization.id, slug);
   const members = await getProjectMembers(supabase, project.id);
 
-  const { data: orgMembers } = await supabase
-    .from("organization_members")
-    .select("profiles(*)")
-    .eq("organization_id", organization.id);
+  const [{ data: orgMembers }, { data: archivedLists }] = await Promise.all([
+    supabase
+      .from("organization_members")
+      .select("profiles(*)")
+      .eq("organization_id", organization.id),
+    supabase
+      .from("task_lists")
+      .select("*")
+      .eq("project_id", project.id)
+      .not("archived_at", "is", null)
+      .order("archived_at", { ascending: false }),
+  ]);
 
   const currentMemberIds = new Set(members.map((m) => m.user_id));
   const availableMembers = (orgMembers ?? [])
@@ -42,6 +51,11 @@ export default async function ProjectSettingsPage({
           currentMembers={members.map((m) => m.profiles)}
           availableMembers={availableMembers}
         />
+      </Card>
+
+      <Card className="flex flex-col gap-4 p-4">
+        <h2 className="font-medium">Archived lists</h2>
+        <ArchivedListsSection projectSlug={slug} lists={(archivedLists as TaskList[]) ?? []} />
       </Card>
     </div>
   );

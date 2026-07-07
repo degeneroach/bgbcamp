@@ -15,7 +15,6 @@ export interface ActionResult {
 }
 
 function taskPaths(projectSlug: string, taskId?: string) {
-  revalidatePath(`/projects/${projectSlug}/tasks`);
   revalidatePath(`/projects/${projectSlug}`);
   revalidatePath(`/projects/${projectSlug}/activity`);
   revalidatePath("/activity");
@@ -59,7 +58,7 @@ export async function createTaskList(
     metadata: { name: trimmedName },
   });
 
-  revalidatePath(`/projects/${projectSlug}/tasks`);
+  revalidatePath(`/projects/${projectSlug}`);
   return { ok: true };
 }
 
@@ -101,23 +100,62 @@ export async function renameTaskList(
     });
   }
 
-  revalidatePath(`/projects/${projectSlug}/tasks`);
+  revalidatePath(`/projects/${projectSlug}`);
   return { ok: true };
 }
 
-export async function deleteTaskList(
+export async function archiveTaskList(
   taskListId: string,
   projectSlug: string
 ): Promise<ActionResult> {
   const supabase = await createClient();
 
-  // Tasks in this list cascade-delete via the FK, along with their
-  // comments/images (those cascade from tasks in turn).
-  const { error } = await supabase.from("task_lists").delete().eq("id", taskListId);
+  const { error } = await supabase
+    .from("task_lists")
+    .update({ archived_at: new Date().toISOString() })
+    .eq("id", taskListId);
 
   if (error) return { ok: false, error: error.message };
 
-  revalidatePath(`/projects/${projectSlug}/tasks`);
+  revalidatePath(`/projects/${projectSlug}`);
+  revalidatePath(`/projects/${projectSlug}/settings`);
+  return { ok: true };
+}
+
+export async function restoreTaskList(
+  taskListId: string,
+  projectSlug: string
+): Promise<ActionResult> {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("task_lists")
+    .update({ archived_at: null })
+    .eq("id", taskListId);
+
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath(`/projects/${projectSlug}`);
+  revalidatePath(`/projects/${projectSlug}/settings`);
+  return { ok: true };
+}
+
+export async function reorderTaskLists(
+  projectSlug: string,
+  orderedListIds: string[]
+): Promise<ActionResult> {
+  const supabase = await createClient();
+
+  const results = await Promise.all(
+    orderedListIds.map((id, index) =>
+      supabase.from("task_lists").update({ position: index }).eq("id", id)
+    )
+  );
+
+  const failed = results.find((r) => r.error);
+  if (failed?.error) return { ok: false, error: failed.error.message };
+
+  revalidatePath(`/projects/${projectSlug}`);
   return { ok: true };
 }
 

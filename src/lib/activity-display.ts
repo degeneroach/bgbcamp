@@ -96,6 +96,7 @@ export function describeActivity(
   const m = event.metadata as Metadata;
   const taskHref = projectSlug ? `/projects/${projectSlug}/tasks/${event.entity_id}` : null;
   const projectHref = projectSlug ? `/projects/${projectSlug}` : null;
+  const boardHref = projectSlug ? `/projects/${projectSlug}/board` : null;
 
   switch (event.action) {
     case "task.created":
@@ -137,19 +138,19 @@ export function describeActivity(
       return {
         verb: "posted",
         itemLabel: m.title ?? null,
-        itemHref: projectHref ? `${projectHref}#post-${event.entity_id}` : null,
+        itemHref: boardHref ? `${boardHref}#post-${event.entity_id}` : null,
       };
     case "post.updated":
       return {
         verb: "updated the post",
         itemLabel: m.title ?? null,
-        itemHref: projectHref ? `${projectHref}#post-${event.entity_id}` : null,
+        itemHref: boardHref ? `${boardHref}#post-${event.entity_id}` : null,
       };
     case "post_comment.created":
       return {
         verb: "commented on",
         itemLabel: m.postTitle ?? null,
-        itemHref: projectHref && m.postId ? `${projectHref}#post-${m.postId}` : null,
+        itemHref: boardHref && m.postId ? `${boardHref}#post-${m.postId}` : null,
       };
     case "project.created":
       return { verb: "created the project", itemLabel: m.name ?? null, itemHref: projectHref };
@@ -163,17 +164,9 @@ export function describeActivity(
         detail: m.previousName ? `from “${m.previousName}”` : undefined,
       };
     case "task_list.created":
-      return {
-        verb: "created the list",
-        itemLabel: m.name ?? null,
-        itemHref: projectSlug ? `/projects/${projectSlug}/tasks` : null,
-      };
+      return { verb: "created the list", itemLabel: m.name ?? null, itemHref: projectHref };
     case "task_list.renamed":
-      return {
-        verb: "renamed a list to",
-        itemLabel: m.name ?? null,
-        itemHref: projectSlug ? `/projects/${projectSlug}/tasks` : null,
-      };
+      return { verb: "renamed a list to", itemLabel: m.name ?? null, itemHref: projectHref };
     case "person.added":
       return { verb: "invited", itemLabel: m.email ?? null, itemHref: "/people" };
     case "person.removed":

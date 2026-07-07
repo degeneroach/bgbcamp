@@ -25,6 +25,7 @@ export async function toggleProjectNotifications(
     );
 
   revalidatePath(`/projects/${projectSlug}`);
+  revalidatePath(`/projects/${projectSlug}/board`);
 }
 
 export async function addProjectMember(
@@ -40,6 +41,7 @@ export async function addProjectMember(
       { onConflict: "project_id,user_id" }
     );
   revalidatePath(`/projects/${projectSlug}`);
+  revalidatePath(`/projects/${projectSlug}/board`);
   revalidatePath(`/projects/${projectSlug}/settings`);
 }
 
@@ -55,6 +57,7 @@ export async function removeProjectMember(
     .eq("project_id", projectId)
     .eq("user_id", userId);
   revalidatePath(`/projects/${projectSlug}`);
+  revalidatePath(`/projects/${projectSlug}/board`);
   revalidatePath(`/projects/${projectSlug}/settings`);
 }
 
@@ -106,6 +109,7 @@ export async function updateProjectSettings(
   }
 
   revalidatePath(`/projects/${projectSlug}`);
+  revalidatePath(`/projects/${projectSlug}/board`);
   revalidatePath(`/projects/${projectSlug}/settings`);
   revalidatePath("/");
   return { ok: true };
@@ -135,6 +139,14 @@ export async function archiveProject(projectId: string) {
 
   revalidatePath("/");
   redirect("/");
+}
+
+export async function restoreProject(projectId: string): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("projects").update({ archived: false }).eq("id", projectId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/");
+  return { ok: true };
 }
 
 // ---------------------------------------------------------------------------
@@ -184,7 +196,7 @@ export async function createPost(
     metadata: { title: post.title },
   });
 
-  revalidatePath(`/projects/${projectSlug}`);
+  revalidatePath(`/projects/${projectSlug}/board`);
   revalidatePath("/activity");
   return { ok: true };
 }
@@ -235,7 +247,7 @@ export async function createPostComment(
     bodyHtml: cleaned,
   });
 
-  revalidatePath(`/projects/${projectSlug}`);
+  revalidatePath(`/projects/${projectSlug}/board`);
   revalidatePath("/activity");
   return { ok: true };
 }
