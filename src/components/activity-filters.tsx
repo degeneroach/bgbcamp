@@ -77,7 +77,7 @@ export function ActivityFilters({
   };
 
   return (
-    <div className="flex flex-wrap items-end gap-x-3 gap-y-2">
+    <div className="grid grid-cols-2 items-end gap-x-3 gap-y-2 sm:grid-cols-3 md:grid-cols-5">
       <Field label="Search" htmlFor="activity-search">
         <div className="relative">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -86,7 +86,7 @@ export function ActivityFilters({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search activity..."
-            className="h-8 w-44 pl-8"
+            className="h-8 w-full pl-8"
           />
         </div>
       </Field>
@@ -98,7 +98,7 @@ export function ActivityFilters({
             value={searchParams.get("project") ?? "all"}
             onValueChange={(v) => setParam("project", v)}
           >
-            <SelectTrigger id="activity-project" className="h-8 w-[150px]">
+            <SelectTrigger id="activity-project" className="h-8 w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -119,7 +119,7 @@ export function ActivityFilters({
           value={searchParams.get("person") ?? "all"}
           onValueChange={(v) => setParam("person", v)}
         >
-          <SelectTrigger id="activity-person" className="h-8 w-[150px]">
+          <SelectTrigger id="activity-person" className="h-8 w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -140,7 +140,7 @@ export function ActivityFilters({
           value={searchParams.get("type") ?? "all"}
           onValueChange={(v) => setParam("type", v)}
         >
-          <SelectTrigger id="activity-type" className="h-8 w-[140px]">
+          <SelectTrigger id="activity-type" className="h-8 w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -159,7 +159,7 @@ export function ActivityFilters({
           value={searchParams.get("range") ?? "all"}
           onValueChange={(v) => setParam("range", v)}
         >
-          <SelectTrigger id="activity-range" className="h-8 w-[120px]">
+          <SelectTrigger id="activity-range" className="h-8 w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -184,7 +184,7 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex min-w-0 flex-col gap-1">
       <label
         htmlFor={htmlFor}
         className="px-0.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground"
