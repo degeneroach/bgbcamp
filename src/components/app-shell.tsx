@@ -4,6 +4,7 @@ import { UserMenu } from "@/components/user-menu";
 import { GlobalSearch } from "@/components/global-search";
 import { NotificationsBell } from "@/components/notifications-bell";
 import { OrganizationNameEditor } from "@/components/organization-name-editor";
+import { BrandMark } from "@/components/brand-mark";
 import type { Profile, Organization } from "@/types/database";
 import type { NotificationWithRelations } from "@/lib/notifications";
 
@@ -26,9 +27,7 @@ export function AppShell({
         <div className="mx-auto flex h-14 w-full max-w-[1150px] items-center gap-5 px-4 md:px-6">
           <div className="flex items-center gap-2.5">
             <Link href="/" className="flex items-center gap-2">
-              <span className="flex h-7 w-7 items-center justify-center rounded-md bg-foreground text-sm font-bold text-background">
-                B
-              </span>
+              <BrandMark className="h-7 w-7" />
               <span className="text-sm font-semibold tracking-tight">BGBCamp</span>
             </Link>
             <span className="hidden h-4 w-px bg-border lg:block" aria-hidden />

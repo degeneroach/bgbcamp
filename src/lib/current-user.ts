@@ -25,9 +25,29 @@ export interface CurrentUserContext {
 export const requireCurrentUser = cache(async (): Promise<CurrentUserContext> => {
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getUser() makes a network call to Supabase Auth to validate the session.
+  // On serverless cold starts / transient network blips it can throw, which
+  // would otherwise crash the entire page with a stark error. Retry a couple
+  // times before giving up so a momentary hiccup doesn't take the page down.
+  let user = null;
+  let lastError: unknown = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const { data } = await supabase.auth.getUser();
+      user = data.user;
+      lastError = null;
+      break;
+    } catch (error) {
+      lastError = error;
+      if (attempt < 2) await new Promise((r) => setTimeout(r, 250 * (attempt + 1)));
+    }
+  }
+
+  if (lastError) {
+    // All attempts failed to reach Supabase. Rethrow so the error boundary
+    // shows a retry rather than spuriously logging the user out.
+    throw lastError;
+  }
 
   if (!user) {
     redirect("/login");
