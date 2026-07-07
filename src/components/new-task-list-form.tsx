@@ -13,7 +13,7 @@ export function NewTaskListForm({ projectId, projectSlug }: { projectId: string;
 
   if (!open) {
     return (
-      <Button size="sm" onClick={() => setOpen(true)}>
+      <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
         <Plus className="h-4 w-4" />
         Add list
       </Button>

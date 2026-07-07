@@ -73,11 +73,11 @@ export default async function DashboardPage() {
   const otherProjects = projectList.filter((p) => !favoriteIds.has(p.id));
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-10">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">Dashboard</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             Everything your team is working on, in one place.
           </p>
         </div>

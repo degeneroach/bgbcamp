@@ -28,7 +28,7 @@ export default async function SearchPage({
   return (
     <div className="flex max-w-2xl flex-col gap-4">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight">Search</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Search</h1>
         <p className="text-sm text-muted-foreground">
           Find projects, tasks, posts, and people across {organization.name}.
         </p>

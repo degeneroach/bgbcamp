@@ -108,7 +108,7 @@ export default async function ProjectTasksPage({
   }));
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <TaskFilters members={members} />
         <NewTaskListForm projectId={project.id} projectSlug={slug} />

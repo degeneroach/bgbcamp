@@ -41,18 +41,18 @@ export default async function PeoplePage() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">People</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-2xl font-semibold tracking-tight">People</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             {organization.name}&apos;s team and what they&apos;re working on.
           </p>
         </div>
         <InviteMemberDialog />
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {(members ?? []).map((member) => {
           const profile = member.profiles as unknown as Profile;
           const open = openByUser.get(profile.id) ?? 0;

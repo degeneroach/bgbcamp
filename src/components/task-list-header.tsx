@@ -35,7 +35,7 @@ export function TaskListHeader({
   const accentColor = getListAccentColor(listName);
 
   return (
-    <div className="flex items-center justify-between gap-2 border-b border-border bg-muted/60 px-3 py-2.5">
+    <div className="flex items-center justify-between gap-2 border-b border-border/70 bg-muted/40 px-3.5 py-2.5">
       <div className="flex min-w-0 flex-1 items-center gap-1.5">
         {dragHandleProps && (
           <span
@@ -61,7 +61,7 @@ export function TaskListHeader({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                className="h-6 w-6 text-muted-foreground transition-opacity hover:text-foreground md:opacity-0 md:group-hover/card:opacity-100 md:focus-visible:opacity-100"
               />
             }
           >

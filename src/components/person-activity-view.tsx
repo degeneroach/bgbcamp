@@ -71,7 +71,7 @@ export function PersonActivityView({
         />
         <div className="flex flex-col">
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-semibold tracking-tight">
+            <h1 className="text-2xl font-semibold tracking-tight">
               {displayName(profile)}
             </h1>
             <Badge variant="secondary" className="capitalize">

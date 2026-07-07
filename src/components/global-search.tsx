@@ -77,12 +77,13 @@ export function GlobalSearch() {
     <>
       <Button
         variant="outline"
-        className="w-full max-w-sm justify-start gap-2 text-muted-foreground sm:w-64"
+        size="sm"
+        className="w-44 justify-start gap-2 border-border/70 font-normal text-muted-foreground shadow-none"
         onClick={() => setOpen(true)}
       >
-        <Search className="h-4 w-4" />
-        Search BGBCamp...
-        <kbd className="ml-auto hidden rounded border bg-muted px-1.5 py-0.5 text-[10px] font-medium sm:inline-block">
+        <Search className="h-3.5 w-3.5" />
+        Search...
+        <kbd className="ml-auto rounded border bg-muted px-1.5 py-0.5 text-[10px] font-medium">
           ⌘K
         </kbd>
       </Button>

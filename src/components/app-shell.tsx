@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { LayoutGrid, Activity, Users, Search as SearchIcon } from "lucide-react";
 import { NavLink } from "@/components/nav-link";
 import { UserMenu } from "@/components/user-menu";
 import { GlobalSearch } from "@/components/global-search";
@@ -22,52 +21,34 @@ export function AppShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen">
-      <aside className="hidden w-56 shrink-0 flex-col border-r bg-muted/20 px-3 py-4 md:flex">
-        <div className="mb-6 flex items-center gap-2 px-2">
-          <Link href="/">
-            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-foreground text-sm font-bold text-background">
-              B
-            </span>
-          </Link>
-          <div className="flex min-w-0 flex-col leading-none">
-            <Link href="/" className="text-sm font-semibold tracking-tight">
-              BGBCamp
+    <div className="flex min-h-screen flex-col">
+      <header className="sticky top-0 z-40 border-b border-border/60 bg-background/90 backdrop-blur">
+        <div className="mx-auto flex h-14 w-full max-w-[1150px] items-center gap-5 px-4 md:px-6">
+          <div className="flex items-center gap-2.5">
+            <Link href="/" className="flex items-center gap-2">
+              <span className="flex h-7 w-7 items-center justify-center rounded-md bg-foreground text-sm font-bold text-background">
+                B
+              </span>
+              <span className="text-sm font-semibold tracking-tight">BGBCamp</span>
             </Link>
-            <OrganizationNameEditor name={organization.name} />
+            <span className="hidden h-4 w-px bg-border lg:block" aria-hidden />
+            <div className="hidden w-40 lg:block">
+              <OrganizationNameEditor name={organization.name} />
+            </div>
           </div>
-        </div>
-        <nav className="flex flex-col gap-1">
-          <NavLink href="/" exact>
-            <LayoutGrid className="h-4 w-4" />
-            Dashboard
-          </NavLink>
-          <NavLink href="/activity">
-            <Activity className="h-4 w-4" />
-            Activity
-          </NavLink>
-          <NavLink href="/people">
-            <Users className="h-4 w-4" />
-            People
-          </NavLink>
-          <NavLink href="/search">
-            <SearchIcon className="h-4 w-4" />
-            Search
-          </NavLink>
-        </nav>
-      </aside>
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between gap-4 border-b px-4 py-3 md:px-6">
-          <Link href="/" className="flex items-center gap-2 md:hidden">
-            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-foreground text-sm font-bold text-background">
-              B
-            </span>
-            <span className="text-sm font-semibold tracking-tight">BGBCamp</span>
-          </Link>
-          <div className="flex flex-1 justify-center md:justify-start">
-            <GlobalSearch />
-          </div>
-          <div className="flex items-center gap-1">
+
+          <nav className="hidden items-center gap-1 md:flex">
+            <NavLink href="/" exact>
+              Dashboard
+            </NavLink>
+            <NavLink href="/activity">Activity</NavLink>
+            <NavLink href="/people">People</NavLink>
+          </nav>
+
+          <div className="ml-auto flex items-center gap-2">
+            <div className="hidden sm:block">
+              <GlobalSearch />
+            </div>
             <NotificationsBell notifications={notifications} unreadCount={unreadCount} />
             <UserMenu
               name={profile.full_name}
@@ -75,20 +56,21 @@ export function AppShell({
               avatarUrl={profile.avatar_url}
             />
           </div>
-        </header>
-        <nav className="flex items-center gap-1 border-b px-4 py-2 md:hidden">
+        </div>
+
+        <nav className="mx-auto flex w-full max-w-[1150px] items-center gap-1 px-4 pb-2 md:hidden">
           <NavLink href="/" exact>
-            <LayoutGrid className="h-4 w-4" />
+            Dashboard
           </NavLink>
-          <NavLink href="/activity">
-            <Activity className="h-4 w-4" />
-          </NavLink>
-          <NavLink href="/people">
-            <Users className="h-4 w-4" />
-          </NavLink>
+          <NavLink href="/activity">Activity</NavLink>
+          <NavLink href="/people">People</NavLink>
+          <NavLink href="/search">Search</NavLink>
         </nav>
-        <main className="flex-1 px-4 py-6 md:px-8">{children}</main>
-      </div>
+      </header>
+
+      <main className="mx-auto w-full max-w-[1150px] flex-1 px-4 py-8 md:px-6 md:py-10">
+        {children}
+      </main>
     </div>
   );
 }
