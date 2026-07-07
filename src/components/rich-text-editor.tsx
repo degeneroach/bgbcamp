@@ -19,11 +19,82 @@ import {
   Heading3,
   ImagePlus,
   Loader2,
+  Smile,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { createMentionSuggestion, type MentionCandidate } from "@/lib/tiptap-mention-suggestion";
 import { useImageLightbox } from "@/components/image-lightbox";
+
+const EMOJIS: { char: string; label: string }[] = [
+  { char: "😀", label: "happy" },
+  { char: "😂", label: "laughing" },
+  { char: "😢", label: "sad" },
+  { char: "❤️", label: "love" },
+  { char: "👍", label: "thumbs up" },
+  { char: "👎", label: "thumbs down" },
+  { char: "🙏", label: "pray" },
+  { char: "🔥", label: "fire" },
+  { char: "🎉", label: "celebrate" },
+  { char: "👀", label: "eyes" },
+  { char: "💀", label: "skull" },
+  { char: "✅", label: "check" },
+];
+
+function EmojiPicker({ editor }: { editor: Editor }) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onPointerDown(e: PointerEvent) {
+      if (!containerRef.current?.contains(e.target as Node)) setOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  return (
+    <div ref={containerRef} className="relative">
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className="h-7 w-7 p-0"
+        aria-label="Insert emoji"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <Smile className="h-4 w-4" />
+      </Button>
+      {open && (
+        <div className="absolute left-0 top-8 z-50 grid grid-cols-6 gap-0.5 rounded-md border bg-popover p-1 shadow-md">
+          {EMOJIS.map((emoji) => (
+            <button
+              key={emoji.char}
+              type="button"
+              title={emoji.label}
+              aria-label={emoji.label}
+              className="flex h-7 w-7 items-center justify-center rounded text-base hover:bg-muted"
+              onClick={() => {
+                editor.chain().focus().insertContent(emoji.char).run();
+                setOpen(false);
+              }}
+            >
+              {emoji.char}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function Toolbar({
   editor,
@@ -102,6 +173,8 @@ function Toolbar({
       >
         <ListOrdered className="h-4 w-4" />
       </Toggle>
+      <Separator orientation="vertical" className="mx-1 h-5" />
+      <EmojiPicker editor={editor} />
       {onUploadImage && (
         <>
           <Separator orientation="vertical" className="mx-1 h-5" />
