@@ -27,17 +27,21 @@ function ActorName({ actor }: { actor: ActivityCluster["actor"] }) {
 function ActivityLine({
   event,
   showTime = true,
+  side = "right",
 }: {
   event: ActivityCluster["events"][number];
   showTime?: boolean;
+  /** "left" = entry sits on the left of the timeline, so content is mirrored. */
+  side?: "left" | "right";
 }) {
   const display = describeActivity(event, event.project?.slug ?? null);
   const metadata = event.metadata as Record<string, string | undefined>;
   const isComment = COMMENT_ACTIONS.has(event.action);
   const imageUrl = event.action === "task.image_added" ? metadata.imageUrl : undefined;
+  const mirrored = side === "left";
 
   return (
-    <div className="flex min-w-0 flex-col gap-0.5">
+    <div className={cn("flex min-w-0 flex-col gap-0.5", mirrored && "items-end text-right")}>
       <p className="text-sm leading-snug">
         <ActorName actor={event.actor} /> {display.verb}{" "}
         {display.itemLabel &&
@@ -69,65 +73,106 @@ function ActivityLine({
   );
 }
 
-export function ActivityClusterItem({ cluster }: { cluster: ActivityCluster }) {
+export function ActivityClusterItem({
+  cluster,
+  side = "right",
+}: {
+  cluster: ActivityCluster;
+  side?: "left" | "right";
+}) {
   const [expanded, setExpanded] = useState(false);
   const primary = cluster.events[0];
   const count = cluster.events.length;
 
-  return (
-    <div className="relative flex animate-in fade-in gap-3 rounded-xl px-2 py-3 duration-300 hover:bg-muted/40">
-      <div className="relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border bg-background">
-        {createElement(getActivityIcon(cluster.action), {
-          className: "h-3.5 w-3.5 text-muted-foreground",
-        })}
-      </div>
+  const dot = (
+    <div className="relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border bg-background">
+      {createElement(getActivityIcon(cluster.action), {
+        className: "h-3.5 w-3.5 text-muted-foreground",
+      })}
+    </div>
+  );
 
-      {count === 1 ? (
-        <div className="flex min-w-0 flex-1 items-start gap-2">
+  function renderCard(cardSide: "left" | "right") {
+    const mirrored = cardSide === "left";
+    if (count === 1) {
+      return (
+        <div
+          className={cn(
+            "flex min-w-0 animate-in fade-in items-start gap-2 rounded-xl px-2 py-2 duration-300 hover:bg-muted/40",
+            mirrored && "flex-row-reverse text-right"
+          )}
+        >
           <UserAvatar
             name={primary.actor?.full_name}
             email={primary.actor?.email ?? ""}
             avatarUrl={primary.actor?.avatar_url}
             className="mt-0.5 h-6 w-6 shrink-0"
           />
-          <ActivityLine event={primary} />
+          <ActivityLine event={primary} side={cardSide} />
         </div>
-      ) : (
-        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-          <button
-            type="button"
-            onClick={() => setExpanded((v) => !v)}
-            className="flex w-full items-start gap-2 text-left"
-          >
-            <UserAvatar
-              name={primary.actor?.full_name}
-              email={primary.actor?.email ?? ""}
-              avatarUrl={primary.actor?.avatar_url}
-              className="mt-0.5 h-6 w-6 shrink-0"
-            />
-            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <p className="text-sm leading-snug">
-                <ActorName actor={primary.actor} /> {describeActivity(primary, null).verb}{" "}
-                <span className="font-medium">{count} items</span>
-              </p>
-              <span className="text-xs text-muted-foreground">{timeAgo(primary.created_at)}</span>
-            </div>
-            <ChevronDown
-              className={cn(
-                "mt-1 h-4 w-4 shrink-0 text-muted-foreground transition-transform",
-                expanded && "rotate-180"
-              )}
-            />
-          </button>
-          {expanded && (
-            <div className="ml-8 flex flex-col gap-2 border-l pl-3">
-              {cluster.events.map((event) => (
-                <ActivityLine key={event.id} event={event} showTime={false} />
-              ))}
-            </div>
+      );
+    }
+
+    return (
+      <div className="flex min-w-0 animate-in fade-in flex-col gap-1.5 rounded-xl px-2 py-2 duration-300 hover:bg-muted/40">
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className={cn(
+            "flex w-full items-start gap-2 text-left",
+            mirrored && "flex-row-reverse text-right"
           )}
-        </div>
-      )}
-    </div>
+        >
+          <UserAvatar
+            name={primary.actor?.full_name}
+            email={primary.actor?.email ?? ""}
+            avatarUrl={primary.actor?.avatar_url}
+            className="mt-0.5 h-6 w-6 shrink-0"
+          />
+          <div className={cn("flex min-w-0 flex-1 flex-col gap-0.5", mirrored && "items-end")}>
+            <p className="text-sm leading-snug">
+              <ActorName actor={primary.actor} /> {describeActivity(primary, null).verb}{" "}
+              <span className="font-medium">{count} items</span>
+            </p>
+            <span className="text-xs text-muted-foreground">{timeAgo(primary.created_at)}</span>
+          </div>
+          <ChevronDown
+            className={cn(
+              "mt-1 h-4 w-4 shrink-0 text-muted-foreground transition-transform",
+              expanded && "rotate-180"
+            )}
+          />
+        </button>
+        {expanded && (
+          <div
+            className={cn(
+              "flex flex-col gap-2",
+              mirrored ? "mr-8 border-r pr-3" : "ml-8 border-l pl-3"
+            )}
+          >
+            {cluster.events.map((event) => (
+              <ActivityLine key={event.id} event={event} showTime={false} side={cardSide} />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {/* Mobile: single left rail (side alternation needs the width to breathe). */}
+      <div className="relative grid grid-cols-[2.25rem_minmax(0,1fr)] py-1.5 sm:hidden">
+        <div className="flex justify-center pt-2">{dot}</div>
+        <div className="min-w-0">{renderCard("right")}</div>
+      </div>
+
+      {/* Desktop: alternating two-sided timeline. */}
+      <div className="relative hidden grid-cols-[minmax(0,1fr)_2.25rem_minmax(0,1fr)] py-1.5 sm:grid">
+        <div className="flex min-w-0 justify-end">{side === "left" && renderCard("left")}</div>
+        <div className="flex justify-center pt-2">{dot}</div>
+        <div className="min-w-0">{side === "right" && renderCard("right")}</div>
+      </div>
+    </>
   );
 }

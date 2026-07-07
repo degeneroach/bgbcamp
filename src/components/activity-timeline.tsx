@@ -42,19 +42,34 @@ export function ActivityTimeline({ days }: { days: DayGroup[] }) {
 
   return (
     <div className="flex flex-col gap-8">
-      {visibleDays.map((day) => (
-        <section key={day.key} className="flex flex-col gap-1">
-          <h2 className="px-2 text-base font-semibold tracking-tight">{day.label}</h2>
-          <div className="relative">
-            <div className="absolute bottom-2 left-6 top-2 w-px bg-border" />
-            <div className="flex flex-col">
-              {day.clusters.map((cluster) => (
-                <ActivityClusterItem key={cluster.key} cluster={cluster} />
-              ))}
+      {visibleDays.map((day) => {
+        // Alternate sides Basecamp-style: each time the actor changes from the
+        // previous entry, flip the timeline to the other side. Runs by the same
+        // person stay together, so the eye can see "who did what" at a glance.
+        let side: "left" | "right" = "left";
+        let prevActor: string | null = null;
+
+        return (
+          <section key={day.key} className="flex flex-col gap-1">
+            <h2 className="px-2 text-base font-semibold tracking-tight">{day.label}</h2>
+            <div className="relative">
+              <div className="absolute bottom-2 left-[18px] top-2 w-px bg-border sm:left-1/2 sm:-translate-x-1/2" />
+              <div className="flex flex-col">
+                {day.clusters.map((cluster) => {
+                  const actorKey = cluster.actor?.id ?? "unknown";
+                  if (prevActor !== null && actorKey !== prevActor) {
+                    side = side === "left" ? "right" : "left";
+                  }
+                  prevActor = actorKey;
+                  return (
+                    <ActivityClusterItem key={cluster.key} cluster={cluster} side={side} />
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        </section>
-      ))}
+          </section>
+        );
+      })}
 
       {visibleCount < days.length ? (
         <div ref={sentinelRef} className="flex justify-center py-4">
