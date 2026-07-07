@@ -1,6 +1,6 @@
 import { requireCurrentUser } from "@/lib/current-user";
 import { createClient } from "@/lib/supabase/server";
-import { getProjectBySlug, getProjectMembers } from "@/lib/projects";
+import { getProjectBySlug, getOrganizationMembers } from "@/lib/projects";
 import { ActivityFilters } from "@/components/activity-filters";
 import { ActivityTimeline } from "@/components/activity-timeline";
 import { groupActivityByDay, type ActivityEventFull } from "@/lib/activity-grouping";
@@ -21,7 +21,7 @@ export default async function ProjectActivityPage({
   const { organization } = await requireCurrentUser();
   const supabase = await createClient();
   const project = await getProjectBySlug(supabase, organization.id, slug);
-  const members = await getProjectMembers(supabase, project.id);
+  const members = await getOrganizationMembers(supabase, organization.id);
 
   let query = supabase
     .from("activity_events")
@@ -73,7 +73,7 @@ export default async function ProjectActivityPage({
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
-      <ActivityFilters people={members.map((m) => m.profiles)} />
+      <ActivityFilters people={members} />
       <ActivityTimeline days={days} />
     </div>
   );

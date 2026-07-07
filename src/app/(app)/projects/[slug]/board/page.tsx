@@ -1,6 +1,6 @@
 import { requireCurrentUser } from "@/lib/current-user";
 import { createClient } from "@/lib/supabase/server";
-import { getProjectBySlug, getProjectMembers } from "@/lib/projects";
+import { getProjectBySlug, getOrganizationMembers } from "@/lib/projects";
 import { PostComposer } from "@/components/post-composer";
 import { PostCard, type PostCommentWithAuthor, type PostWithAuthor } from "@/components/post-card";
 
@@ -13,7 +13,7 @@ export default async function ProjectMessageBoardPage({
   const { organization } = await requireCurrentUser();
   const supabase = await createClient();
   const project = await getProjectBySlug(supabase, organization.id, slug);
-  const members = await getProjectMembers(supabase, project.id);
+  const members = await getOrganizationMembers(supabase, organization.id);
 
   const { data: posts } = await supabase
     .from("posts")
@@ -52,7 +52,7 @@ export default async function ProjectMessageBoardPage({
             post={post}
             comments={commentsByPost.get(post.id) ?? []}
             projectSlug={slug}
-            members={members.map((m) => m.profiles)}
+            members={members}
           />
         ))
       )}

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { requireCurrentUser } from "@/lib/current-user";
 import { createClient } from "@/lib/supabase/server";
-import { getProjectBySlug, getProjectMembers } from "@/lib/projects";
+import { getProjectBySlug, getOrganizationMembers } from "@/lib/projects";
 import { TaskTitleEditor } from "@/components/task-title-editor";
 import { TaskDescriptionEditor } from "@/components/task-description-editor";
 import { TaskAssigneesPicker } from "@/components/task-assignees-picker";
@@ -26,7 +26,7 @@ export default async function TaskDetailPage({
   const { organization } = await requireCurrentUser();
   const supabase = await createClient();
   const project = await getProjectBySlug(supabase, organization.id, slug);
-  const members = await getProjectMembers(supabase, project.id);
+  const members = await getOrganizationMembers(supabase, organization.id);
 
   const { data: task } = await supabase
     .from("tasks")
@@ -107,7 +107,7 @@ export default async function TaskDetailPage({
               projectSlug={slug}
               taskTitle={typedTask.title}
               comments={(comments ?? []) as unknown as (TaskComment & { author: Profile | null })[]}
-              members={members.map((m) => m.profiles)}
+              members={members}
             />
           </Card>
         </div>
@@ -133,7 +133,7 @@ export default async function TaskDetailPage({
                 projectId={project.id}
                 projectSlug={slug}
                 taskTitle={typedTask.title}
-                members={members.map((m) => m.profiles)}
+                members={members}
                 assignees={assignees}
               />
             </div>

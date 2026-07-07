@@ -8,13 +8,19 @@ import { UserAvatar } from "@/components/user-avatar";
 import { ActivityCommentPreview } from "@/components/activity-comment-preview";
 import { getActivityIcon, describeActivity } from "@/lib/activity-display";
 import { timeAgo } from "@/lib/format";
+import { getUserAccent } from "@/lib/user-colors";
 import { cn } from "@/lib/utils";
 import type { ActivityCluster } from "@/lib/activity-grouping";
 
 const COMMENT_ACTIONS = new Set(["task_comment.created", "post_comment.created"]);
 
 function ActorName({ actor }: { actor: ActivityCluster["actor"] }) {
-  return <span className="font-medium">{actor?.full_name || actor?.email || "Someone"}</span>;
+  const accent = getUserAccent(actor?.email || actor?.full_name || null);
+  return (
+    <span className="font-semibold" style={{ color: accent.text }}>
+      {actor?.full_name || actor?.email || "Someone"}
+    </span>
+  );
 }
 
 function ActivityLine({

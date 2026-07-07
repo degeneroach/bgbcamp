@@ -35,7 +35,7 @@ export function TaskListHeader({
   const accentColor = getListAccentColor(listName);
 
   return (
-    <div className="flex items-center justify-between gap-2 border-b bg-muted/30 px-3 py-2">
+    <div className="flex items-center justify-between gap-2 border-b border-border bg-muted/60 px-3 py-2.5">
       <div className="flex min-w-0 flex-1 items-center gap-1.5">
         {dragHandleProps && (
           <span
@@ -47,7 +47,7 @@ export function TaskListHeader({
           </span>
         )}
         <span
-          className="h-2 w-2 shrink-0 rounded-full"
+          className="h-2.5 w-2.5 shrink-0 rounded-full"
           style={{ backgroundColor: accentColor }}
           aria-hidden
         />

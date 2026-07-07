@@ -1,6 +1,6 @@
 import { requireCurrentUser } from "@/lib/current-user";
 import { createClient } from "@/lib/supabase/server";
-import { getProjectBySlug, getProjectMembers } from "@/lib/projects";
+import { getProjectBySlug, getOrganizationMembers } from "@/lib/projects";
 import { TaskFilters } from "@/components/task-filters";
 import { NewTaskListForm } from "@/components/new-task-list-form";
 import { TaskListsBoard, type BoardList, type BoardTask } from "@/components/task-lists-board";
@@ -21,7 +21,7 @@ export default async function ProjectTasksPage({
   const { organization } = await requireCurrentUser();
   const supabase = await createClient();
   const project = await getProjectBySlug(supabase, organization.id, slug);
-  const members = await getProjectMembers(supabase, project.id);
+  const members = await getOrganizationMembers(supabase, organization.id);
 
   const { data: taskLists } = await supabase
     .from("task_lists")
@@ -110,7 +110,7 @@ export default async function ProjectTasksPage({
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <TaskFilters members={members.map((m) => m.profiles)} />
+        <TaskFilters members={members} />
         <NewTaskListForm projectId={project.id} projectSlug={slug} />
       </div>
 

@@ -59,7 +59,7 @@ export function TaskListsBoard({
           key={list.id}
           onDragOver={(e) => e.preventDefault()}
           onDrop={() => handleDrop(list.id)}
-          className="flex w-full shrink-0 flex-col overflow-hidden p-0 sm:w-[320px]"
+          className="flex w-full shrink-0 flex-col overflow-hidden rounded-2xl p-0 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_12px_rgba(15,23,42,0.08)] ring-black/[0.07] transition-shadow hover:shadow-[0_2px_4px_rgba(15,23,42,0.05),0_8px_20px_rgba(15,23,42,0.1)] sm:w-[320px]"
         >
           <TaskListHeader
             taskListId={list.id}
