@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database";
+import { displayName } from "@/lib/display-name";
 
 export interface SearchResult {
   type: "project" | "task" | "post" | "person";
@@ -75,8 +76,8 @@ export async function runSearch(
     results.push({
       type: "person",
       id: person.id,
-      title: person.full_name || person.email,
-      subtitle: person.full_name ? person.email : undefined,
+      title: displayName(person),
+      subtitle: person.email,
       href: `/people/${person.id}`,
     });
   }

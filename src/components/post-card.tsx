@@ -2,6 +2,7 @@ import { UserAvatar } from "@/components/user-avatar";
 import { RichTextContent } from "@/components/rich-text-editor";
 import { Card } from "@/components/ui/card";
 import { timeAgo } from "@/lib/format";
+import { displayName } from "@/lib/display-name";
 import { PostCommentSection } from "@/components/post-comment-section";
 import type { PostComment, Profile } from "@/types/database";
 
@@ -39,7 +40,7 @@ export function PostCard({
         />
         <div className="flex flex-col leading-tight">
           <span className="text-sm font-medium">
-            {post.author?.full_name || post.author?.email || "Someone"}
+            {displayName(post.author)}
           </span>
           <span className="text-xs text-muted-foreground">{timeAgo(post.created_at)}</span>
         </div>

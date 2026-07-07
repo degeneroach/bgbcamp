@@ -4,6 +4,7 @@ import { ProjectCard, type ProjectCardActivity } from "@/components/project-card
 import { NewProjectDialog } from "@/components/new-project-dialog";
 import { ArchivedProjectsSection } from "@/components/archived-projects-section";
 import { activitySummary } from "@/lib/activity-summary";
+import { displayName } from "@/lib/display-name";
 import type { ActivityEvent, Profile, Project } from "@/types/database";
 
 export default async function DashboardPage() {
@@ -61,7 +62,7 @@ export default async function DashboardPage() {
     actor: Pick<Profile, "full_name" | "email"> | null;
   })[]) {
     if (!event.project_id || latestActivityByProject.has(event.project_id)) continue;
-    const actorName = event.actor?.full_name || event.actor?.email || "Someone";
+    const actorName = displayName(event.actor);
     latestActivityByProject.set(event.project_id, {
       summary: `${actorName} ${activitySummary(event)}`,
       createdAt: event.created_at,

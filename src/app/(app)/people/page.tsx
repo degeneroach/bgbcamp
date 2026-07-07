@@ -5,6 +5,7 @@ import { UserAvatar } from "@/components/user-avatar";
 import { InviteMemberDialog } from "@/components/invite-member-dialog";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { displayName } from "@/lib/display-name";
 import { startOfDay } from "date-fns";
 import type { Profile, Role } from "@/types/database";
 
@@ -66,7 +67,7 @@ export default async function PeoplePage() {
                   className="h-10 w-10"
                 />
                 <div className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate font-medium">{profile.full_name || profile.email}</span>
+                  <span className="truncate font-medium">{displayName(profile)}</span>
                   <span className="truncate text-xs text-muted-foreground">{profile.email}</span>
                   <div className="mt-1 flex items-center gap-1.5">
                     <Badge variant="secondary" className="text-[10px] capitalize">

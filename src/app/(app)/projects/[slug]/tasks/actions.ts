@@ -7,6 +7,7 @@ import { logActivity } from "@/lib/activity";
 import { sanitizeHtml } from "@/lib/sanitize";
 import { extractMentionIds, htmlToExcerpt } from "@/lib/mentions";
 import { createMentionNotifications } from "@/lib/notifications";
+import { displayName } from "@/lib/display-name";
 import type { Task } from "@/types/database";
 
 export interface ActionResult {
@@ -310,7 +311,7 @@ export async function addTaskAssignee(
     entityType: "task",
     entityId: taskId,
     action: "task.assigned",
-    metadata: { title: taskTitle, assigneeName: assignee?.full_name || assignee?.email || "someone" },
+    metadata: { title: taskTitle, assigneeName: displayName(assignee) },
   });
 
   taskPaths(projectSlug, taskId);

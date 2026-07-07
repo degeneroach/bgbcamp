@@ -6,6 +6,7 @@ import { ActivityItem, type ActivityEventWithRelations } from "@/components/acti
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { isTaskCompleted } from "@/lib/tasks";
+import { displayName } from "@/lib/display-name";
 import type { Profile, Role, Task } from "@/types/database";
 
 export type TaskWithProject = Task & {
@@ -71,7 +72,7 @@ export function PersonActivityView({
         <div className="flex flex-col">
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-semibold tracking-tight">
-              {profile.full_name || profile.email}
+              {displayName(profile)}
             </h1>
             <Badge variant="secondary" className="capitalize">
               {role}

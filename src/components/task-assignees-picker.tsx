@@ -14,6 +14,7 @@ import {
   addTaskAssignee,
   removeTaskAssignee,
 } from "@/app/(app)/projects/[slug]/tasks/actions";
+import { displayName } from "@/lib/display-name";
 import type { Profile } from "@/types/database";
 
 export function TaskAssigneesPicker({
@@ -65,12 +66,12 @@ export function TaskAssigneesPicker({
                 avatarUrl={member.avatar_url}
                 className="h-5 w-5"
               />
-              {member.full_name || member.email}
+              {displayName(member)}
               <button
                 type="button"
                 onClick={() => toggle(member, true)}
                 className="text-muted-foreground hover:text-foreground"
-                aria-label={`Unassign ${member.full_name || member.email}`}
+                aria-label={`Unassign ${displayName(member)}`}
               >
                 <X className="h-3 w-3" />
               </button>
@@ -85,7 +86,7 @@ export function TaskAssigneesPicker({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-56">
           {members.length === 0 ? (
-            <p className="px-2 py-1.5 text-sm text-muted-foreground">No project members yet.</p>
+            <p className="px-2 py-1.5 text-sm text-muted-foreground">No team members yet.</p>
           ) : (
             members.map((member) => {
               const isAssigned = assignedIds.has(member.id);
@@ -102,7 +103,7 @@ export function TaskAssigneesPicker({
                     avatarUrl={member.avatar_url}
                     className="h-5 w-5"
                   />
-                  {member.full_name || member.email}
+                  {displayName(member)}
                 </DropdownMenuCheckboxItem>
               );
             })

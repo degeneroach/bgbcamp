@@ -12,6 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { UserAvatar } from "@/components/user-avatar";
 import { Search } from "lucide-react";
+import { displayName } from "@/lib/display-name";
 import type { Profile, Project } from "@/types/database";
 
 const ACTIVITY_TYPES = [
@@ -94,7 +95,7 @@ export function ActivityFilters({
           {people.map((person) => (
             <SelectItem key={person.id} value={person.id}>
               <UserAvatar name={person.full_name} email={person.email} avatarUrl={person.avatar_url} className="h-4 w-4" />
-              {person.full_name || person.email}
+              {displayName(person)}
             </SelectItem>
           ))}
         </SelectContent>

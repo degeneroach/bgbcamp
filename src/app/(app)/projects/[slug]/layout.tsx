@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getProjectBySlug, getProjectMembers } from "@/lib/projects";
 import { activitySummary } from "@/lib/activity-summary";
 import { timeAgo } from "@/lib/format";
+import { displayName } from "@/lib/display-name";
 import { UserAvatar } from "@/components/user-avatar";
 import { NotificationToggle } from "@/components/notification-toggle";
 import { ProjectSettingsMenu } from "@/components/project-settings-menu";
@@ -63,7 +64,7 @@ export default async function ProjectLayout({
                   href={`/projects/${slug}/activity`}
                   className="mt-1 text-xs text-muted-foreground hover:underline"
                 >
-                  {(typedLastEvent.actor?.full_name || typedLastEvent.actor?.email || "Someone")}{" "}
+                  {displayName(typedLastEvent.actor)}{" "}
                   {activitySummary(typedLastEvent)} · {timeAgo(typedLastEvent.created_at)}
                 </Link>
               )}

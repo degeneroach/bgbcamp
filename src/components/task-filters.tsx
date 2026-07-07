@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { UserAvatar } from "@/components/user-avatar";
+import { displayName } from "@/lib/display-name";
 import type { Profile } from "@/types/database";
 
 export function TaskFilters({ members }: { members: Profile[] }) {
@@ -38,7 +39,7 @@ export function TaskFilters({ members }: { members: Profile[] }) {
           {members.map((m) => (
             <SelectItem key={m.id} value={m.id}>
               <UserAvatar name={m.full_name} email={m.email} avatarUrl={m.avatar_url} className="h-4 w-4" />
-              {m.full_name || m.email}
+              {displayName(m)}
             </SelectItem>
           ))}
         </SelectContent>

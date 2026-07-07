@@ -5,6 +5,7 @@ import { UserAvatar } from "@/components/user-avatar";
 import { RichTextContent } from "@/components/rich-text-editor";
 import { Separator } from "@/components/ui/separator";
 import { timeAgo } from "@/lib/format";
+import { displayName } from "@/lib/display-name";
 import { createPostComment } from "@/app/(app)/projects/[slug]/actions";
 import type { PostCommentWithAuthor } from "@/components/post-card";
 import type { Profile } from "@/types/database";
@@ -24,7 +25,7 @@ export function PostCommentSection({
   comments: PostCommentWithAuthor[];
   members: Profile[];
 }) {
-  const mentionCandidates = members.map((m) => ({ id: m.id, label: m.full_name || m.email }));
+  const mentionCandidates = members.map((m) => ({ id: m.id, label: displayName(m) }));
 
   return (
     <div className="flex flex-col gap-3">
@@ -42,9 +43,7 @@ export function PostCommentSection({
                 />
                 <div className="flex flex-1 flex-col rounded-md bg-muted/50 px-3 py-1.5">
                   <div className="flex items-baseline gap-2">
-                    <span className="text-xs font-medium">
-                      {comment.author?.full_name || comment.author?.email || "Someone"}
-                    </span>
+                    <span className="text-xs font-medium">{displayName(comment.author)}</span>
                     <span className="text-[11px] text-muted-foreground">
                       {timeAgo(comment.created_at)}
                     </span>

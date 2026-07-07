@@ -3,6 +3,7 @@ import { UserAvatar } from "@/components/user-avatar";
 import { activitySummary } from "@/lib/activity-summary";
 import { timeAgo } from "@/lib/format";
 import { getUserAccent, getUserOffset } from "@/lib/user-colors";
+import { displayName } from "@/lib/display-name";
 import type { ActivityEvent, Profile } from "@/types/database";
 
 export interface ActivityEventWithRelations extends ActivityEvent {
@@ -17,7 +18,7 @@ export function ActivityItem({
   event: ActivityEventWithRelations;
   showProject?: boolean;
 }) {
-  const actorName = event.actor?.full_name || event.actor?.email || "Someone";
+  const actorName = displayName(event.actor);
   const accentKey = event.actor?.email || event.actor?.full_name || null;
   const accent = getUserAccent(accentKey);
   const offset = getUserOffset(accentKey);

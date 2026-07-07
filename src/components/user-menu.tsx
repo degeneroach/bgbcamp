@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { UserAvatar } from "@/components/user-avatar";
 import { signOut } from "@/app/auth/actions";
+import { displayName } from "@/lib/display-name";
 import { LogOut, UserCog } from "lucide-react";
 
 export function UserMenu({
@@ -29,7 +30,7 @@ export function UserMenu({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel className="flex flex-col">
-          <span className="font-medium">{name || email}</span>
+          <span className="font-medium">{displayName({ full_name: name, email })}</span>
           <span className="text-xs font-normal text-muted-foreground">{email}</span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />

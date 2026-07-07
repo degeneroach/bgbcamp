@@ -14,6 +14,7 @@ import { UserAvatar } from "@/components/user-avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Bell, AtSign } from "lucide-react";
 import { timeAgo } from "@/lib/format";
+import { displayName } from "@/lib/display-name";
 import { notificationHref, type NotificationWithRelations } from "@/lib/notifications";
 import { markAllNotificationsRead, markNotificationRead } from "@/app/(app)/notifications/actions";
 import { cn } from "@/lib/utils";
@@ -97,7 +98,7 @@ export function NotificationsBell({
                     <span className="flex items-center gap-1 text-xs">
                       <AtSign className="h-3 w-3 text-primary" />
                       <span className="font-medium">
-                        {notification.actor?.full_name || notification.actor?.email || "Someone"}
+                        {displayName(notification.actor)}
                       </span>
                       <span className="text-muted-foreground">mentioned you</span>
                     </span>

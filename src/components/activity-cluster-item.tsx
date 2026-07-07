@@ -9,6 +9,7 @@ import { ActivityCommentPreview } from "@/components/activity-comment-preview";
 import { getActivityIcon, describeActivity } from "@/lib/activity-display";
 import { timeAgo } from "@/lib/format";
 import { getUserAccent } from "@/lib/user-colors";
+import { displayName } from "@/lib/display-name";
 import { cn } from "@/lib/utils";
 import type { ActivityCluster } from "@/lib/activity-grouping";
 
@@ -18,7 +19,7 @@ function ActorName({ actor }: { actor: ActivityCluster["actor"] }) {
   const accent = getUserAccent(actor?.email || actor?.full_name || null);
   return (
     <span className="font-semibold" style={{ color: accent.text }}>
-      {actor?.full_name || actor?.email || "Someone"}
+      {displayName(actor)}
     </span>
   );
 }
