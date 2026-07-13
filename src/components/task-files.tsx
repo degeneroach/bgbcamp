@@ -59,13 +59,11 @@ export function TaskFiles({
   const [isUploading, startUpload] = useTransition();
   const [isDeleting, startDelete] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState(false);
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-
-    if (file.size > MAX_SIZE_BYTES) {
+  function uploadFiles(all: File[]) {
+    if (all.length === 0) return;
+    if (all.some((f) => f.size > MAX_SIZE_BYTES)) {
       setError("Files must be under 50MB.");
       return;
     }
@@ -73,31 +71,54 @@ export function TaskFiles({
     setError(null);
     startUpload(async () => {
       const supabase = createClient();
-      const ext = file.name.split(".").pop();
-      const path = `${projectId}/${taskId}/${crypto.randomUUID()}${ext ? `.${ext}` : ""}`;
+      for (const file of all) {
+        const ext = file.name.split(".").pop();
+        const path = `${projectId}/${taskId}/${crypto.randomUUID()}${ext ? `.${ext}` : ""}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from("attachments")
-        .upload(path, file, { contentType: file.type || "application/octet-stream" });
-      if (uploadError) {
-        setError(uploadError.message);
-        return;
+        const { error: uploadError } = await supabase.storage
+          .from("attachments")
+          .upload(path, file, { contentType: file.type || "application/octet-stream" });
+        if (uploadError) {
+          setError(uploadError.message);
+          return;
+        }
+
+        const { data } = supabase.storage.from("attachments").getPublicUrl(path);
+        const result = await recordTaskFile(taskId, projectId, projectSlug, taskTitle, {
+          storagePath: path,
+          url: data.publicUrl,
+          name: file.name,
+          mimeType: file.type || "application/octet-stream",
+          sizeBytes: file.size,
+        });
+        if (!result.ok) {
+          setError(result.error ?? "Could not save file.");
+          return;
+        }
       }
-
-      const { data } = supabase.storage.from("attachments").getPublicUrl(path);
-      const result = await recordTaskFile(taskId, projectId, projectSlug, taskTitle, {
-        storagePath: path,
-        url: data.publicUrl,
-        name: file.name,
-        mimeType: file.type || "application/octet-stream",
-        sizeBytes: file.size,
-      });
-      if (!result.ok) setError(result.error ?? "Could not save file.");
     });
   }
 
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = "";
+    uploadFiles(files);
+  }
+
   return (
-    <div className="flex flex-col gap-2">
+    <div
+      className={`flex flex-col gap-2 rounded-lg transition-shadow ${dragOver ? "ring-2 ring-primary/40" : ""}`}
+      onDragOver={(e) => {
+        e.preventDefault();
+        setDragOver(true);
+      }}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={(e) => {
+        e.preventDefault();
+        setDragOver(false);
+        uploadFiles(Array.from(e.dataTransfer.files));
+      }}
+    >
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium">Files</span>
         <Button
@@ -114,18 +135,33 @@ export function TaskFiles({
           )}
           Add file
         </Button>
-        <input ref={inputRef} type="file" className="hidden" onChange={handleFileChange} />
+        <input ref={inputRef} type="file" multiple className="hidden" onChange={handleFileChange} />
       </div>
       {error && <p className="text-xs text-destructive">{error}</p>}
+      {files.length === 0 && (
+        <p className="text-xs text-muted-foreground/70">
+          Drag &amp; drop any files here (PDF, .ai, vectors, videos…), or click Add file.
+        </p>
+      )}
       {files.length > 0 && (
         <ul className="flex flex-col divide-y rounded-md border">
           {files.map((file) => {
             const Icon = iconFor(file.name, file.mime_type);
+            const isImage = file.mime_type?.startsWith("image/");
             return (
               <li key={file.id} className="group flex items-center gap-3 px-3 py-2">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted">
-                  <Icon className="h-4 w-4 text-muted-foreground" />
-                </div>
+                {isImage ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={file.url}
+                    alt={file.name}
+                    className="h-8 w-8 shrink-0 rounded-md border object-cover"
+                  />
+                ) : (
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted">
+                    <Icon className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                )}
                 <div className="flex min-w-0 flex-1 flex-col">
                   <span className="truncate text-sm font-medium">{file.name}</span>
                   {file.size_bytes != null && (

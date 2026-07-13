@@ -28,18 +28,16 @@ export function TaskImages({
   const [isUploading, startUpload] = useTransition();
   const [isDeleting, startDelete] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState(false);
   const lightbox = useImageLightbox();
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-
-    if (!file.type.startsWith("image/")) {
-      setError("Only image files are supported.");
+  function uploadImages(all: File[]) {
+    const images = all.filter((f) => f.type.startsWith("image/"));
+    if (images.length === 0) {
+      setError("Only image files are supported here — drop other files on the Files section.");
       return;
     }
-    if (file.size > MAX_SIZE_BYTES) {
+    if (images.some((f) => f.size > MAX_SIZE_BYTES)) {
       setError("Images must be under 8MB.");
       return;
     }
@@ -47,25 +45,46 @@ export function TaskImages({
     setError(null);
     startUpload(async () => {
       const supabase = createClient();
-      const ext = file.name.split(".").pop();
-      const path = `${projectId}/${taskId}/${crypto.randomUUID()}${ext ? `.${ext}` : ""}`;
+      for (const file of images) {
+        const ext = file.name.split(".").pop();
+        const path = `${projectId}/${taskId}/${crypto.randomUUID()}${ext ? `.${ext}` : ""}`;
 
-      const { error: uploadError } = await supabase.storage.from("task-images").upload(path, file);
-      if (uploadError) {
-        setError(uploadError.message);
-        return;
-      }
+        const { error: uploadError } = await supabase.storage.from("task-images").upload(path, file);
+        if (uploadError) {
+          setError(uploadError.message);
+          return;
+        }
 
-      const { data } = supabase.storage.from("task-images").getPublicUrl(path);
-      const result = await recordTaskImage(taskId, projectId, projectSlug, taskTitle, path, data.publicUrl);
-      if (!result.ok) {
-        setError(result.error ?? "Could not save image.");
+        const { data } = supabase.storage.from("task-images").getPublicUrl(path);
+        const result = await recordTaskImage(taskId, projectId, projectSlug, taskTitle, path, data.publicUrl);
+        if (!result.ok) {
+          setError(result.error ?? "Could not save image.");
+          return;
+        }
       }
     });
   }
 
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = "";
+    if (files.length > 0) uploadImages(files);
+  }
+
   return (
-    <div className="flex flex-col gap-2">
+    <div
+      className={`flex flex-col gap-2 rounded-lg transition-shadow ${dragOver ? "ring-2 ring-primary/40" : ""}`}
+      onDragOver={(e) => {
+        e.preventDefault();
+        setDragOver(true);
+      }}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={(e) => {
+        e.preventDefault();
+        setDragOver(false);
+        uploadImages(Array.from(e.dataTransfer.files));
+      }}
+    >
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium">Images</span>
         <Button
@@ -82,11 +101,17 @@ export function TaskImages({
           ref={inputRef}
           type="file"
           accept="image/*"
+          multiple
           className="hidden"
           onChange={handleFileChange}
         />
       </div>
       {error && <p className="text-xs text-destructive">{error}</p>}
+      {images.length === 0 && (
+        <p className="text-xs text-muted-foreground/70">
+          Drag &amp; drop images here, or click Upload image.
+        </p>
+      )}
       {images.length > 0 && (
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
           {images.map((image) => (

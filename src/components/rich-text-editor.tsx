@@ -373,6 +373,19 @@ export function RichTextEditor({
   );
 }
 
+// Wraps runs of 2+ consecutive images (TipTap emits them as sibling blocks,
+// sometimes inside bare <p> tags) in a gallery container so they render as a
+// compact thumbnail row instead of stacked full-width images.
+function groupConsecutiveImages(html: string): string {
+  return html.replace(
+    /(?:(?:<p>\s*)?<img[^>]*\/?>(?:\s*<\/p>)?\s*){2,}/g,
+    (match) => `<div data-rte-gallery>${match}</div>`
+  );
+}
+
+const GALLERY_STYLES =
+  "[&_[data-rte-gallery]]:my-2 [&_[data-rte-gallery]]:flex [&_[data-rte-gallery]]:flex-wrap [&_[data-rte-gallery]]:gap-2 [&_[data-rte-gallery]_p]:m-0 [&_[data-rte-gallery]_img]:m-0 [&_[data-rte-gallery]_img]:h-28 [&_[data-rte-gallery]_img]:w-28 [&_[data-rte-gallery]_img]:rounded-md [&_[data-rte-gallery]_img]:border [&_[data-rte-gallery]_img]:object-cover";
+
 export function RichTextContent({ html, className }: { html: string; className?: string }) {
   const lightbox = useImageLightbox();
 
@@ -386,9 +399,9 @@ export function RichTextContent({ html, className }: { html: string; className?:
 
   return (
     <div
-      className={`prose prose-sm max-w-none dark:prose-invert [&_img]:cursor-zoom-in ${className ?? ""}`}
+      className={`prose prose-sm max-w-none dark:prose-invert [&_img]:cursor-zoom-in [&_img]:rounded-md [&_img]:max-h-96 ${GALLERY_STYLES} ${className ?? ""}`}
       onClick={handleClick}
-      dangerouslySetInnerHTML={{ __html: html }}
+      dangerouslySetInnerHTML={{ __html: groupConsecutiveImages(html) }}
     />
   );
 }
