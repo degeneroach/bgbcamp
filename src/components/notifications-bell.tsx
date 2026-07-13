@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { UserAvatar } from "@/components/user-avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Bell, AtSign } from "lucide-react";
+import { Bell, AtSign, Zap } from "lucide-react";
 import { timeAgo } from "@/lib/format";
 import { displayName } from "@/lib/display-name";
 import { notificationHref, type NotificationWithRelations } from "@/lib/notifications";
@@ -96,11 +96,17 @@ export function NotificationsBell({
                   />
                   <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <span className="flex items-center gap-1 text-xs">
-                      <AtSign className="h-3 w-3 text-primary" />
+                      {notification.entity_type === "boost" ? (
+                        <Zap className="h-3 w-3 text-primary" />
+                      ) : (
+                        <AtSign className="h-3 w-3 text-primary" />
+                      )}
                       <span className="font-medium">
                         {displayName(notification.actor)}
                       </span>
-                      <span className="text-muted-foreground">mentioned you</span>
+                      <span className="text-muted-foreground">
+                        {notification.entity_type === "boost" ? "boosted you" : "mentioned you"}
+                      </span>
                     </span>
                     <span className="truncate text-sm text-muted-foreground">
                       {notification.excerpt || "(no preview)"}

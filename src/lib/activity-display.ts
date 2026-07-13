@@ -11,6 +11,7 @@ import {
   Archive,
   CalendarClock,
   RotateCcw,
+  Zap,
   Activity as ActivityIcon,
   type LucideIcon,
 } from "lucide-react";
@@ -31,6 +32,8 @@ const ICONS: Record<string, LucideIcon> = {
   "task.file_added": FileIcon,
   "task.priority_changed": Pencil,
   "task_comment.created": MessageSquare,
+  "task.boosted": Zap,
+  "task_comment.boosted": Zap,
   "post.created": MessageSquare,
   "post.updated": Pencil,
   "post_comment.created": MessageSquare,
@@ -60,6 +63,8 @@ const TYPE_BUCKETS: Record<string, ActivityTypeBucket> = {
   "task_list.created": "task",
   "task_list.renamed": "task",
   "task_comment.created": "comment",
+  "task.boosted": "task",
+  "task_comment.boosted": "comment",
   "post.created": "comment",
   "post.updated": "comment",
   "post_comment.created": "comment",
@@ -134,6 +139,20 @@ export function describeActivity(
       };
     case "task_comment.created":
       return { verb: "commented on", itemLabel: m.taskTitle ?? null, itemHref: taskHref };
+    case "task.boosted":
+      return {
+        verb: "boosted",
+        itemLabel: m.title ?? null,
+        itemHref: taskHref,
+        detail: m.emoji ? `with ${m.emoji}` : undefined,
+      };
+    case "task_comment.boosted":
+      return {
+        verb: "boosted a comment on",
+        itemLabel: m.title ?? null,
+        itemHref: taskHref,
+        detail: m.emoji ? `with ${m.emoji}` : undefined,
+      };
     case "post.created":
       return {
         verb: "posted",

@@ -156,7 +156,21 @@ export type ActivityEvent = {
   created_at: string;
 };
 
-export type NotificationEntityType = "task_comment" | "post_comment" | "task";
+export type NotificationEntityType = "task_comment" | "post_comment" | "task" | "boost";
+
+export type BoostEntityType = "task" | "task_comment";
+
+export type Boost = {
+  id: string;
+  organization_id: string;
+  project_id: string;
+  task_id: string;
+  entity_type: BoostEntityType;
+  entity_id: string;
+  author_id: string;
+  emoji: string;
+  created_at: string;
+};
 
 export type Notification = {
   id: string;
@@ -421,6 +435,49 @@ export type Database = {
           {
             foreignKeyName: "task_images_uploaded_by_fkey";
             columns: ["uploaded_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      boosts: {
+        Row: Boost;
+        Insert: Partial<Boost> & {
+          organization_id: string;
+          project_id: string;
+          task_id: string;
+          entity_type: BoostEntityType;
+          entity_id: string;
+          author_id: string;
+          emoji: string;
+        };
+        Update: Partial<Boost>;
+        Relationships: [
+          {
+            foreignKeyName: "boosts_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "boosts_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "boosts_task_id_fkey";
+            columns: ["task_id"];
+            isOneToOne: false;
+            referencedRelation: "tasks";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "boosts_author_id_fkey";
+            columns: ["author_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
             referencedColumns: ["id"];

@@ -3,6 +3,7 @@
 import { CommentForm } from "@/components/comment-form";
 import { UserAvatar } from "@/components/user-avatar";
 import { RichTextContent } from "@/components/rich-text-editor";
+import { BoostBar, type BoostWithAuthor } from "@/components/boost-bar";
 import { timeAgo } from "@/lib/format";
 import { displayName } from "@/lib/display-name";
 import { createTaskComment } from "@/app/(app)/projects/[slug]/tasks/actions";
@@ -15,6 +16,8 @@ export function TaskCommentSection({
   taskTitle,
   comments,
   members,
+  boosts,
+  currentUserId,
 }: {
   taskId: string;
   projectId: string;
@@ -22,6 +25,8 @@ export function TaskCommentSection({
   taskTitle: string;
   comments: (TaskComment & { author: Profile | null })[];
   members: Profile[];
+  boosts: BoostWithAuthor[];
+  currentUserId: string;
 }) {
   const mentionCandidates = members.map((m) => ({ id: m.id, label: displayName(m) }));
 
@@ -42,6 +47,19 @@ export function TaskCommentSection({
               <span className="text-[11px] text-muted-foreground">{timeAgo(comment.created_at)}</span>
             </div>
             <RichTextContent html={comment.body} className="text-sm" />
+            <div className="mt-1.5">
+              <BoostBar
+                entityType="task_comment"
+                entityId={comment.id}
+                taskId={taskId}
+                projectId={projectId}
+                projectSlug={projectSlug}
+                taskTitle={taskTitle}
+                boosts={boosts.filter((b) => b.entity_id === comment.id)}
+                currentUserId={currentUserId}
+                size="sm"
+              />
+            </div>
           </div>
         </div>
       ))}

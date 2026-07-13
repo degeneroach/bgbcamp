@@ -89,7 +89,9 @@ export async function getRecentNotifications(
 export function notificationHref(notification: NotificationWithRelations): string {
   if (!notification.project) return "/activity";
   if (
-    (notification.entity_type === "task_comment" || notification.entity_type === "task") &&
+    (notification.entity_type === "task_comment" ||
+      notification.entity_type === "task" ||
+      notification.entity_type === "boost") &&
     notification.task
   ) {
     return `/projects/${notification.project.slug}/tasks/${notification.task.id}`;

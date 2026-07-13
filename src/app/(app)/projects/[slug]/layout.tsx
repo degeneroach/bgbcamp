@@ -51,7 +51,11 @@ export default async function ProjectLayout({
               {project.name.slice(0, 1).toUpperCase()}
             </span>
             <div className="flex flex-col gap-1">
-              <h1 className="text-2xl font-semibold tracking-tight">{project.name}</h1>
+              <Link href={`/projects/${slug}`} className="w-fit">
+                <h1 className="text-2xl font-semibold tracking-tight hover:underline">
+                  {project.name}
+                </h1>
+              </Link>
               {project.description && (
                 <RichTextContent
                   html={project.description}

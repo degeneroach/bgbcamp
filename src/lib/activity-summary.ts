@@ -29,6 +29,12 @@ export function activitySummary(event: Pick<ActivityEvent, "action" | "metadata"
       return m.dueDate ? `set the due date on ${title} to ${m.dueDate}` : `cleared the due date on ${title}`;
     case "task.image_added":
       return `attached an image to ${title}`;
+    case "task.file_added":
+      return `attached ${m.fileName ?? "a file"} to ${title}`;
+    case "task.boosted":
+      return `boosted ${title}${m.emoji ? ` with ${m.emoji}` : ""}`;
+    case "task_comment.boosted":
+      return `boosted a comment on ${title}${m.emoji ? ` with ${m.emoji}` : ""}`;
     case "task.priority_changed":
       return `set ${title} to ${m.priority} priority`;
     case "project.renamed":

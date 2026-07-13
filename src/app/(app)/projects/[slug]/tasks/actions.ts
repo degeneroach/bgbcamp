@@ -488,6 +488,111 @@ export async function recordTaskFile(
   return { ok: true };
 }
 
+export async function setBoost(
+  projectId: string,
+  projectSlug: string,
+  taskId: string,
+  taskTitle: string,
+  entityType: "task" | "task_comment",
+  entityId: string,
+  emoji: string
+): Promise<ActionResult> {
+  const { userId, organization } = await requireCurrentUser();
+  const supabase = await createClient();
+
+  const { error } = await supabase.from("boosts").upsert(
+    {
+      organization_id: organization.id,
+      project_id: projectId,
+      task_id: taskId,
+      entity_type: entityType,
+      entity_id: entityId,
+      author_id: userId,
+      emoji,
+    },
+    { onConflict: "entity_type,entity_id,author_id" }
+  );
+
+  if (error) return { ok: false, error: error.message };
+
+  // Task boosts notify the assignees (or the creator when unassigned);
+  // comment boosts notify the comment's author.
+  let recipients: string[] = [];
+  if (entityType === "task") {
+    const { data: assignees } = await supabase
+      .from("task_assignees")
+      .select("user_id")
+      .eq("task_id", taskId);
+    recipients = (assignees ?? []).map((a) => a.user_id);
+    if (recipients.length === 0) {
+      const { data: task } = await supabase
+        .from("tasks")
+        .select("created_by")
+        .eq("id", taskId)
+        .single();
+      if (task?.created_by) recipients = [task.created_by];
+    }
+  } else {
+    const { data: comment } = await supabase
+      .from("task_comments")
+      .select("author_id")
+      .eq("id", entityId)
+      .single();
+    if (comment?.author_id) recipients = [comment.author_id];
+  }
+
+  recipients = Array.from(new Set(recipients)).filter((id) => id !== userId);
+  if (recipients.length > 0) {
+    await supabase.from("notifications").insert(
+      recipients.map((recipientId) => ({
+        organization_id: organization.id,
+        recipient_id: recipientId,
+        actor_id: userId,
+        project_id: projectId,
+        entity_type: "boost" as const,
+        entity_id: entityId,
+        task_id: taskId,
+        excerpt: `${emoji}  “${taskTitle}”`,
+      }))
+    );
+  }
+
+  await logActivity(supabase, {
+    organizationId: organization.id,
+    projectId,
+    actorId: userId,
+    entityType: "task",
+    entityId: taskId,
+    action: entityType === "task" ? "task.boosted" : "task_comment.boosted",
+    metadata: { title: taskTitle, emoji },
+  });
+
+  taskPaths(projectSlug, taskId);
+  return { ok: true };
+}
+
+export async function removeBoost(
+  entityType: "task" | "task_comment",
+  entityId: string,
+  projectSlug: string,
+  taskId: string
+): Promise<ActionResult> {
+  const { userId } = await requireCurrentUser();
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("boosts")
+    .delete()
+    .eq("entity_type", entityType)
+    .eq("entity_id", entityId)
+    .eq("author_id", userId);
+
+  if (error) return { ok: false, error: error.message };
+
+  taskPaths(projectSlug, taskId);
+  return { ok: true };
+}
+
 export async function deleteTaskFile(
   fileId: string,
   storagePath: string,

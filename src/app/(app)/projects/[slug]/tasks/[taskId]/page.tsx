@@ -13,6 +13,7 @@ import { TaskImages } from "@/components/task-images";
 import { TaskFiles } from "@/components/task-files";
 import { TaskCommentSection } from "@/components/task-comment-section";
 import { ActivityItem, type ActivityEventWithRelations } from "@/components/activity-item";
+import { BoostBar, type BoostWithAuthor } from "@/components/boost-bar";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { isTaskCompleted } from "@/lib/tasks";
@@ -24,7 +25,7 @@ export default async function TaskDetailPage({
   params: Promise<{ slug: string; taskId: string }>;
 }) {
   const { slug, taskId } = await params;
-  const { organization } = await requireCurrentUser();
+  const { userId, organization } = await requireCurrentUser();
   const supabase = await createClient();
   const project = await getProjectBySlug(supabase, organization.id, slug);
   const members = await getOrganizationMembers(supabase, organization.id);
@@ -44,6 +45,7 @@ export default async function TaskDetailPage({
     { data: files },
     { data: events },
     { data: assigneeRows },
+    { data: boostRows },
   ] = await Promise.all([
       supabase
         .from("task_comments")
@@ -67,10 +69,18 @@ export default async function TaskDetailPage({
         .in("entity_type", ["task", "task_comment", "task_image"])
         .order("created_at", { ascending: false }),
       supabase.from("task_assignees").select("profiles(*)").eq("task_id", taskId),
+      supabase
+        .from("boosts")
+        .select("*, author:profiles!author_id(*)")
+        .eq("task_id", taskId)
+        .order("created_at", { ascending: true }),
     ]);
 
   const typedTask = task as Task;
   const assignees = (assigneeRows ?? []).map((row) => row.profiles as unknown as Profile);
+  const boosts = (boostRows ?? []) as unknown as BoostWithAuthor[];
+  const taskBoosts = boosts.filter((b) => b.entity_type === "task");
+  const commentBoosts = boosts.filter((b) => b.entity_type === "task_comment");
 
   return (
     <div className="flex max-w-5xl flex-col gap-4">
@@ -130,6 +140,8 @@ export default async function TaskDetailPage({
               taskTitle={typedTask.title}
               comments={(comments ?? []) as unknown as (TaskComment & { author: Profile | null })[]}
               members={members}
+              boosts={commentBoosts}
+              currentUserId={userId}
             />
           </Card>
         </div>
@@ -166,6 +178,19 @@ export default async function TaskDetailPage({
                 projectId={project.id}
                 projectSlug={slug}
                 dueDate={typedTask.due_date}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs text-muted-foreground">Boosts</Label>
+              <BoostBar
+                entityType="task"
+                entityId={taskId}
+                taskId={taskId}
+                projectId={project.id}
+                projectSlug={slug}
+                taskTitle={typedTask.title}
+                boosts={taskBoosts}
+                currentUserId={userId}
               />
             </div>
           </Card>
