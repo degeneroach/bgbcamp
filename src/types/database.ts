@@ -156,7 +156,7 @@ export type ActivityEvent = {
   created_at: string;
 };
 
-export type NotificationEntityType = "task_comment" | "post_comment";
+export type NotificationEntityType = "task_comment" | "post_comment" | "task";
 
 export type Notification = {
   id: string;

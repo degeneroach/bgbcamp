@@ -266,6 +266,27 @@ export async function updateTask(
 
   const title = input.title?.trim() || existing.title;
 
+  // Notify teammates newly @mentioned in the description (not ones that were
+  // already there before this edit, so re-saving doesn't re-ping everyone).
+  if (update.description_html !== undefined) {
+    const previousMentions = new Set(extractMentionIds(existing.description_html ?? ""));
+    const newMentions = extractMentionIds(update.description_html).filter(
+      (id) => !previousMentions.has(id)
+    );
+    if (newMentions.length > 0) {
+      await createMentionNotifications(supabase, {
+        organizationId: organization.id,
+        projectId,
+        actorId: userId,
+        mentionedUserIds: newMentions,
+        entityType: "task",
+        entityId: taskId,
+        taskId,
+        bodyHtml: update.description_html,
+      });
+    }
+  }
+
   if (input.dueDate !== undefined && input.dueDate !== existing.due_date) {
     await logActivity(supabase, {
       organizationId: organization.id,

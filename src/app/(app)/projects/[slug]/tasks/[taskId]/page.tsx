@@ -97,6 +97,7 @@ export default async function TaskDetailPage({
                 projectId={project.id}
                 projectSlug={slug}
                 descriptionHtml={typedTask.description_html}
+                members={members}
               />
             </div>
           </Card>

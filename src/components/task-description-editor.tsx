@@ -4,7 +4,9 @@ import { useState, useTransition } from "react";
 import { RichTextEditor, RichTextContent } from "@/components/rich-text-editor";
 import { Button } from "@/components/ui/button";
 import { updateTask } from "@/app/(app)/projects/[slug]/tasks/actions";
+import { displayName } from "@/lib/display-name";
 import { Loader2, Pencil } from "lucide-react";
+import type { Profile } from "@/types/database";
 
 function isBlankHtml(html: string) {
   return html.replace(/<[^>]*>/g, "").trim().length === 0;
@@ -15,12 +17,15 @@ export function TaskDescriptionEditor({
   projectId,
   projectSlug,
   descriptionHtml,
+  members,
 }: {
   taskId: string;
   projectId: string;
   projectSlug: string;
   descriptionHtml: string;
+  members: Profile[];
 }) {
+  const mentionCandidates = members.map((m) => ({ id: m.id, label: displayName(m) }));
   // The committed (saved) description shown in read-only mode.
   const [savedHtml, setSavedHtml] = useState(descriptionHtml);
   // Draft being edited. Start in edit mode only when there's nothing yet.
@@ -75,8 +80,11 @@ export function TaskDescriptionEditor({
       <RichTextEditor
         content={draftHtml}
         onChange={setDraftHtml}
-        placeholder="Add a description..."
+        placeholder="Add a description... (@ to mention, paste or drop images)"
         minHeight="6rem"
+        projectId={projectId}
+        enableImages
+        mentionCandidates={mentionCandidates}
       />
       <div className="flex justify-end gap-2">
         {!isBlankHtml(savedHtml) && (
