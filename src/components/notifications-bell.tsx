@@ -19,12 +19,22 @@ import { notificationHref, type NotificationWithRelations } from "@/lib/notifica
 import { markAllNotificationsRead, markNotificationRead } from "@/app/(app)/notifications/actions";
 import { cn } from "@/lib/utils";
 
-export function NotificationsBell({
+function NotificationsDropdown({
   notifications,
   unreadCount,
+  title,
+  emptyText,
+  scope,
+  triggerIcon,
+  triggerClassName,
 }: {
   notifications: NotificationWithRelations[];
   unreadCount: number;
+  title: string;
+  emptyText: string;
+  scope: "mentions" | "boosts";
+  triggerIcon: React.ReactNode;
+  triggerClassName?: string;
 }) {
   const [, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
@@ -42,8 +52,12 @@ export function NotificationsBell({
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
-      <DropdownMenuTrigger render={<Button variant="ghost" size="icon" className="relative h-9 w-9" />}>
-        <Bell className="h-4 w-4" />
+      <DropdownMenuTrigger
+        render={
+          <Button variant="ghost" size="icon" className={cn("relative h-9 w-9", triggerClassName)} />
+        }
+      >
+        {triggerIcon}
         {unreadCount > 0 && (
           <Badge className="absolute -right-1 -top-1 h-4 min-w-4 justify-center rounded-full px-1 text-[10px]">
             {unreadCount > 9 ? "9+" : unreadCount}
@@ -52,7 +66,7 @@ export function NotificationsBell({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-80 p-0">
         <div className="flex items-center justify-between border-b px-3 py-2">
-          <span className="text-sm font-medium">Mentions</span>
+          <span className="text-sm font-medium">{title}</span>
           {unreadCount > 0 && (
             <button
               type="button"
@@ -60,7 +74,7 @@ export function NotificationsBell({
               onClick={(e) => {
                 e.preventDefault();
                 startTransition(() => {
-                  markAllNotificationsRead();
+                  markAllNotificationsRead(scope);
                 });
               }}
             >
@@ -70,9 +84,7 @@ export function NotificationsBell({
         </div>
         <ScrollArea className="max-h-96">
           {notifications.length === 0 ? (
-            <p className="px-3 py-8 text-center text-sm text-muted-foreground">
-              No mentions yet.
-            </p>
+            <p className="px-3 py-8 text-center text-sm text-muted-foreground">{emptyText}</p>
           ) : (
             <div className="flex flex-col">
               {notifications.map((notification) => (
@@ -97,7 +109,7 @@ export function NotificationsBell({
                   <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <span className="flex items-center gap-1 text-xs">
                       {notification.entity_type === "boost" ? (
-                        <Zap className="h-3 w-3 text-primary" />
+                        <Zap className="h-3 w-3 text-amber-500" />
                       ) : (
                         <AtSign className="h-3 w-3 text-primary" />
                       )}
@@ -125,5 +137,45 @@ export function NotificationsBell({
         </ScrollArea>
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+export function NotificationsBell({
+  notifications,
+  unreadCount,
+}: {
+  notifications: NotificationWithRelations[];
+  unreadCount: number;
+}) {
+  return (
+    <NotificationsDropdown
+      notifications={notifications}
+      unreadCount={unreadCount}
+      title="Mentions"
+      emptyText="No mentions yet."
+      scope="mentions"
+      triggerIcon={<Bell className="h-4 w-4" />}
+    />
+  );
+}
+
+// Only rendered when the user has boost notifications — a quiet spot of
+// delight rather than a permanent fixture (see AppShell).
+export function BoostsBell({
+  notifications,
+  unreadCount,
+}: {
+  notifications: NotificationWithRelations[];
+  unreadCount: number;
+}) {
+  return (
+    <NotificationsDropdown
+      notifications={notifications}
+      unreadCount={unreadCount}
+      title="Boosts"
+      emptyText="No boosts yet."
+      scope="boosts"
+      triggerIcon={<Zap className="h-4 w-4 text-amber-500" />}
+    />
   );
 }

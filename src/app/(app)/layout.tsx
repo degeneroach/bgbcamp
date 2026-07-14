@@ -10,7 +10,10 @@ export default async function AppLayout({
 }) {
   const { userId, profile, organization } = await requireCurrentUser();
   const supabase = await createClient();
-  const { notifications, unreadCount } = await getRecentNotifications(supabase, userId);
+  const { notifications, unreadCount, unreadBoostCount } = await getRecentNotifications(
+    supabase,
+    userId
+  );
 
   return (
     <AppShell
@@ -18,6 +21,7 @@ export default async function AppLayout({
       organization={organization}
       notifications={notifications}
       unreadCount={unreadCount}
+      unreadBoostCount={unreadBoostCount}
     >
       {children}
     </AppShell>

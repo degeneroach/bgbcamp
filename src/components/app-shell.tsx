@@ -2,7 +2,7 @@ import Link from "next/link";
 import { NavLink } from "@/components/nav-link";
 import { UserMenu } from "@/components/user-menu";
 import { GlobalSearch } from "@/components/global-search";
-import { NotificationsBell } from "@/components/notifications-bell";
+import { NotificationsBell, BoostsBell } from "@/components/notifications-bell";
 import { OrganizationNameEditor } from "@/components/organization-name-editor";
 import { BrandMark } from "@/components/brand-mark";
 import { ImageLightboxProvider } from "@/components/image-lightbox";
@@ -14,14 +14,19 @@ export function AppShell({
   organization,
   notifications,
   unreadCount,
+  unreadBoostCount,
   children,
 }: {
   profile: Profile;
   organization: Organization;
   notifications: NotificationWithRelations[];
   unreadCount: number;
+  unreadBoostCount: number;
   children: React.ReactNode;
 }) {
+  const boostNotifications = notifications.filter((n) => n.entity_type === "boost");
+  const mentionNotifications = notifications.filter((n) => n.entity_type !== "boost");
+
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-40 border-b border-border/60 bg-background/90 backdrop-blur">
@@ -49,7 +54,10 @@ export function AppShell({
             <div className="hidden sm:block">
               <GlobalSearch />
             </div>
-            <NotificationsBell notifications={notifications} unreadCount={unreadCount} />
+            {(boostNotifications.length > 0 || unreadBoostCount > 0) && (
+              <BoostsBell notifications={boostNotifications} unreadCount={unreadBoostCount} />
+            )}
+            <NotificationsBell notifications={mentionNotifications} unreadCount={unreadCount} />
             <UserMenu
               name={profile.full_name}
               email={profile.email}

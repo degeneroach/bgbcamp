@@ -63,26 +63,40 @@ export async function getRecentNotifications(
   supabase: SupabaseClient<Database>,
   userId: string,
   limit = 20
-): Promise<{ notifications: NotificationWithRelations[]; unreadCount: number }> {
-  const [{ data: notifications }, { count: unreadCount }] = await Promise.all([
-    supabase
-      .from("notifications")
-      .select(
-        "id, read, excerpt, created_at, entity_type, actor:profiles!actor_id(full_name, email, avatar_url), project:projects!project_id(slug, name), task:tasks!task_id(id, title), post:posts!post_id(id, title)"
-      )
-      .eq("recipient_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(limit),
-    supabase
-      .from("notifications")
-      .select("id", { count: "exact", head: true })
-      .eq("recipient_id", userId)
-      .eq("read", false),
-  ]);
+): Promise<{
+  notifications: NotificationWithRelations[];
+  /** Unread mentions/comments — everything except boosts. */
+  unreadCount: number;
+  unreadBoostCount: number;
+}> {
+  const [{ data: notifications }, { count: unreadCount }, { count: unreadBoostCount }] =
+    await Promise.all([
+      supabase
+        .from("notifications")
+        .select(
+          "id, read, excerpt, created_at, entity_type, actor:profiles!actor_id(full_name, email, avatar_url), project:projects!project_id(slug, name), task:tasks!task_id(id, title), post:posts!post_id(id, title)"
+        )
+        .eq("recipient_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(limit),
+      supabase
+        .from("notifications")
+        .select("id", { count: "exact", head: true })
+        .eq("recipient_id", userId)
+        .eq("read", false)
+        .neq("entity_type", "boost"),
+      supabase
+        .from("notifications")
+        .select("id", { count: "exact", head: true })
+        .eq("recipient_id", userId)
+        .eq("read", false)
+        .eq("entity_type", "boost"),
+    ]);
 
   return {
     notifications: (notifications ?? []) as unknown as NotificationWithRelations[],
     unreadCount: unreadCount ?? 0,
+    unreadBoostCount: unreadBoostCount ?? 0,
   };
 }
 

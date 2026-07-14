@@ -17,15 +17,19 @@ export async function markNotificationRead(notificationId: string) {
   revalidatePath("/", "layout");
 }
 
-export async function markAllNotificationsRead() {
+export async function markAllNotificationsRead(scope: "mentions" | "boosts" = "mentions") {
   const { userId } = await requireCurrentUser();
   const supabase = await createClient();
 
-  await supabase
+  let query = supabase
     .from("notifications")
     .update({ read: true })
     .eq("recipient_id", userId)
     .eq("read", false);
+
+  query = scope === "boosts" ? query.eq("entity_type", "boost") : query.neq("entity_type", "boost");
+
+  await query;
 
   revalidatePath("/", "layout");
 }
