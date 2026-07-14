@@ -1,6 +1,4 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 import { requireCurrentUser } from "@/lib/current-user";
 import { createClient } from "@/lib/supabase/server";
 import { getProjectBySlug, getOrganizationMembers } from "@/lib/projects";
@@ -12,12 +10,16 @@ import { TaskStatusCheckbox } from "@/components/task-status-checkbox";
 import { TaskImages } from "@/components/task-images";
 import { TaskFiles } from "@/components/task-files";
 import { TaskCommentSection } from "@/components/task-comment-section";
-import { ActivityItem, type ActivityEventWithRelations } from "@/components/activity-item";
-import { BoostBar, type BoostWithAuthor } from "@/components/boost-bar";
+import { UserAvatar } from "@/components/user-avatar";
+import { type BoostWithAuthor } from "@/components/boost-bar";
 import { Card } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import { isTaskCompleted } from "@/lib/tasks";
-import type { Profile, Task, TaskComment, TaskImage, TaskFile } from "@/types/database";
+import { taskActivitySummary } from "@/lib/activity-summary";
+import { timeAgo } from "@/lib/format";
+import { displayName } from "@/lib/display-name";
+import type { ActivityEvent, Profile, Task, TaskComment, TaskImage, TaskFile } from "@/types/database";
+
+type TaskActivityEvent = ActivityEvent & { actor: Profile | null };
 
 export default async function TaskDetailPage({
   params,
@@ -78,76 +80,23 @@ export default async function TaskDetailPage({
 
   const typedTask = task as Task;
   const assignees = (assigneeRows ?? []).map((row) => row.profiles as unknown as Profile);
-  const boosts = (boostRows ?? []) as unknown as BoostWithAuthor[];
-  const taskBoosts = boosts.filter((b) => b.entity_type === "task");
-  const commentBoosts = boosts.filter((b) => b.entity_type === "task_comment");
+  const commentBoosts = ((boostRows ?? []) as unknown as BoostWithAuthor[]).filter(
+    (b) => b.entity_type === "task_comment"
+  );
+  const activityEvents = (events ?? []) as unknown as TaskActivityEvent[];
 
   return (
-    <div className="flex max-w-5xl flex-col gap-4">
-      <Link
-        href={`/projects/${slug}`}
-        className="flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="h-3.5 w-3.5" />
-        Back to tasks
-      </Link>
+    <div className="grid max-w-5xl grid-cols-1 gap-4 lg:grid-cols-[1fr_260px]">
+      <div className="flex flex-col gap-4">
+        <Card className="p-4">
+          <TaskTitleEditor
+            taskId={taskId}
+            projectId={project.id}
+            projectSlug={slug}
+            title={typedTask.title}
+          />
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_260px]">
-        <div className="flex flex-col gap-4">
-          <Card className="p-4">
-            <TaskTitleEditor
-              taskId={taskId}
-              projectId={project.id}
-              projectSlug={slug}
-              title={typedTask.title}
-            />
-            <div className="mt-3">
-              <TaskDescriptionEditor
-                taskId={taskId}
-                projectId={project.id}
-                projectSlug={slug}
-                descriptionHtml={typedTask.description_html}
-                members={members}
-              />
-            </div>
-          </Card>
-
-          <Card className="p-4">
-            <TaskImages
-              taskId={taskId}
-              projectId={project.id}
-              projectSlug={slug}
-              taskTitle={typedTask.title}
-              images={(images ?? []) as TaskImage[]}
-            />
-          </Card>
-
-          <Card className="p-4">
-            <TaskFiles
-              taskId={taskId}
-              projectId={project.id}
-              projectSlug={slug}
-              taskTitle={typedTask.title}
-              files={(files ?? []) as TaskFile[]}
-            />
-          </Card>
-
-          <Card className="p-4">
-            <TaskCommentSection
-              taskId={taskId}
-              projectId={project.id}
-              projectSlug={slug}
-              taskTitle={typedTask.title}
-              comments={(comments ?? []) as unknown as (TaskComment & { author: Profile | null })[]}
-              members={members}
-              boosts={commentBoosts}
-              currentUserId={userId}
-            />
-          </Card>
-        </div>
-
-        <div className="flex flex-col gap-4">
-          <Card className="flex flex-col gap-3 p-4">
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border bg-muted/30 px-3 py-2">
             <div className="flex items-center gap-2">
               <TaskStatusCheckbox
                 taskId={taskId}
@@ -156,12 +105,15 @@ export default async function TaskDetailPage({
                 taskTitle={typedTask.title}
                 initialCompleted={isTaskCompleted(typedTask)}
               />
-              <span className="text-sm">
-                {isTaskCompleted(typedTask) ? "Completed" : "Mark as complete"}
+              <span className="text-sm font-medium">
+                {isTaskCompleted(typedTask) ? "Completed" : "Mark complete"}
               </span>
             </div>
-            <div className="flex flex-col gap-1.5">
-              <Label className="text-xs text-muted-foreground">Assignees</Label>
+            <span className="hidden h-4 w-px bg-border sm:block" aria-hidden />
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Assignees
+              </span>
               <TaskAssigneesPicker
                 taskId={taskId}
                 projectId={project.id}
@@ -171,8 +123,11 @@ export default async function TaskDetailPage({
                 assignees={assignees}
               />
             </div>
-            <div className="flex flex-col gap-1.5">
-              <Label className="text-xs text-muted-foreground">Due date</Label>
+            <span className="hidden h-4 w-px bg-border sm:block" aria-hidden />
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Due
+              </span>
               <TaskDueDatePicker
                 taskId={taskId}
                 projectId={project.id}
@@ -180,34 +135,81 @@ export default async function TaskDetailPage({
                 dueDate={typedTask.due_date}
               />
             </div>
-            <div className="flex flex-col gap-1.5">
-              <Label className="text-xs text-muted-foreground">Boosts</Label>
-              <BoostBar
-                entityType="task"
-                entityId={taskId}
-                taskId={taskId}
-                projectId={project.id}
-                projectSlug={slug}
-                taskTitle={typedTask.title}
-                boosts={taskBoosts}
-                currentUserId={userId}
-              />
-            </div>
-          </Card>
+          </div>
 
-          <Card className="flex flex-col p-4">
-            <span className="mb-2 text-sm font-medium">Activity</span>
-            <div className="flex flex-col divide-y">
-              {(events ?? []).length === 0 ? (
-                <p className="py-2 text-xs text-muted-foreground">No activity yet.</p>
-              ) : (
-                (events as unknown as ActivityEventWithRelations[]).map((event) => (
-                  <ActivityItem key={event.id} event={event} />
-                ))
-              )}
+          <div className="mt-3">
+            <TaskDescriptionEditor
+              taskId={taskId}
+              projectId={project.id}
+              projectSlug={slug}
+              descriptionHtml={typedTask.description_html}
+              members={members}
+            />
+          </div>
+        </Card>
+
+        <Card className="p-4">
+          <TaskImages
+            taskId={taskId}
+            projectId={project.id}
+            projectSlug={slug}
+            taskTitle={typedTask.title}
+            images={(images ?? []) as TaskImage[]}
+          />
+        </Card>
+
+        <Card className="p-4">
+          <TaskFiles
+            taskId={taskId}
+            projectId={project.id}
+            projectSlug={slug}
+            taskTitle={typedTask.title}
+            files={(files ?? []) as TaskFile[]}
+          />
+        </Card>
+
+        <Card className="p-4">
+          <TaskCommentSection
+            taskId={taskId}
+            projectId={project.id}
+            projectSlug={slug}
+            taskTitle={typedTask.title}
+            comments={(comments ?? []) as unknown as (TaskComment & { author: Profile | null })[]}
+            members={members}
+            boosts={commentBoosts}
+            currentUserId={userId}
+          />
+        </Card>
+      </div>
+
+      <div className="flex flex-col gap-4">
+        <Card className="p-4">
+          <span className="text-sm font-medium">Activity</span>
+          {activityEvents.length === 0 ? (
+            <p className="mt-2 text-xs text-muted-foreground">No activity yet.</p>
+          ) : (
+            <div className="mt-3 flex flex-col gap-3">
+              {activityEvents.map((event) => (
+                <div key={event.id} className="flex items-start gap-2.5">
+                  <UserAvatar
+                    name={event.actor?.full_name}
+                    email={event.actor?.email ?? ""}
+                    avatarUrl={event.actor?.avatar_url}
+                    className="mt-px h-5 w-5 text-[9px]"
+                  />
+                  <div className="min-w-0 flex-1 text-xs leading-relaxed">
+                    <span className="font-medium">{displayName(event.actor)}</span>{" "}
+                    <span className="text-muted-foreground">{taskActivitySummary(event)}</span>
+                    <span className="whitespace-nowrap text-muted-foreground/60">
+                      {" "}
+                      · {timeAgo(event.created_at)}
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
-          </Card>
-        </div>
+          )}
+        </Card>
       </div>
     </div>
   );

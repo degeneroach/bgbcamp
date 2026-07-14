@@ -51,3 +51,35 @@ export function activitySummary(event: Pick<ActivityEvent, "action" | "metadata"
       return event.action.replace(/[._]/g, " ");
   }
 }
+
+// Shortened variant for a task's own activity panel, where repeating the
+// task title on every line is pure noise ("completed this task" instead of
+// "completed “25% OFF - Biodegradable Golf Balls”").
+export function taskActivitySummary(event: Pick<ActivityEvent, "action" | "metadata">): string {
+  const m = event.metadata as Record<string, string | undefined>;
+
+  switch (event.action) {
+    case "task.created":
+      return "created this task";
+    case "task.completed":
+      return "completed this task";
+    case "task.reopened":
+      return "reopened this task";
+    case "task.assigned":
+      return m.assigneeName ? `assigned this to ${m.assigneeName}` : "updated assignees";
+    case "task.due_date_changed":
+      return m.dueDate ? `set the due date to ${m.dueDate}` : "cleared the due date";
+    case "task.image_added":
+      return "attached an image";
+    case "task.file_added":
+      return m.fileName ? `attached ${m.fileName}` : "attached a file";
+    case "task_comment.created":
+      return "commented";
+    case "task.boosted":
+      return `boosted this task${m.emoji ? ` ${m.emoji}` : ""}`;
+    case "task_comment.boosted":
+      return `boosted a comment${m.emoji ? ` ${m.emoji}` : ""}`;
+    default:
+      return activitySummary(event);
+  }
+}

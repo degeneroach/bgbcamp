@@ -9,7 +9,8 @@ export function ProjectTabs({ slug }: { slug: string }) {
   const base = `/projects/${slug}`;
 
   const tabs = [
-    { href: base, label: "Tasks", exact: true },
+    // Task detail pages live under /tasks/, so they count as the Tasks tab.
+    { href: base, label: "Tasks", exact: true, alsoMatch: `${base}/tasks` },
     { href: `${base}/board`, label: "Message Board" },
     { href: `${base}/activity`, label: "Activity" },
     { href: `${base}/settings`, label: "Settings" },
@@ -18,7 +19,9 @@ export function ProjectTabs({ slug }: { slug: string }) {
   return (
     <div className="flex gap-1 border-b">
       {tabs.map((tab) => {
-        const active = tab.exact ? pathname === tab.href : pathname.startsWith(tab.href);
+        const active = tab.exact
+          ? pathname === tab.href || (tab.alsoMatch ? pathname.startsWith(tab.alsoMatch) : false)
+          : pathname.startsWith(tab.href);
         return (
           <Link
             key={tab.href}
