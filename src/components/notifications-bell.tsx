@@ -67,20 +67,29 @@ function NotificationsDropdown({
       <DropdownMenuContent align="end" className="w-80 p-0">
         <div className="flex items-center justify-between border-b px-3 py-2">
           <span className="text-sm font-medium">{title}</span>
-          {unreadCount > 0 && (
-            <button
-              type="button"
-              className="text-xs text-muted-foreground hover:underline"
-              onClick={(e) => {
-                e.preventDefault();
-                startTransition(() => {
-                  markAllNotificationsRead(scope);
-                });
-              }}
+          <span className="flex items-center gap-3">
+            <Link
+              href="/activity"
+              onClick={() => setOpen(false)}
+              className="text-xs text-primary hover:underline"
             >
-              Mark all read
-            </button>
-          )}
+              Your activity
+            </Link>
+            {unreadCount > 0 && (
+              <button
+                type="button"
+                className="text-xs text-muted-foreground hover:underline"
+                onClick={(e) => {
+                  e.preventDefault();
+                  startTransition(() => {
+                    markAllNotificationsRead(scope);
+                  });
+                }}
+              >
+                Mark all read
+              </button>
+            )}
+          </span>
         </div>
         <ScrollArea className="max-h-96">
           {notifications.length === 0 ? (

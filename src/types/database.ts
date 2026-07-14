@@ -160,6 +160,12 @@ export type NotificationEntityType = "task_comment" | "post_comment" | "task" | 
 
 export type BoostEntityType = "task" | "task_comment";
 
+export type ActivitySeen = {
+  user_id: string;
+  event_id: string;
+  seen_at: string;
+};
+
 export type Boost = {
   id: string;
   organization_id: string;
@@ -437,6 +443,27 @@ export type Database = {
             columns: ["uploaded_by"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      activity_seen: {
+        Row: ActivitySeen;
+        Insert: Partial<ActivitySeen> & { user_id: string; event_id: string };
+        Update: Partial<ActivitySeen>;
+        Relationships: [
+          {
+            foreignKeyName: "activity_seen_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "activity_seen_event_id_fkey";
+            columns: ["event_id"];
+            isOneToOne: false;
+            referencedRelation: "activity_events";
             referencedColumns: ["id"];
           },
         ];

@@ -50,6 +50,54 @@ export function getActivityIcon(action: string): LucideIcon {
   return ICONS[action] ?? ActivityIcon;
 }
 
+export interface ActivityColor {
+  /** Background for the icon circle, e.g. "bg-emerald-100". */
+  bg: string;
+  /** Icon/foreground color, e.g. "text-emerald-600". */
+  text: string;
+}
+
+// Basecamp-style color coding: each family of actions gets its own hue so
+// the timeline can be scanned by color (green = done, orange = discussion,
+// violet = attachments, ...). Keep hues soft so the page stays calm.
+const COLOR_FAMILIES: { match: (action: string) => boolean; color: ActivityColor }[] = [
+  {
+    match: (a) => a === "task.completed",
+    color: { bg: "bg-emerald-100 dark:bg-emerald-950", text: "text-emerald-600" },
+  },
+  {
+    match: (a) => a.includes("boosted"),
+    color: { bg: "bg-amber-100 dark:bg-amber-950", text: "text-amber-600" },
+  },
+  {
+    match: (a) => a.includes("comment") || a.startsWith("post."),
+    color: { bg: "bg-orange-100 dark:bg-orange-950", text: "text-orange-600" },
+  },
+  {
+    match: (a) => a === "task.image_added" || a === "task.file_added",
+    color: { bg: "bg-violet-100 dark:bg-violet-950", text: "text-violet-600" },
+  },
+  {
+    match: (a) => a === "task.assigned" || a.startsWith("person."),
+    color: { bg: "bg-teal-100 dark:bg-teal-950", text: "text-teal-600" },
+  },
+  {
+    match: (a) => a === "task.due_date_changed",
+    color: { bg: "bg-rose-100 dark:bg-rose-950", text: "text-rose-500" },
+  },
+  {
+    match: (a) => a.startsWith("task") || a.startsWith("project"),
+    color: { bg: "bg-sky-100 dark:bg-sky-950", text: "text-sky-600" },
+  },
+];
+
+export function getActivityColor(action: string): ActivityColor {
+  for (const family of COLOR_FAMILIES) {
+    if (family.match(action)) return family.color;
+  }
+  return { bg: "bg-muted", text: "text-muted-foreground" };
+}
+
 export type ActivityTypeBucket = "task" | "comment" | "image" | "project";
 
 const TYPE_BUCKETS: Record<string, ActivityTypeBucket> = {

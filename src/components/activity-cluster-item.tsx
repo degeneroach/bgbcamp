@@ -3,10 +3,11 @@
 import { createElement, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { ChevronDown, Paperclip } from "lucide-react";
 import { UserAvatar } from "@/components/user-avatar";
 import { ActivityCommentPreview } from "@/components/activity-comment-preview";
-import { getActivityIcon, describeActivity } from "@/lib/activity-display";
+import { getActivityIcon, getActivityColor, describeActivity } from "@/lib/activity-display";
 import { timeAgo } from "@/lib/format";
 import { getUserAccent } from "@/lib/user-colors";
 import { displayName } from "@/lib/display-name";
@@ -93,13 +94,31 @@ export function ActivityClusterItem({
   side?: "left" | "right";
 }) {
   const [expanded, setExpanded] = useState(false);
+  const router = useRouter();
   const primary = cluster.events[0];
   const count = cluster.events.length;
+  const color = getActivityColor(cluster.action);
+
+  const primaryDisplay = describeActivity(primary, primary.project?.slug ?? null);
+  const primaryHref =
+    primaryDisplay.itemHref ?? (primary.project ? `/projects/${primary.project.slug}` : null);
+
+  // The whole row navigates to the item it signals; inner links/buttons
+  // (item title, project, expand chevron) still win when clicked directly.
+  function handleRowClick(e: React.MouseEvent) {
+    if ((e.target as HTMLElement).closest("a,button")) return;
+    if (count === 1 && primaryHref) router.push(primaryHref);
+  }
 
   const dot = (
-    <div className="relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border bg-background">
+    <div
+      className={cn(
+        "relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
+        color.bg
+      )}
+    >
       {createElement(getActivityIcon(cluster.action), {
-        className: "h-3.5 w-3.5 text-muted-foreground",
+        className: cn("h-3.5 w-3.5", color.text),
       })}
     </div>
   );
@@ -109,8 +128,10 @@ export function ActivityClusterItem({
     if (count === 1) {
       return (
         <div
+          onClick={handleRowClick}
           className={cn(
             "flex min-w-0 animate-in fade-in items-start gap-2 rounded-xl px-2 py-2 duration-300 hover:bg-muted/40",
+            primaryHref && "cursor-pointer",
             mirrored && "flex-row-reverse text-right"
           )}
         >

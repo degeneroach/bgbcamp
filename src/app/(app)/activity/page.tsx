@@ -2,6 +2,7 @@ import { requireCurrentUser } from "@/lib/current-user";
 import { createClient } from "@/lib/supabase/server";
 import { ActivityFilters } from "@/components/activity-filters";
 import { ActivityTimeline } from "@/components/activity-timeline";
+import { NewForYou } from "@/components/new-for-you";
 import { groupActivityByDay, type ActivityEventFull } from "@/lib/activity-grouping";
 import { describeActivity, getActivityTypeBucket } from "@/lib/activity-display";
 import { subDays, startOfDay, startOfMonth, startOfWeek } from "date-fns";
@@ -21,7 +22,7 @@ export default async function GlobalActivityPage({
   }>;
 }) {
   const filters = await searchParams;
-  const { organization } = await requireCurrentUser();
+  const { userId, organization } = await requireCurrentUser();
   const supabase = await createClient();
 
   const [{ data: projects }, { data: members }] = await Promise.all([
@@ -93,7 +94,27 @@ export default async function GlobalActivityPage({
     });
   }
 
-  const days = groupActivityByDay(filteredEvents);
+  // Split out unseen activity by teammates ("New for you") from the rest.
+  // Your own actions are never "new for you".
+  const candidateIds = filteredEvents
+    .filter((e) => e.actor_id && e.actor_id !== userId)
+    .map((e) => e.id);
+  const { data: seenRows } = candidateIds.length
+    ? await supabase
+        .from("activity_seen")
+        .select("event_id")
+        .eq("user_id", userId)
+        .in("event_id", candidateIds)
+    : { data: [] as { event_id: string }[] };
+  const seenIds = new Set((seenRows ?? []).map((r) => r.event_id));
+
+  const newForYou = filteredEvents
+    .filter((e) => e.actor_id && e.actor_id !== userId && !seenIds.has(e.id))
+    .slice(0, 30);
+  const newIds = new Set(newForYou.map((e) => e.id));
+  const restEvents = filteredEvents.filter((e) => !newIds.has(e.id));
+
+  const days = groupActivityByDay(restEvents);
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
@@ -105,6 +126,8 @@ export default async function GlobalActivityPage({
       </div>
 
       <ActivityFilters projects={(projects as Project[]) ?? []} people={people} />
+
+      <NewForYou events={newForYou} />
 
       <ActivityTimeline days={days} />
     </div>
