@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { UserAvatar } from "@/components/user-avatar";
+import { EnlargeableAvatar } from "@/components/enlargeable-avatar";
 import { CommentCountBadge } from "@/components/comment-count-badge";
 import { DueDateBadge } from "@/components/due-date-badge";
 import { ActivityItem, type ActivityEventWithRelations } from "@/components/activity-item";
@@ -63,7 +63,7 @@ export function PersonActivityView({
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-4">
-        <UserAvatar
+        <EnlargeableAvatar
           name={profile.full_name}
           email={profile.email}
           avatarUrl={profile.avatar_url}
