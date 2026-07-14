@@ -52,37 +52,41 @@ export function TaskAssigneesPicker({
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      {optimisticAssignees.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {optimisticAssignees.map((member) => (
-            <span
-              key={member.id}
-              className="flex items-center gap-1 rounded-full border bg-muted/50 py-0.5 pl-0.5 pr-2 text-xs"
-            >
-              <UserAvatar
-                name={member.full_name}
-                email={member.email}
-                avatarUrl={member.avatar_url}
-                className="h-5 w-5"
-              />
-              {displayName(member)}
-              <button
-                type="button"
-                onClick={() => toggle(member, true)}
-                className="text-muted-foreground hover:text-foreground"
-                aria-label={`Unassign ${displayName(member)}`}
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </span>
-          ))}
-        </div>
-      )}
+    <div className="flex flex-wrap items-center gap-1.5">
+      {optimisticAssignees.map((member) => (
+        <span
+          key={member.id}
+          className="flex items-center gap-1 rounded-full border bg-muted/50 py-0.5 pl-0.5 pr-2 text-xs"
+        >
+          <UserAvatar
+            name={member.full_name}
+            email={member.email}
+            avatarUrl={member.avatar_url}
+            className="h-5 w-5"
+          />
+          {displayName(member)}
+          <button
+            type="button"
+            onClick={() => toggle(member, true)}
+            className="text-muted-foreground hover:text-foreground"
+            aria-label={`Unassign ${displayName(member)}`}
+          >
+            <X className="h-3 w-3" />
+          </button>
+        </span>
+      ))}
       <DropdownMenu>
-        <DropdownMenuTrigger render={<Button variant="outline" size="sm" className="w-fit" />}>
-          <UserPlus className="h-3.5 w-3.5" />
-          {optimisticAssignees.length > 0 ? "Add assignee" : "Assign"}
+        <DropdownMenuTrigger
+          render={
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-6 w-fit rounded-full px-2 text-xs font-normal text-muted-foreground"
+            />
+          }
+        >
+          <UserPlus className="h-3 w-3" />
+          {optimisticAssignees.length > 0 ? "Add" : "Assign"}
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-56">
           {members.length === 0 ? (
