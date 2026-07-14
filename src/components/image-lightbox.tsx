@@ -10,13 +10,22 @@ import {
 } from "react";
 import { X, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
 
-type LightboxApi = { open: (src: string, alt?: string) => void };
+type MediaKind = "image" | "video";
+
+type LightboxApi = { open: (src: string, alt?: string, kind?: MediaKind) => void };
 
 const LightboxContext = createContext<LightboxApi | null>(null);
 
-/** Opens the app-wide image lightbox. Returns null outside the provider. */
+/** Opens the app-wide image/video lightbox. Returns null outside the provider. */
 export function useImageLightbox() {
   return useContext(LightboxContext);
+}
+
+const VIDEO_EXTENSIONS = ["mp4", "webm", "mov", "m4v", "ogv"];
+
+function detectKind(src: string): MediaKind {
+  const ext = src.split(/[?#]/)[0].split(".").pop()?.toLowerCase() ?? "";
+  return VIDEO_EXTENSIONS.includes(ext) ? "video" : "image";
 }
 
 const MIN_SCALE = 1;
@@ -24,6 +33,59 @@ const MAX_SCALE = 6;
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
+}
+
+function VideoLightbox({
+  src,
+  onClose,
+}: {
+  src: string;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-sm"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div className="absolute right-3 top-3 z-10" onClick={(e) => e.stopPropagation()}>
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-full bg-white/10 p-2 text-white transition hover:bg-white/20"
+          aria-label="Close"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+      {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+      <video
+        src={src}
+        controls
+        autoPlay
+        playsInline
+        onClick={(e) => e.stopPropagation()}
+        className="max-h-[88vh] max-w-[92vw] rounded-lg"
+      />
+      <p className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 text-xs text-white/60">
+        Esc to close
+      </p>
+    </div>
+  );
 }
 
 function Lightbox({
@@ -210,10 +272,10 @@ function Lightbox({
 }
 
 export function ImageLightboxProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<{ src: string; alt: string } | null>(null);
+  const [state, setState] = useState<{ src: string; alt: string; kind: MediaKind } | null>(null);
 
-  const open = useCallback((src: string, alt = "") => {
-    setState({ src, alt });
+  const open = useCallback((src: string, alt = "", kind?: MediaKind) => {
+    setState({ src, alt, kind: kind ?? detectKind(src) });
   }, []);
 
   const close = useCallback(() => setState(null), []);
@@ -221,7 +283,12 @@ export function ImageLightboxProvider({ children }: { children: React.ReactNode 
   return (
     <LightboxContext.Provider value={{ open }}>
       {children}
-      {state && <Lightbox src={state.src} alt={state.alt} onClose={close} />}
+      {state &&
+        (state.kind === "video" ? (
+          <VideoLightbox src={state.src} onClose={close} />
+        ) : (
+          <Lightbox src={state.src} alt={state.alt} onClose={close} />
+        ))}
     </LightboxContext.Provider>
   );
 }

@@ -11,10 +11,12 @@ import {
   FileImage,
   FileType,
   File as FileIcon,
+  Play,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { recordTaskFile, deleteTaskFile } from "@/app/(app)/projects/[slug]/tasks/actions";
+import { useImageLightbox } from "@/components/image-lightbox";
 import type { TaskFile } from "@/types/database";
 
 const MAX_SIZE_BYTES = 50 * 1024 * 1024; // 50MB
@@ -60,6 +62,7 @@ export function TaskFiles({
   const [isDeleting, startDelete] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const lightbox = useImageLightbox();
 
   function uploadFiles(all: File[]) {
     if (all.length === 0) return;
@@ -148,6 +151,12 @@ export function TaskFiles({
           {files.map((file) => {
             const Icon = iconFor(file.name, file.mime_type);
             const isImage = file.mime_type?.startsWith("image/");
+            const isVideo = file.mime_type?.startsWith("video/");
+            const openPreview = isImage
+              ? () => lightbox?.open(file.url, file.name, "image")
+              : isVideo
+                ? () => lightbox?.open(file.url, file.name, "video")
+                : undefined;
             return (
               <li key={file.id} className="group flex items-center gap-3 px-3 py-2">
                 {isImage ? (
@@ -155,15 +164,42 @@ export function TaskFiles({
                   <img
                     src={file.url}
                     alt={file.name}
-                    className="h-8 w-8 shrink-0 rounded-md border object-cover"
+                    onClick={openPreview}
+                    className="h-10 w-10 shrink-0 cursor-zoom-in rounded-md border object-cover"
                   />
+                ) : isVideo ? (
+                  <button
+                    type="button"
+                    onClick={openPreview}
+                    className="relative h-10 w-10 shrink-0 cursor-pointer overflow-hidden rounded-md border bg-black"
+                    aria-label={`Play ${file.name}`}
+                  >
+                    {/* #t=0.1 nudges browsers to render the first frame as a poster. */}
+                    {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                    <video
+                      src={`${file.url}#t=0.1`}
+                      preload="metadata"
+                      muted
+                      playsInline
+                      tabIndex={-1}
+                      className="pointer-events-none h-full w-full object-cover"
+                    />
+                    <span className="absolute inset-0 flex items-center justify-center bg-black/25">
+                      <Play className="h-4 w-4 fill-white text-white" />
+                    </span>
+                  </button>
                 ) : (
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted">
                     <Icon className="h-4 w-4 text-muted-foreground" />
                   </div>
                 )}
                 <div className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate text-sm font-medium">{file.name}</span>
+                  <span
+                    className={`truncate text-sm font-medium ${openPreview ? "cursor-pointer hover:underline" : ""}`}
+                    onClick={openPreview}
+                  >
+                    {file.name}
+                  </span>
                   {file.size_bytes != null && (
                     <span className="text-xs text-muted-foreground">{formatBytes(file.size_bytes)}</span>
                   )}
