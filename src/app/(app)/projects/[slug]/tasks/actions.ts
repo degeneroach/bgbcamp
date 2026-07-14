@@ -404,6 +404,54 @@ export async function createTaskComment(
   return { ok: true };
 }
 
+export async function updateTaskComment(
+  commentId: string,
+  projectSlug: string,
+  taskId: string,
+  bodyHtml: string
+): Promise<ActionResult> {
+  const cleaned = sanitizeHtml(bodyHtml);
+  if (htmlToExcerpt(cleaned).length < 1) return { ok: false, error: "Comment can't be empty." };
+
+  const { userId } = await requireCurrentUser();
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("task_comments")
+    .update({ body: cleaned })
+    .eq("id", commentId)
+    .eq("author_id", userId);
+
+  if (error) return { ok: false, error: error.message };
+
+  taskPaths(projectSlug, taskId);
+  return { ok: true };
+}
+
+export async function deleteTaskComment(
+  commentId: string,
+  projectSlug: string,
+  taskId: string
+): Promise<ActionResult> {
+  const { userId } = await requireCurrentUser();
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("task_comments")
+    .delete()
+    .eq("id", commentId)
+    .eq("author_id", userId);
+
+  if (error) return { ok: false, error: error.message };
+
+  // Best-effort cleanup of boosts on the deleted comment. RLS only lets us
+  // remove our own; others' rows are orphaned but never rendered again.
+  await supabase.from("boosts").delete().eq("entity_type", "task_comment").eq("entity_id", commentId);
+
+  taskPaths(projectSlug, taskId);
+  return { ok: true };
+}
+
 export async function recordTaskImage(
   taskId: string,
   projectId: string,
