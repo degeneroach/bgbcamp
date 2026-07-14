@@ -54,9 +54,7 @@ export function AppShell({
             <div className="hidden sm:block">
               <GlobalSearch />
             </div>
-            {(boostNotifications.length > 0 || unreadBoostCount > 0) && (
-              <BoostsBell notifications={boostNotifications} unreadCount={unreadBoostCount} />
-            )}
+            <BoostsBell notifications={boostNotifications} unreadCount={unreadBoostCount} />
             <NotificationsBell notifications={mentionNotifications} unreadCount={unreadCount} />
             <UserMenu
               name={profile.full_name}
