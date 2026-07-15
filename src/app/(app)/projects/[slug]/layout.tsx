@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getProjectBySlug, getProjectMembers } from "@/lib/projects";
 import { UserAvatar } from "@/components/user-avatar";
 import { NotificationToggle } from "@/components/notification-toggle";
+import { FavoriteToggle } from "@/components/favorite-toggle";
 import { ProjectSettingsMenu } from "@/components/project-settings-menu";
 import { ProjectTabs } from "@/components/project-tabs";
 import { RichTextContent } from "@/components/rich-text-editor";
@@ -23,6 +24,13 @@ export default async function ProjectLayout({
   const members = await getProjectMembers(supabase, project.id);
 
   const currentMembership = members.find((m) => m.user_id === userId);
+
+  const { data: favoriteRow } = await supabase
+    .from("project_favorites")
+    .select("project_id")
+    .eq("user_id", userId)
+    .eq("project_id", project.id)
+    .maybeSingle();
 
   return (
     <div className="flex flex-col gap-6">
@@ -62,6 +70,7 @@ export default async function ProjectLayout({
                 />
               ))}
             </div>
+            <FavoriteToggle projectId={project.id} initialFavorited={Boolean(favoriteRow)} />
             <NotificationToggle
               projectId={project.id}
               projectSlug={slug}

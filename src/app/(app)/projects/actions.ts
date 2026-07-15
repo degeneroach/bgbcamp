@@ -98,3 +98,25 @@ export async function toggleFavorite(projectId: string, isFavorite: boolean) {
 
   revalidatePath("/");
 }
+
+export async function toggleProjectFavorite(projectId: string, favorited: boolean) {
+  const { userId } = await requireCurrentUser();
+  const supabase = await createClient();
+
+  if (favorited) {
+    await supabase
+      .from("project_favorites")
+      .upsert(
+        { user_id: userId, project_id: projectId },
+        { onConflict: "user_id,project_id", ignoreDuplicates: true }
+      );
+  } else {
+    await supabase
+      .from("project_favorites")
+      .delete()
+      .eq("user_id", userId)
+      .eq("project_id", projectId);
+  }
+
+  revalidatePath("/", "layout");
+}

@@ -25,7 +25,12 @@ export function GlobalSearch() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
+  const [isMac, setIsMac] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    setIsMac(/Mac|iP(hone|ad|od)/i.test(navigator.platform));
+  }, []);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -78,13 +83,13 @@ export function GlobalSearch() {
       <Button
         variant="outline"
         size="sm"
-        className="w-44 justify-start gap-2 border-border/70 font-normal text-muted-foreground shadow-none"
+        className="w-44 justify-start gap-2 border-[#33402a]/15 bg-white/60 font-normal text-muted-foreground shadow-none hover:bg-white"
         onClick={() => setOpen(true)}
       >
         <Search className="h-3.5 w-3.5" />
         Search...
         <kbd className="ml-auto rounded border bg-muted px-1.5 py-0.5 text-[10px] font-medium">
-          ⌘K
+          {isMac ? "⌘K" : "Ctrl K"}
         </kbd>
       </Button>
       <CommandDialog open={open} onOpenChange={setOpen} title="Search" description="Jump to a project, task, post, or person">

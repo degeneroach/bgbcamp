@@ -166,6 +166,7 @@ export type ActivitySeen = {
   seen_at: string;
 };
 
+
 export type Boost = {
   id: string;
   organization_id: string;

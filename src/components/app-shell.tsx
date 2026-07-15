@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Star } from "lucide-react";
 import { NavLink } from "@/components/nav-link";
 import { UserMenu } from "@/components/user-menu";
 import { GlobalSearch } from "@/components/global-search";
@@ -9,12 +10,20 @@ import { ImageLightboxProvider } from "@/components/image-lightbox";
 import type { Profile, Organization } from "@/types/database";
 import type { NotificationWithRelations } from "@/lib/notifications";
 
+export interface FavoriteProject {
+  id: string;
+  name: string;
+  slug: string;
+  color: string;
+}
+
 export function AppShell({
   profile,
   organization,
   notifications,
   unreadCount,
   unreadBoostCount,
+  favoriteProjects,
   children,
 }: {
   profile: Profile;
@@ -22,6 +31,7 @@ export function AppShell({
   notifications: NotificationWithRelations[];
   unreadCount: number;
   unreadBoostCount: number;
+  favoriteProjects: FavoriteProject[];
   children: React.ReactNode;
 }) {
   const boostNotifications = notifications.filter((n) => n.entity_type === "boost");
@@ -29,8 +39,10 @@ export function AppShell({
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-40 border-b border-border/60 bg-background/90 backdrop-blur">
-        <div className="mx-auto flex h-14 w-full max-w-[1150px] items-center gap-5 px-4 md:px-6">
+      {/* Soft sage tint (pulled from the brand green) sets the header apart
+          from the page background. */}
+      <header className="sticky top-0 z-40 border-b border-[#33402a]/10 bg-[#eef1e9]/95 backdrop-blur">
+        <div className="mx-auto flex h-12 w-full max-w-[1150px] items-center gap-4 px-4 md:px-6">
           <div className="flex items-center gap-2.5">
             <Link href="/" className="flex items-center gap-2">
               <BrandMark className="h-7 w-7" />
@@ -72,6 +84,28 @@ export function AppShell({
           <NavLink href="/people">People</NavLink>
           <NavLink href="/search">Search</NavLink>
         </nav>
+
+        {favoriteProjects.length > 0 && (
+          <div className="border-t border-[#33402a]/10 bg-[#e6ebe0]/70">
+            <div className="mx-auto flex h-8 w-full max-w-[1150px] items-center gap-1 overflow-x-auto px-4 md:px-6">
+              <Star className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400" aria-hidden />
+              {favoriteProjects.map((project) => (
+                <Link
+                  key={project.id}
+                  href={`/projects/${project.slug}`}
+                  className="flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium text-foreground/80 hover:bg-[#33402a]/10 hover:text-foreground"
+                >
+                  <span
+                    className="h-2 w-2 rounded-full"
+                    style={{ backgroundColor: project.color }}
+                    aria-hidden
+                  />
+                  {project.name}
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </header>
 
       <main className="mx-auto w-full max-w-[1150px] flex-1 px-4 py-8 md:px-6 md:py-10">

@@ -10,10 +10,19 @@ export default async function AppLayout({
 }) {
   const { userId, profile, organization } = await requireCurrentUser();
   const supabase = await createClient();
-  const { notifications, unreadCount, unreadBoostCount } = await getRecentNotifications(
-    supabase,
-    userId
-  );
+  const [{ notifications, unreadCount, unreadBoostCount }, { data: favoriteRows }] =
+    await Promise.all([
+      getRecentNotifications(supabase, userId),
+      supabase
+        .from("project_favorites")
+        .select("projects!inner(id, name, slug, color, archived)")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: true }),
+    ]);
+
+  const favoriteProjects = (favoriteRows ?? [])
+    .map((row) => row.projects as unknown as { id: string; name: string; slug: string; color: string; archived: boolean })
+    .filter((p) => !p.archived);
 
   return (
     <AppShell
@@ -22,6 +31,7 @@ export default async function AppLayout({
       notifications={notifications}
       unreadCount={unreadCount}
       unreadBoostCount={unreadBoostCount}
+      favoriteProjects={favoriteProjects}
     >
       {children}
     </AppShell>
