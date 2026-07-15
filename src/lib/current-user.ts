@@ -53,23 +53,22 @@ export const requireCurrentUser = cache(async (): Promise<CurrentUserContext> =>
     redirect("/login");
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .single();
+  // Profile and membership are independent — fetch in parallel to save a
+  // DB round trip on every page load.
+  const [{ data: profile }, { data: membership }] = await Promise.all([
+    supabase.from("profiles").select("*").eq("id", user.id).single(),
+    supabase
+      .from("organization_members")
+      .select("role, organizations(*)")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle(),
+  ]);
 
   if (!profile) {
     redirect("/login");
   }
-
-  const { data: membership } = await supabase
-    .from("organization_members")
-    .select("role, organizations(*)")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
 
   if (!membership || !membership.organizations) {
     redirect("/onboarding");

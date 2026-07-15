@@ -21,16 +21,18 @@ export default async function ProjectLayout({
   const supabase = await createClient();
 
   const project = await getProjectBySlug(supabase, organization.id, slug);
-  const members = await getProjectMembers(supabase, project.id);
+
+  const [members, { data: favoriteRow }] = await Promise.all([
+    getProjectMembers(supabase, project.id),
+    supabase
+      .from("project_favorites")
+      .select("project_id")
+      .eq("user_id", userId)
+      .eq("project_id", project.id)
+      .maybeSingle(),
+  ]);
 
   const currentMembership = members.find((m) => m.user_id === userId);
-
-  const { data: favoriteRow } = await supabase
-    .from("project_favorites")
-    .select("project_id")
-    .eq("user_id", userId)
-    .eq("project_id", project.id)
-    .maybeSingle();
 
   return (
     <div className="flex flex-col gap-6">

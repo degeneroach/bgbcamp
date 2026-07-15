@@ -16,32 +16,20 @@ export default async function PersonPage({
   const { organization } = await requireCurrentUser();
   const supabase = await createClient();
 
-  const { data: membership } = await supabase
-    .from("organization_members")
-    .select("role, profiles(*)")
-    .eq("organization_id", organization.id)
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if (!membership || !membership.profiles) {
-    notFound();
-  }
-
-  const { data: assignments } = await supabase
-    .from("task_assignees")
-    .select("tasks!inner(*, projects!inner(organization_id, name, slug))")
-    .eq("user_id", userId)
-    .eq("tasks.projects.organization_id", organization.id);
-
-  const allTasks = (assignments ?? [])
-    .map((a) => a.tasks)
-    .sort((a, b) => (a.due_date ?? "9999").localeCompare(b.due_date ?? "9999")) as unknown as TaskWithProject[];
-  const taskIds = allTasks.map((t) => t.id);
-
-  const [{ data: comments }, { data: events }] = await Promise.all([
-    taskIds.length
-      ? supabase.from("task_comments").select("task_id").in("task_id", taskIds)
-      : Promise.resolve({ data: [] as { task_id: string }[] }),
+  // Membership, assignments, and the actor's activity are independent —
+  // one parallel wave, then a small follow-up for comment counts.
+  const [{ data: membership }, { data: assignments }, { data: events }] = await Promise.all([
+    supabase
+      .from("organization_members")
+      .select("role, profiles(*)")
+      .eq("organization_id", organization.id)
+      .eq("user_id", userId)
+      .maybeSingle(),
+    supabase
+      .from("task_assignees")
+      .select("tasks!inner(*, projects!inner(organization_id, name, slug))")
+      .eq("user_id", userId)
+      .eq("tasks.projects.organization_id", organization.id),
     supabase
       .from("activity_events")
       .select("*, actor:profiles!actor_id(*), project:projects!project_id(name, slug)")
@@ -50,6 +38,19 @@ export default async function PersonPage({
       .order("created_at", { ascending: false })
       .limit(30),
   ]);
+
+  if (!membership || !membership.profiles) {
+    notFound();
+  }
+
+  const allTasks = (assignments ?? [])
+    .map((a) => a.tasks)
+    .sort((a, b) => (a.due_date ?? "9999").localeCompare(b.due_date ?? "9999")) as unknown as TaskWithProject[];
+  const taskIds = allTasks.map((t) => t.id);
+
+  const { data: comments } = taskIds.length
+    ? await supabase.from("task_comments").select("task_id").in("task_id", taskIds)
+    : { data: [] as { task_id: string }[] };
 
   const commentCounts = new Map<string, number>();
   for (const comment of comments ?? []) {

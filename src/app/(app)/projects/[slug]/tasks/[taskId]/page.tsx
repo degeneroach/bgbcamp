@@ -29,19 +29,14 @@ export default async function TaskDetailPage({
   const { slug, taskId } = await params;
   const { userId, organization } = await requireCurrentUser();
   const supabase = await createClient();
-  const project = await getProjectBySlug(supabase, organization.id, slug);
-  const members = await getOrganizationMembers(supabase, organization.id);
 
-  const { data: task } = await supabase
-    .from("tasks")
-    .select("*")
-    .eq("id", taskId)
-    .eq("project_id", project.id)
-    .maybeSingle();
-
-  if (!task) notFound();
-
+  // Every query here keys off taskId (from the URL) or the org, so run them
+  // all in one parallel wave; project ownership of the task is validated
+  // after the fact.
   const [
+    project,
+    members,
+    { data: task },
     { data: comments },
     { data: images },
     { data: files },
@@ -49,6 +44,9 @@ export default async function TaskDetailPage({
     { data: assigneeRows },
     { data: boostRows },
   ] = await Promise.all([
+      getProjectBySlug(supabase, organization.id, slug),
+      getOrganizationMembers(supabase, organization.id),
+      supabase.from("tasks").select("*").eq("id", taskId).maybeSingle(),
       supabase
         .from("task_comments")
         .select("*, author:profiles!author_id(*)")
@@ -77,6 +75,8 @@ export default async function TaskDetailPage({
         .eq("task_id", taskId)
         .order("created_at", { ascending: true }),
     ]);
+
+  if (!task || task.project_id !== project.id) notFound();
 
   const typedTask = task as Task;
   const assignees = (assigneeRows ?? []).map((row) => row.profiles as unknown as Profile);

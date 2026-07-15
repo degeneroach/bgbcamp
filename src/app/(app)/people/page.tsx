@@ -13,16 +13,17 @@ export default async function PeoplePage() {
   const { organization } = await requireCurrentUser();
   const supabase = await createClient();
 
-  const { data: members } = await supabase
-    .from("organization_members")
-    .select("role, profiles(*)")
-    .eq("organization_id", organization.id)
-    .order("created_at", { ascending: true });
-
-  const { data: assignments } = await supabase
-    .from("task_assignees")
-    .select("user_id, tasks!inner(completed_at, due_date, projects!inner(organization_id))")
-    .eq("tasks.projects.organization_id", organization.id);
+  const [{ data: members }, { data: assignments }] = await Promise.all([
+    supabase
+      .from("organization_members")
+      .select("role, profiles(*)")
+      .eq("organization_id", organization.id)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("task_assignees")
+      .select("user_id, tasks!inner(completed_at, due_date, projects!inner(organization_id))")
+      .eq("tasks.projects.organization_id", organization.id),
+  ]);
 
   const today = startOfDay(new Date()).toISOString().slice(0, 10);
   const openByUser = new Map<string, number>();

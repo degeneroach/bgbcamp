@@ -375,12 +375,16 @@ export function RichTextEditor({
 
 // Wraps runs of 2+ consecutive images (TipTap emits them as sibling blocks,
 // sometimes inside bare <p> tags) in a gallery container so they render as a
-// compact thumbnail row instead of stacked full-width images.
+// compact thumbnail row instead of stacked full-width images. Also stamps
+// every image with lazy-loading hints so comment threads full of screenshots
+// don't block initial render.
 function groupConsecutiveImages(html: string): string {
-  return html.replace(
-    /(?:(?:<p>\s*)?<img[^>]*\/?>(?:\s*<\/p>)?\s*){2,}/g,
-    (match) => `<div data-rte-gallery>${match}</div>`
-  );
+  return html
+    .replace(
+      /(?:(?:<p>\s*)?<img[^>]*\/?>(?:\s*<\/p>)?\s*){2,}/g,
+      (match) => `<div data-rte-gallery>${match}</div>`
+    )
+    .replace(/<img(?![^>]*loading=)/g, '<img loading="lazy" decoding="async"');
 }
 
 const GALLERY_STYLES =
