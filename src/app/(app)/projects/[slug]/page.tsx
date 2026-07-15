@@ -61,12 +61,14 @@ export default async function ProjectTasksPage({
     taskIds.length
       ? supabase.from("task_assignees").select("task_id, profiles(*)").in("task_id", taskIds)
       : Promise.resolve({ data: [] as { task_id: string; profiles: Profile | null }[] }),
+    // Fetch a deeper window than initially shown — "View more activity"
+    // reveals the rest client-side without another roundtrip.
     supabase
       .from("activity_events")
       .select("*, actor:profiles!actor_id(*)")
       .eq("project_id", project.id)
       .order("created_at", { ascending: false })
-      .limit(6),
+      .limit(60),
   ]);
 
   const commentCounts = new Map<string, number>();
