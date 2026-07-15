@@ -1,6 +1,7 @@
 import { requireCurrentUser } from "@/lib/current-user";
 import { AvatarUploader } from "@/components/avatar-uploader";
 import { ProfileNameForm } from "@/components/profile-name-form";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Card } from "@/components/ui/card";
 
 export default async function ProfilePage() {
@@ -27,6 +28,14 @@ export default async function ProfilePage() {
         <div>
           <h2 className="mb-3 font-medium">Name</h2>
           <ProfileNameForm initialName={profile.full_name} />
+        </div>
+
+        <div>
+          <h2 className="mb-1 font-medium">Appearance</h2>
+          <p className="mb-3 text-sm text-muted-foreground">
+            Just for you — everyone picks their own theme.
+          </p>
+          <ThemeToggle />
         </div>
       </Card>
     </div>

@@ -41,7 +41,7 @@ export function AppShell({
     <div className="flex min-h-screen flex-col">
       {/* Soft sage tint (pulled from the brand green) sets the header apart
           from the page background. */}
-      <header className="sticky top-0 z-40 border-b border-[#33402a]/10 bg-[#eef1e9]/95 backdrop-blur">
+      <header className="sticky top-0 z-40 border-b border-[#33402a]/10 bg-[#eef1e9]/95 backdrop-blur dark:border-white/10 dark:bg-[#0d1320]/95">
         <div className="mx-auto flex h-12 w-full max-w-[1150px] items-center gap-4 px-4 md:px-6">
           <div className="flex items-center gap-2.5">
             <Link href="/" className="flex items-center gap-2">
@@ -86,14 +86,14 @@ export function AppShell({
         </nav>
 
         {favoriteProjects.length > 0 && (
-          <div className="border-t border-[#33402a]/10 bg-[#e6ebe0]/70">
+          <div className="border-t border-[#33402a]/10 bg-[#e6ebe0]/70 dark:border-white/10 dark:bg-[#0a101b]/80">
             <div className="mx-auto flex h-8 w-full max-w-[1150px] items-center gap-1 overflow-x-auto px-4 md:px-6">
               <Star className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400" aria-hidden />
               {favoriteProjects.map((project) => (
                 <Link
                   key={project.id}
                   href={`/projects/${project.slug}`}
-                  className="flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium text-foreground/80 hover:bg-[#33402a]/10 hover:text-foreground"
+                  className="flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium text-foreground/80 hover:bg-[#33402a]/10 hover:text-foreground dark:hover:bg-white/10"
                 >
                   <span
                     className="h-2 w-2 rounded-full"

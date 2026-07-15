@@ -11,8 +11,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { UserAvatar } from "@/components/user-avatar";
+import { ThemeMenuLabel } from "@/components/theme-toggle";
 import { signOut } from "@/app/auth/actions";
 import { displayName } from "@/lib/display-name";
+import { useTheme } from "next-themes";
 import { LogOut, UserCog } from "lucide-react";
 
 export function UserMenu({
@@ -24,6 +26,8 @@ export function UserMenu({
   email: string;
   avatarUrl: string | null;
 }) {
+  const { resolvedTheme, setTheme } = useTheme();
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="rounded-full outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
@@ -40,6 +44,11 @@ export function UserMenu({
         <DropdownMenuItem render={<Link href="/profile" />}>
           <UserCog className="h-4 w-4" />
           Edit profile
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onSelect={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+        >
+          <ThemeMenuLabel />
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem

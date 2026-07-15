@@ -11,14 +11,17 @@ export interface UserAccent {
 }
 
 const USER_ACCENTS: UserAccent[] = [
-  { text: "#2563eb", bar: "#3b82f6", tint: "#eff6ff" }, // blue
-  { text: "#0f766e", bar: "#14b8a6", tint: "#f0fdfa" }, // teal
-  { text: "#7c3aed", bar: "#8b5cf6", tint: "#f5f3ff" }, // violet
-  { text: "#b45309", bar: "#d97706", tint: "#fffbeb" }, // amber
-  { text: "#be123c", bar: "#f43f5e", tint: "#fff1f2" }, // rose
-  { text: "#475569", bar: "#64748b", tint: "#f1f5f9" }, // slate
-  { text: "#0369a1", bar: "#0ea5e9", tint: "#f0f9ff" }, // sky
-  { text: "#4d7c0f", bar: "#84cc16", tint: "#f7fee7" }, // lime
+  // Each value is a light-dark() pair: muted corporate tone in light mode,
+  // a brighter neon counterpart in dark. The browser resolves them via the
+  // color-scheme declared on :root / .dark in globals.css.
+  { text: "light-dark(#2563eb, #7dd3fc)", bar: "light-dark(#3b82f6, #38bdf8)", tint: "light-dark(#eff6ff, #10233a)" }, // blue
+  { text: "light-dark(#0f766e, #5eead4)", bar: "light-dark(#14b8a6, #2dd4bf)", tint: "light-dark(#f0fdfa, #0b2b27)" }, // teal
+  { text: "light-dark(#7c3aed, #c4b5fd)", bar: "light-dark(#8b5cf6, #a78bfa)", tint: "light-dark(#f5f3ff, #221a3d)" }, // violet
+  { text: "light-dark(#b45309, #fcd34d)", bar: "light-dark(#d97706, #fbbf24)", tint: "light-dark(#fffbeb, #2e2208)" }, // amber
+  { text: "light-dark(#be123c, #fda4af)", bar: "light-dark(#f43f5e, #fb7185)", tint: "light-dark(#fff1f2, #380f1a)" }, // rose
+  { text: "light-dark(#475569, #cbd5e1)", bar: "light-dark(#64748b, #94a3b8)", tint: "light-dark(#f1f5f9, #1c2534)" }, // slate
+  { text: "light-dark(#0369a1, #67e8f9)", bar: "light-dark(#0ea5e9, #22d3ee)", tint: "light-dark(#f0f9ff, #0a2733)" }, // sky
+  { text: "light-dark(#4d7c0f, #bef264)", bar: "light-dark(#84cc16, #a3e635)", tint: "light-dark(#f7fee7, #1d2a0b)" }, // lime
 ];
 
 export function getUserAccent(key: string | null | undefined): UserAccent {

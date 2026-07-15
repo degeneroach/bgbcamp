@@ -95,38 +95,59 @@
   --sidebar-ring: #2563eb;
 }
 
+/* Dark: deep blue-black canvas with neon cyan CTAs and electric accents.
+   Deliberately more playful than light mode — glows on primary actions,
+   punchy highlight colors — while keeping text calm and readable. */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: #0a0e16;
+  --foreground: #e6edf6;
+  --card: #10151f;
+  --card-foreground: #e6edf6;
+  --popover: #141a26;
+  --popover-foreground: #e6edf6;
+  --primary: #22d3ee;
+  --primary-foreground: #06181d;
+  --secondary: #13283a;
+  --secondary-foreground: #7de3f4;
+  --muted: #171f2e;
+  --muted-foreground: #93a0b4;
+  --accent: #102f3b;
+  --accent-foreground: #67e8f9;
+  --destructive: #ff6b81;
+  --border: rgba(148, 163, 184, 0.16);
+  --input: rgba(148, 163, 184, 0.22);
+  --ring: #22d3ee;
+  --success: #4ade80;
+  --success-foreground: #052e16;
+  --success-soft: #0b2b1c;
+  --warning: #fbbf24;
+  --warning-foreground: #271a03;
+  --chart-1: #22d3ee;
+  --chart-2: #4ade80;
+  --chart-3: #fbbf24;
+  --chart-4: #a78bfa;
+  --chart-5: #f472b6;
+  --sidebar: #10151f;
+  --sidebar-foreground: #e6edf6;
+  --sidebar-primary: #22d3ee;
+  --sidebar-primary-foreground: #06181d;
+  --sidebar-accent: #102f3b;
+  --sidebar-accent-foreground: #67e8f9;
+  --sidebar-border: rgba(148, 163, 184, 0.16);
+  --sidebar-ring: #22d3ee;
+}
+
+/* Resolve light-dark() inline colors (per-user accents) by theme class. */
+:root {
+  color-scheme: light;
+}
+.dark {
+  color-scheme: dark;
+}
+
+/* Neon glow on primary CTAs in dark mode. */
+.dark .bg-primary {
+  box-shadow: 0 0 18px color-mix(in oklab, var(--primary) 32%, transparent);
 }
 
 @layer base {

@@ -83,7 +83,7 @@ export function GlobalSearch() {
       <Button
         variant="outline"
         size="sm"
-        className="w-44 justify-start gap-2 border-[#33402a]/15 bg-white/60 font-normal text-muted-foreground shadow-none hover:bg-white"
+        className="w-44 justify-start gap-2 border-[#33402a]/15 bg-white/60 font-normal text-muted-foreground shadow-none hover:bg-white dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
         onClick={() => setOpen(true)}
       >
         <Search className="h-3.5 w-3.5" />
