@@ -18,6 +18,9 @@ const buttonVariants = cva(
         destructive:
           "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
         link: "text-primary underline-offset-4 hover:underline",
+        // High-visibility CTA: hot yellow that pops in both themes, with a
+        // neon glow in dark mode. Reserved for the page's main action.
+        cta: "bg-amber-400 font-semibold text-slate-950 shadow-sm hover:bg-amber-300 dark:bg-yellow-300 dark:hover:bg-yellow-200 dark:shadow-[0_0_18px_rgba(253,224,71,0.45)]",
       },
       size: {
         default:

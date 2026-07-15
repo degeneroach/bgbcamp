@@ -100,7 +100,7 @@ export function TaskDescriptionEditor({
             Cancel
           </Button>
         )}
-        <Button size="sm" onClick={handleUpdate} disabled={isPending}>
+        <Button variant="cta" size="sm" onClick={handleUpdate} disabled={isPending}>
           {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
           Update
         </Button>

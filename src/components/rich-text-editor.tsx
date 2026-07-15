@@ -194,6 +194,7 @@ export function RichTextEditor({
   projectId,
   enableImages = false,
   mentionCandidates,
+  onEnterSubmit,
 }: {
   content: string;
   onChange: (html: string) => void;
@@ -206,6 +207,11 @@ export function RichTextEditor({
   enableImages?: boolean;
   /** Enables "@name" mention autocomplete sourced from this list. */
   mentionCandidates?: MentionCandidate[];
+  /**
+   * When set, plain Enter submits (Shift+Enter still inserts a new line).
+   * Ignored while the @mention popup is open or inside a list.
+   */
+  onEnterSubmit?: () => void;
 }) {
   const candidatesRef = useRef<MentionCandidate[]>(mentionCandidates ?? []);
   useEffect(() => {
@@ -222,6 +228,10 @@ export function RichTextEditor({
   useEffect(() => {
     uploadCtxRef.current = { projectId, enableImages };
   }, [projectId, enableImages]);
+  const onEnterSubmitRef = useRef(onEnterSubmit);
+  useEffect(() => {
+    onEnterSubmitRef.current = onEnterSubmit;
+  }, [onEnterSubmit]);
 
   const uploadImageFile = useCallback(async (file: File) => {
     const activeEditor = editorRef.current;
@@ -299,6 +309,24 @@ export function RichTextEditor({
       attributes: {
         class: "prose prose-sm max-w-none focus:outline-none dark:prose-invert",
         style: `min-height: ${minHeight}`,
+      },
+      handleKeyDown: (_view, event) => {
+        if (
+          event.key !== "Enter" ||
+          event.shiftKey ||
+          event.isComposing ||
+          !onEnterSubmitRef.current
+        ) {
+          return false;
+        }
+        // Let Enter keep its native meaning while the @mention popup is open
+        // (it selects the highlighted person) or inside a list (new item).
+        if (document.querySelector("[data-tippy-root]")) return false;
+        const active = editorRef.current;
+        if (active?.isActive("bulletList") || active?.isActive("orderedList")) return false;
+        event.preventDefault();
+        onEnterSubmitRef.current();
+        return true;
       },
       handlePaste: (_view, event) => {
         const ctx = uploadCtxRef.current;

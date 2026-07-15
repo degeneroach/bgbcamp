@@ -9,7 +9,7 @@ import type { MentionCandidate } from "@/lib/tiptap-mention-suggestion";
 
 export function CommentForm({
   onSubmit,
-  placeholder = "Write a comment... (@ to mention someone)",
+  placeholder = "Write a comment... (@ to mention · Enter posts · Shift+Enter new line)",
   projectId,
   mentionCandidates,
 }: {
@@ -23,9 +23,8 @@ export function CommentForm({
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!htmlToExcerpt(body)) return;
+  function submit() {
+    if (isPending || !htmlToExcerpt(body)) return;
     setError(null);
     startTransition(async () => {
       const result = await onSubmit(body);
@@ -36,6 +35,11 @@ export function CommentForm({
       setBody("");
       setKey((k) => k + 1); // remounts the editor to fully clear its content
     });
+  }
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    submit();
   }
 
   return (
@@ -49,10 +53,11 @@ export function CommentForm({
         projectId={projectId}
         enableImages
         mentionCandidates={mentionCandidates}
+        onEnterSubmit={submit}
       />
       {error && <p className="text-xs text-destructive">{error}</p>}
       <div className="flex justify-end">
-        <Button type="submit" size="sm" disabled={isPending}>
+        <Button type="submit" variant="cta" size="sm" disabled={isPending}>
           {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
           Comment
         </Button>
