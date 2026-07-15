@@ -15,6 +15,7 @@ export interface FavoriteProject {
   name: string;
   slug: string;
   color: string;
+  logo_url: string | null;
 }
 
 export function AppShell({
@@ -95,11 +96,21 @@ export function AppShell({
                   href={`/projects/${project.slug}`}
                   className="flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium text-foreground/80 hover:bg-[#33402a]/10 hover:text-foreground dark:hover:bg-white/10"
                 >
-                  <span
-                    className="h-2 w-2 rounded-full"
-                    style={{ backgroundColor: project.color }}
-                    aria-hidden
-                  />
+                  {project.logo_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={project.logo_url}
+                      alt=""
+                      className="h-3.5 w-3.5 rounded-[4px] object-cover"
+                      aria-hidden
+                    />
+                  ) : (
+                    <span
+                      className="h-2 w-2 rounded-full"
+                      style={{ backgroundColor: project.color }}
+                      aria-hidden
+                    />
+                  )}
                   {project.name}
                 </Link>
               ))}

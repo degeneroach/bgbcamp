@@ -29,12 +29,21 @@ export function ProjectCard({
       </div>
       <Link href={`/projects/${project.slug}`} className="flex flex-1 flex-col gap-3">
         <div className="flex items-start gap-3 pr-8">
-          <span
-            className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-semibold text-white"
-            style={{ backgroundColor: project.color }}
-          >
-            {project.name.slice(0, 1).toUpperCase()}
-          </span>
+          {project.logo_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={project.logo_url}
+              alt={`${project.name} logo`}
+              className="mt-0.5 h-9 w-9 shrink-0 rounded-lg border object-cover"
+            />
+          ) : (
+            <span
+              className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-semibold text-white"
+              style={{ backgroundColor: project.color }}
+            >
+              {project.name.slice(0, 1).toUpperCase()}
+            </span>
+          )}
           <div className="flex min-w-0 flex-col">
             <span className="truncate font-semibold leading-tight tracking-tight">{project.name}</span>
             {project.description && (

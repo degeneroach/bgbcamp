@@ -42,6 +42,7 @@ export type Project = {
   slug: string;
   description: string | null;
   color: string;
+  logo_url: string | null;
   archived: boolean;
   created_by: string | null;
   created_at: string;

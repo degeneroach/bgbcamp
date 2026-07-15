@@ -2,6 +2,7 @@ import { requireCurrentUser } from "@/lib/current-user";
 import { createClient } from "@/lib/supabase/server";
 import { getProjectBySlug, getProjectMembers } from "@/lib/projects";
 import { ProjectSettingsForm } from "@/components/project-settings-form";
+import { ProjectLogoUploader } from "@/components/project-logo-uploader";
 import { ProjectMembersManager } from "@/components/project-members-manager";
 import { ArchivedListsSection } from "@/components/archived-lists-section";
 import { Card } from "@/components/ui/card";
@@ -38,6 +39,17 @@ export default async function ProjectSettingsPage({
 
   return (
     <div className="flex max-w-2xl flex-col gap-6">
+      <Card className="flex flex-col gap-4 p-4">
+        <h2 className="font-medium">Logo</h2>
+        <ProjectLogoUploader
+          projectId={project.id}
+          projectSlug={slug}
+          projectName={project.name}
+          color={project.color}
+          logoUrl={project.logo_url}
+        />
+      </Card>
+
       <Card className="flex flex-col gap-4 p-4">
         <h2 className="font-medium">Project details</h2>
         <ProjectSettingsForm project={project} />

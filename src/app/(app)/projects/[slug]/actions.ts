@@ -251,3 +251,24 @@ export async function createPostComment(
   revalidatePath("/activity");
   return { ok: true };
 }
+
+export async function updateProjectLogo(
+  projectId: string,
+  projectSlug: string,
+  logoUrl: string | null
+): Promise<{ ok: boolean; error?: string }> {
+  await requireCurrentUser();
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("projects")
+    .update({ logo_url: logoUrl })
+    .eq("id", projectId);
+
+  if (error) return { ok: false, error: error.message };
+
+  // Logo shows in the project header, dashboard cards, and favorites bar.
+  revalidatePath("/", "layout");
+  revalidatePath(`/projects/${projectSlug}`);
+  return { ok: true };
+}

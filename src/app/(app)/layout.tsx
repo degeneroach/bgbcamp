@@ -15,13 +15,23 @@ export default async function AppLayout({
       getRecentNotifications(supabase, userId),
       supabase
         .from("project_favorites")
-        .select("projects!inner(id, name, slug, color, archived)")
+        .select("projects!inner(id, name, slug, color, logo_url, archived)")
         .eq("user_id", userId)
         .order("created_at", { ascending: true }),
     ]);
 
   const favoriteProjects = (favoriteRows ?? [])
-    .map((row) => row.projects as unknown as { id: string; name: string; slug: string; color: string; archived: boolean })
+    .map(
+      (row) =>
+        row.projects as unknown as {
+          id: string;
+          name: string;
+          slug: string;
+          color: string;
+          logo_url: string | null;
+          archived: boolean;
+        }
+    )
     .filter((p) => !p.archived);
 
   return (

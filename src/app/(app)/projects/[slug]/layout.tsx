@@ -39,12 +39,22 @@ export default async function ProjectLayout({
       <div className="flex flex-col gap-3">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3.5">
-            <Link
-              href={`/projects/${slug}`}
-              className="mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-base font-semibold text-white"
-              style={{ backgroundColor: project.color }}
-            >
-              {project.name.slice(0, 1).toUpperCase()}
+            <Link href={`/projects/${slug}`} className="mt-1 shrink-0">
+              {project.logo_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={project.logo_url}
+                  alt={`${project.name} logo`}
+                  className="h-11 w-11 rounded-xl border object-cover"
+                />
+              ) : (
+                <span
+                  className="flex h-11 w-11 items-center justify-center rounded-xl text-base font-semibold text-white"
+                  style={{ backgroundColor: project.color }}
+                >
+                  {project.name.slice(0, 1).toUpperCase()}
+                </span>
+              )}
             </Link>
             <div className="flex flex-col gap-1">
               <Link href={`/projects/${slug}`} className="w-fit">
