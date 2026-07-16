@@ -83,6 +83,43 @@ function EmojiPicker({ editor }: { editor: Editor }) {
   );
 }
 
+// Quote only what's highlighted: TipTap's toggleBlockquote wraps whole
+// blocks, so quoting one selected line inside a paragraph (common when lines
+// are Shift+Enter breaks) would swallow the entire comment. For a partial
+// selection, carve the selection out into its own blockquote instead.
+function toggleQuoteOnSelection(editor: Editor) {
+  if (editor.isActive("blockquote")) {
+    editor.chain().focus().toggleBlockquote().run();
+    return;
+  }
+
+  const { state } = editor;
+  const { empty, $from, $to } = state.selection;
+  const wholeBlock =
+    empty ||
+    ($from.sameParent($to) &&
+      $from.parentOffset === 0 &&
+      $to.parentOffset === $to.parent.content.size);
+
+  if (wholeBlock) {
+    editor.chain().focus().toggleBlockquote().run();
+    return;
+  }
+
+  const content = state.selection.content().content.toJSON();
+  if (!content) {
+    editor.chain().focus().toggleBlockquote().run();
+    return;
+  }
+
+  editor
+    .chain()
+    .focus()
+    .deleteSelection()
+    .insertContent({ type: "blockquote", content })
+    .run();
+}
+
 function Toolbar({
   editor,
   onUploadImage,
@@ -163,7 +200,7 @@ function Toolbar({
       <Toggle
         size="sm"
         pressed={editor.isActive("blockquote")}
-        onPressedChange={() => editor.chain().focus().toggleBlockquote().run()}
+        onPressedChange={() => toggleQuoteOnSelection(editor)}
         aria-label="Quote"
       >
         <TextQuote className="h-4 w-4" />
