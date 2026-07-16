@@ -2,6 +2,7 @@ import { requireCurrentUser } from "@/lib/current-user";
 import { AvatarUploader } from "@/components/avatar-uploader";
 import { ProfileNameForm } from "@/components/profile-name-form";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { PushNotificationsToggle } from "@/components/push-notifications-toggle";
 import { Card } from "@/components/ui/card";
 
 export default async function ProfilePage() {
@@ -36,6 +37,11 @@ export default async function ProfilePage() {
             Just for you — everyone picks their own theme.
           </p>
           <ThemeToggle />
+        </div>
+
+        <div>
+          <h2 className="mb-3 font-medium">Browser notifications</h2>
+          <PushNotificationsToggle />
         </div>
       </Card>
     </div>

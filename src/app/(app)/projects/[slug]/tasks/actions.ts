@@ -7,6 +7,7 @@ import { logActivity } from "@/lib/activity";
 import { sanitizeHtml } from "@/lib/sanitize";
 import { extractMentionIds, htmlToExcerpt } from "@/lib/mentions";
 import { createMentionNotifications } from "@/lib/notifications";
+import { sendPushToUsers } from "@/lib/push";
 import { displayName } from "@/lib/display-name";
 import type { Task } from "@/types/database";
 
@@ -249,7 +250,7 @@ export async function updateTask(
   projectSlug: string,
   input: UpdateTaskInput
 ): Promise<ActionResult> {
-  const { userId, organization } = await requireCurrentUser();
+  const { userId, profile, organization } = await requireCurrentUser();
   const supabase = await createClient();
 
   const { data: existing } = await supabase.from("tasks").select("*").eq("id", taskId).single();
@@ -274,7 +275,7 @@ export async function updateTask(
       (id) => !previousMentions.has(id)
     );
     if (newMentions.length > 0) {
-      await createMentionNotifications(supabase, {
+      const mentionRecipients = await createMentionNotifications(supabase, {
         organizationId: organization.id,
         projectId,
         actorId: userId,
@@ -283,6 +284,12 @@ export async function updateTask(
         entityId: taskId,
         taskId,
         bodyHtml: update.description_html,
+      });
+      await sendPushToUsers(mentionRecipients, {
+        title: `${displayName(profile)} mentioned you`,
+        body: title,
+        url: `/projects/${projectSlug}/tasks/${taskId}`,
+        tag: `task-desc-${taskId}`,
       });
     }
   }
@@ -368,7 +375,7 @@ export async function createTaskComment(
   const cleaned = sanitizeHtml(bodyHtml);
   if (htmlToExcerpt(cleaned).length < 1) return { ok: false, error: "Comment can't be empty." };
 
-  const { userId, organization } = await requireCurrentUser();
+  const { userId, profile, organization } = await requireCurrentUser();
   const supabase = await createClient();
 
   const { data: comment, error } = await supabase
@@ -389,7 +396,7 @@ export async function createTaskComment(
     metadata: { taskTitle, commentId: comment.id, bodyPreview: htmlToExcerpt(cleaned) },
   });
 
-  await createMentionNotifications(supabase, {
+  const mentionRecipients = await createMentionNotifications(supabase, {
     organizationId: organization.id,
     projectId,
     actorId: userId,
@@ -398,6 +405,13 @@ export async function createTaskComment(
     entityId: comment.id,
     taskId,
     bodyHtml: cleaned,
+  });
+
+  await sendPushToUsers(mentionRecipients, {
+    title: `${displayName(profile)} mentioned you`,
+    body: `${taskTitle} — ${htmlToExcerpt(cleaned)}`,
+    url: `/projects/${projectSlug}/tasks/${taskId}`,
+    tag: `comment-${comment.id}`,
   });
 
   taskPaths(projectSlug, taskId);
@@ -545,7 +559,7 @@ export async function setBoost(
   entityId: string,
   emoji: string
 ): Promise<ActionResult> {
-  const { userId, organization } = await requireCurrentUser();
+  const { userId, profile, organization } = await requireCurrentUser();
   const supabase = await createClient();
 
   const { error } = await supabase.from("boosts").upsert(
@@ -603,6 +617,13 @@ export async function setBoost(
         excerpt: `${emoji}  “${taskTitle}”`,
       }))
     );
+
+    await sendPushToUsers(recipients, {
+      title: `${displayName(profile)} boosted you ${emoji}`,
+      body: taskTitle,
+      url: `/projects/${projectSlug}/tasks/${taskId}`,
+      tag: `boost-${entityId}`,
+    });
   }
 
   await logActivity(supabase, {

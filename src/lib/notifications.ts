@@ -17,14 +17,15 @@ interface CreateMentionNotificationsParams {
 // Creates one notification per mentioned teammate (excluding the author
 // mentioning themselves). These power the "priority" mentions queue shown
 // in the notification bell, separate from the general activity feed.
+// Returns the recipient ids so callers can follow up (e.g. Web Push).
 export async function createMentionNotifications(
   supabase: SupabaseClient<Database>,
   params: CreateMentionNotificationsParams
-) {
+): Promise<string[]> {
   const recipients = Array.from(new Set(params.mentionedUserIds)).filter(
     (id) => id !== params.actorId
   );
-  if (recipients.length === 0) return;
+  if (recipients.length === 0) return [];
 
   const excerpt = htmlToExcerpt(params.bodyHtml);
 
@@ -44,7 +45,10 @@ export async function createMentionNotifications(
 
   if (error) {
     console.error("Failed to create mention notifications", error);
+    return [];
   }
+
+  return recipients;
 }
 
 export interface NotificationWithRelations {

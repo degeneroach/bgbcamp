@@ -17,6 +17,36 @@ export async function markNotificationRead(notificationId: string) {
   revalidatePath("/", "layout");
 }
 
+export async function savePushSubscription(subscription: {
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+}) {
+  const { userId } = await requireCurrentUser();
+  const supabase = await createClient();
+
+  await supabase.from("push_subscriptions").upsert(
+    {
+      user_id: userId,
+      endpoint: subscription.endpoint,
+      p256dh: subscription.p256dh,
+      auth: subscription.auth,
+    },
+    { onConflict: "endpoint" }
+  );
+}
+
+export async function removePushSubscription(endpoint: string) {
+  const { userId } = await requireCurrentUser();
+  const supabase = await createClient();
+
+  await supabase
+    .from("push_subscriptions")
+    .delete()
+    .eq("endpoint", endpoint)
+    .eq("user_id", userId);
+}
+
 export async function markAllNotificationsRead(scope: "mentions" | "boosts" = "mentions") {
   const { userId } = await requireCurrentUser();
   const supabase = await createClient();

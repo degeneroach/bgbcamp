@@ -8,6 +8,8 @@ import { logActivity } from "@/lib/activity";
 import { sanitizeHtml } from "@/lib/sanitize";
 import { extractMentionIds, htmlToExcerpt } from "@/lib/mentions";
 import { createMentionNotifications } from "@/lib/notifications";
+import { sendPushToUsers } from "@/lib/push";
+import { displayName } from "@/lib/display-name";
 
 export async function toggleProjectNotifications(
   projectId: string,
@@ -213,7 +215,7 @@ export async function createPostComment(
     return { ok: false, error: "Comment can't be empty." };
   }
 
-  const { userId, organization } = await requireCurrentUser();
+  const { userId, profile, organization } = await requireCurrentUser();
   const supabase = await createClient();
 
   const { data: comment, error } = await supabase
@@ -236,7 +238,7 @@ export async function createPostComment(
     metadata: { postTitle, postId, bodyPreview: htmlToExcerpt(cleaned) },
   });
 
-  await createMentionNotifications(supabase, {
+  const mentionRecipients = await createMentionNotifications(supabase, {
     organizationId: organization.id,
     projectId,
     actorId: userId,
@@ -245,6 +247,13 @@ export async function createPostComment(
     entityId: comment.id,
     postId,
     bodyHtml: cleaned,
+  });
+
+  await sendPushToUsers(mentionRecipients, {
+    title: `${displayName(profile)} mentioned you`,
+    body: `${postTitle} — ${htmlToExcerpt(cleaned)}`,
+    url: `/projects/${projectSlug}/board#post-${postId}`,
+    tag: `post-comment-${comment.id}`,
   });
 
   revalidatePath(`/projects/${projectSlug}/board`);
