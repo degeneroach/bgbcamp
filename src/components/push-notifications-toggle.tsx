@@ -15,6 +15,11 @@ type Status =
   | "off"
   | "on";
 
+// Tolerate paste artifacts in the env value (quotes, backticks, whitespace).
+function vapidPublicKey(): string {
+  return (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "").trim().replace(/^["'`]+|["'`]+$/g, "");
+}
+
 function urlBase64ToUint8Array(base64: string): BufferSource {
   const padding = "=".repeat((4 - (base64.length % 4)) % 4);
   const raw = atob((base64 + padding).replace(/-/g, "+").replace(/_/g, "/"));
@@ -53,9 +58,18 @@ export function PushNotificationsToggle() {
 
   function enable() {
     setError(null);
-    if (!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) {
+    const key = vapidPublicKey();
+    if (!key) {
       setError(
         "Push isn't configured on this deployment yet — add the VAPID keys in Vercel and redeploy."
+      );
+      return;
+    }
+    // A valid VAPID public key is 87 base64url chars (65 bytes). Catch
+    // swapped/truncated values with a clearer message than Chrome's.
+    if (key.length !== 87) {
+      setError(
+        `The configured VAPID public key looks wrong (${key.length} chars, expected 87) — check NEXT_PUBLIC_VAPID_PUBLIC_KEY in Vercel isn't swapped with the private key or truncated, then redeploy.`
       );
       return;
     }
@@ -69,9 +83,7 @@ export function PushNotificationsToggle() {
         const registration = await navigator.serviceWorker.register("/sw.js");
         const subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(
-            process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
-          ),
+          applicationServerKey: urlBase64ToUint8Array(key),
         });
         const json = subscription.toJSON();
         await savePushSubscription({
