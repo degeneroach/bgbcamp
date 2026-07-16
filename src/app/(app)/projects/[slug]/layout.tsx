@@ -70,7 +70,7 @@ export default async function ProjectLayout({
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-3.5">
           <Link href={`/projects/${slug}`} className="mt-1 shrink-0">
-            {logoTile("h-11 w-11", "text-base")}
+            {logoTile("h-14 w-14", "text-lg")}
           </Link>
           <div className="flex flex-col gap-1">
             <Link href={`/projects/${slug}`} className="w-fit">

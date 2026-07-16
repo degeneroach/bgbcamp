@@ -34,11 +34,11 @@ export function ProjectCard({
             <img
               src={project.logo_url}
               alt={`${project.name} logo`}
-              className="mt-0.5 h-9 w-9 shrink-0 rounded-lg border object-cover"
+              className="mt-0.5 h-14 w-14 shrink-0 rounded-xl border object-cover"
             />
           ) : (
             <span
-              className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-semibold text-white"
+              className="mt-0.5 flex h-14 w-14 shrink-0 items-center justify-center rounded-xl text-lg font-semibold text-white"
               style={{ backgroundColor: project.color }}
             >
               {project.name.slice(0, 1).toUpperCase()}

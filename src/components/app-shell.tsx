@@ -101,7 +101,7 @@ export function AppShell({
                     <img
                       src={project.logo_url}
                       alt=""
-                      className="h-3.5 w-3.5 rounded-[4px] object-cover"
+                      className="h-5 w-5 rounded-[5px] object-cover"
                       aria-hidden
                     />
                   ) : (
