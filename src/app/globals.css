@@ -154,6 +154,24 @@
   * {
     @apply border-border outline-ring/50;
   }
+
+  /* Quoted text: soft grey box with an accent bar instead of the typography
+     plugin's italic-with-curly-quotes default. Used in comments, task
+     descriptions, and posts (editor and rendered views share .prose). */
+  .prose blockquote {
+    margin: 0.5rem 0;
+    border-left: 3px solid var(--primary);
+    background: color-mix(in oklab, var(--muted) 70%, transparent);
+    border-radius: 0 0.5rem 0.5rem 0;
+    padding: 0.5rem 0.875rem;
+    font-style: normal;
+    font-weight: 400;
+    color: color-mix(in oklab, var(--foreground) 85%, var(--muted-foreground));
+  }
+  .prose blockquote p:first-of-type::before,
+  .prose blockquote p:last-of-type::after {
+    content: none;
+  }
   body {
     @apply bg-background text-foreground font-normal;
   }

@@ -20,6 +20,7 @@ import {
   ImagePlus,
   Loader2,
   Smile,
+  TextQuote,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -158,6 +159,14 @@ function Toolbar({
         aria-label="Numbered list"
       >
         <ListOrdered className="h-4 w-4" />
+      </Toggle>
+      <Toggle
+        size="sm"
+        pressed={editor.isActive("blockquote")}
+        onPressedChange={() => editor.chain().focus().toggleBlockquote().run()}
+        aria-label="Quote"
+      >
+        <TextQuote className="h-4 w-4" />
       </Toggle>
       <Separator orientation="vertical" className="mx-1 h-5" />
       <EmojiPicker editor={editor} />
@@ -320,10 +329,17 @@ export function RichTextEditor({
           return false;
         }
         // Let Enter keep its native meaning while the @mention popup is open
-        // (it selects the highlighted person) or inside a list (new item).
+        // (it selects the highlighted person), inside a list (new item), or
+        // inside a quote (new quoted line).
         if (document.querySelector("[data-tippy-root]")) return false;
         const active = editorRef.current;
-        if (active?.isActive("bulletList") || active?.isActive("orderedList")) return false;
+        if (
+          active?.isActive("bulletList") ||
+          active?.isActive("orderedList") ||
+          active?.isActive("blockquote")
+        ) {
+          return false;
+        }
         event.preventDefault();
         onEnterSubmitRef.current();
         return true;
