@@ -425,7 +425,12 @@ export function RichTextContent({ html, className }: { html: string; className?:
     const target = e.target as HTMLElement;
     if (target.tagName === "IMG" && lightbox) {
       const img = target as HTMLImageElement;
-      lightbox.open(img.currentSrc || img.src, img.alt);
+      // Gather every image in this block (comment/description) so the
+      // lightbox can arrow through them, starting from the one clicked.
+      const all = Array.from(e.currentTarget.querySelectorAll("img"));
+      const items = all.map((el) => ({ src: el.currentSrc || el.src, alt: el.alt }));
+      const index = all.indexOf(img);
+      lightbox.openGallery(items, Math.max(0, index));
     }
   }
 

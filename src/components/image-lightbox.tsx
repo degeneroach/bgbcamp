@@ -8,11 +8,20 @@ import {
   useRef,
   useState,
 } from "react";
-import { X, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
+import { X, ZoomIn, ZoomOut, RotateCcw, ChevronLeft, ChevronRight } from "lucide-react";
 
 type MediaKind = "image" | "video";
 
-type LightboxApi = { open: (src: string, alt?: string, kind?: MediaKind) => void };
+export interface GalleryItem {
+  src: string;
+  alt?: string;
+}
+
+type LightboxApi = {
+  open: (src: string, alt?: string, kind?: MediaKind) => void;
+  /** Opens a set of images with prev/next arrows, starting at `startIndex`. */
+  openGallery: (items: GalleryItem[], startIndex: number) => void;
+};
 
 const LightboxContext = createContext<LightboxApi | null>(null);
 
@@ -89,14 +98,18 @@ function VideoLightbox({
 }
 
 function Lightbox({
-  src,
-  alt,
+  items,
+  index,
+  onNavigate,
   onClose,
 }: {
-  src: string;
-  alt: string;
+  items: GalleryItem[];
+  index: number;
+  onNavigate: (nextIndex: number) => void;
   onClose: () => void;
 }) {
+  const { src, alt = "" } = items[index];
+  const hasGallery = items.length > 1;
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
   // Translation measured from the container center, in screen pixels.
@@ -184,10 +197,24 @@ function Lightbox({
     }
   }
 
+  const goPrev = useCallback(() => {
+    if (hasGallery) onNavigate((index - 1 + items.length) % items.length);
+  }, [hasGallery, onNavigate, index, items.length]);
+  const goNext = useCallback(() => {
+    if (hasGallery) onNavigate((index + 1) % items.length);
+  }, [hasGallery, onNavigate, index, items.length]);
+
+  // Fresh image, fresh zoom.
+  useEffect(() => {
+    reset();
+  }, [index, reset]);
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
       else if (e.key === "0") reset();
+      else if (e.key === "ArrowLeft") goPrev();
+      else if (e.key === "ArrowRight") goNext();
     }
     document.addEventListener("keydown", onKey);
     // Lock background scroll while open.
@@ -197,7 +224,7 @@ function Lightbox({
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = prevOverflow;
     };
-  }, [onClose, reset]);
+  }, [onClose, reset, goPrev, goNext]);
 
   return (
     <div
@@ -247,8 +274,39 @@ function Lightbox({
         </button>
       </div>
 
+      {hasGallery && (
+        <>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              goPrev();
+            }}
+            className="absolute left-3 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/10 p-2.5 text-white transition hover:bg-white/25"
+            aria-label="Previous image"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              goNext();
+            }}
+            className="absolute right-3 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/10 p-2.5 text-white transition hover:bg-white/25"
+            aria-label="Next image"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+          <span className="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 rounded-full bg-white/10 px-2.5 py-1 text-xs font-medium text-white/90">
+            {index + 1} / {items.length}
+          </span>
+        </>
+      )}
+
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
+        key={src}
         src={src}
         alt={alt}
         draggable={false}
@@ -265,29 +323,53 @@ function Lightbox({
       />
 
       <p className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 text-xs text-white/60">
-        Scroll or click to zoom · drag to pan · Esc to close
+        {hasGallery ? "← → to switch · " : ""}Scroll or click to zoom · drag to pan · Esc to close
       </p>
     </div>
   );
 }
 
 export function ImageLightboxProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<{ src: string; alt: string; kind: MediaKind } | null>(null);
+  const [state, setState] = useState<
+    | { kind: "video"; src: string }
+    | { kind: "image"; items: GalleryItem[]; index: number }
+    | null
+  >(null);
 
   const open = useCallback((src: string, alt = "", kind?: MediaKind) => {
-    setState({ src, alt, kind: kind ?? detectKind(src) });
+    if ((kind ?? detectKind(src)) === "video") {
+      setState({ kind: "video", src });
+    } else {
+      setState({ kind: "image", items: [{ src, alt }], index: 0 });
+    }
+  }, []);
+
+  const openGallery = useCallback((items: GalleryItem[], startIndex: number) => {
+    if (items.length === 0) return;
+    setState({
+      kind: "image",
+      items,
+      index: clamp(startIndex, 0, items.length - 1),
+    });
   }, []);
 
   const close = useCallback(() => setState(null), []);
 
   return (
-    <LightboxContext.Provider value={{ open }}>
+    <LightboxContext.Provider value={{ open, openGallery }}>
       {children}
       {state &&
         (state.kind === "video" ? (
           <VideoLightbox src={state.src} onClose={close} />
         ) : (
-          <Lightbox src={state.src} alt={state.alt} onClose={close} />
+          <Lightbox
+            items={state.items}
+            index={state.index}
+            onNavigate={(index) =>
+              setState((prev) => (prev?.kind === "image" ? { ...prev, index } : prev))
+            }
+            onClose={close}
+          />
         ))}
     </LightboxContext.Provider>
   );

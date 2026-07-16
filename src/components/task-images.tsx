@@ -114,11 +114,16 @@ export function TaskImages({
       )}
       {images.length > 0 && (
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-          {images.map((image) => (
+          {images.map((image, index) => (
             <div
               key={image.id}
               className="group relative aspect-square cursor-zoom-in overflow-hidden rounded-md border"
-              onClick={() => lightbox?.open(image.url, "Task attachment")}
+              onClick={() =>
+                lightbox?.openGallery(
+                  images.map((i) => ({ src: i.url, alt: "Task attachment" })),
+                  index
+                )
+              }
             >
               <Image src={image.url} alt="Task attachment" fill sizes="200px" className="object-cover" />
               <button
