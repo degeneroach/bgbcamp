@@ -53,6 +53,12 @@ export function PushNotificationsToggle() {
 
   function enable() {
     setError(null);
+    if (!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) {
+      setError(
+        "Push isn't configured on this deployment yet — add the VAPID keys in Vercel and redeploy."
+      );
+      return;
+    }
     startTransition(async () => {
       try {
         const permission = await Notification.requestPermission();
