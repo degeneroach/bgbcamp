@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Star } from "lucide-react";
 import { NavLink } from "@/components/nav-link";
+import { MyTasksNavMenu } from "@/components/my-tasks-nav-menu";
 import { UserMenu } from "@/components/user-menu";
 import { GlobalSearch } from "@/components/global-search";
 import { NotificationsBell, BoostsBell } from "@/components/notifications-bell";
@@ -59,7 +60,7 @@ export function AppShell({
             <NavLink href="/" exact>
               Dashboard
             </NavLink>
-            <NavLink href="/my-tasks">My Tasks</NavLink>
+            <MyTasksNavMenu />
             <NavLink href="/activity">Activity</NavLink>
             <NavLink href="/people">People</NavLink>
           </nav>
@@ -83,6 +84,7 @@ export function AppShell({
             Dashboard
           </NavLink>
           <NavLink href="/my-tasks">My Tasks</NavLink>
+          <NavLink href="/activity-calendar">Calendar</NavLink>
           <NavLink href="/activity">Activity</NavLink>
           <NavLink href="/people">People</NavLink>
           <NavLink href="/search">Search</NavLink>
