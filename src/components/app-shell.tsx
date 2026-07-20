@@ -59,6 +59,7 @@ export function AppShell({
             <NavLink href="/" exact>
               Dashboard
             </NavLink>
+            <NavLink href="/my-tasks">My Tasks</NavLink>
             <NavLink href="/activity">Activity</NavLink>
             <NavLink href="/people">People</NavLink>
           </nav>
@@ -77,10 +78,11 @@ export function AppShell({
           </div>
         </div>
 
-        <nav className="mx-auto flex w-full max-w-[1150px] items-center gap-1 px-4 pb-2 md:hidden">
+        <nav className="mx-auto flex w-full max-w-[1150px] items-center gap-1 overflow-x-auto px-4 pb-2 md:hidden">
           <NavLink href="/" exact>
             Dashboard
           </NavLink>
+          <NavLink href="/my-tasks">My Tasks</NavLink>
           <NavLink href="/activity">Activity</NavLink>
           <NavLink href="/people">People</NavLink>
           <NavLink href="/search">Search</NavLink>
