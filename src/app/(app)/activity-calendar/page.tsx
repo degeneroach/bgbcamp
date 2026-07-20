@@ -11,7 +11,8 @@ export default async function ActivityCalendarPage() {
   const { organization } = await requireCurrentUser();
   const supabase = await createClient();
 
-  const since = startOfMonth(subMonths(new Date(), 2)).toISOString();
+  // A year of history so the client can page back month by month.
+  const since = startOfMonth(subMonths(new Date(), 11)).toISOString();
 
   const [{ data: memberRows }, { data: events }] = await Promise.all([
     supabase

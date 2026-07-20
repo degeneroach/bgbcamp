@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { getUserAccent } from "@/lib/user-colors";
 import { displayName } from "@/lib/display-name";
 import { cn } from "@/lib/utils";
-import { Users, Flame, Star } from "lucide-react";
+import { Users, Flame, Star, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   addDays,
   differenceInCalendarDays,
@@ -40,6 +40,9 @@ export function ContributionCalendar({
   events: ContributionEvent[];
 }) {
   const [selected, setSelected] = useState<string>("all");
+  // 0 = current month; higher = further back in time.
+  const [monthOffset, setMonthOffset] = useState(0);
+  const MAX_OFFSET = 11;
 
   const hue =
     selected === "all"
@@ -58,11 +61,18 @@ export function ContributionCalendar({
   }, [events, selected]);
 
   const today = startOfDay(new Date());
+  const monthStart = subMonths(startOfMonth(today), monthOffset);
+  const monthKey = format(monthStart, "yyyy-MM");
+
+  // Stats scoped to the displayed month; the streak is always "right now".
   const stats = useMemo(() => {
     let total = 0;
+    let activeDays = 0;
     let best: { key: string; count: number } | null = null;
     for (const [key, count] of counts) {
+      if (!key.startsWith(monthKey)) continue;
       total += count;
+      activeDays += 1;
       if (!best || count > best.count) best = { key, count };
     }
     // Current streak: consecutive days ending today (or yesterday, so an
@@ -74,14 +84,13 @@ export function ContributionCalendar({
       streak += 1;
       cursor = addDays(cursor, -1);
     }
-    return { total, activeDays: counts.size, best, streak };
-  }, [counts, today]);
+    return { total, activeDays, best, streak };
+  }, [counts, today, monthKey]);
 
+  // Heat scale uses the max across the whole fetched window so a quiet month
+  // doesn't look artificially busy.
   const max = useMemo(() => Math.max(0, ...counts.values()), [counts]);
   const bestKey = stats.best?.key;
-
-  // Three months: two back through the current one.
-  const months = [subMonths(startOfMonth(today), 2), subMonths(startOfMonth(today), 1), startOfMonth(today)];
 
   return (
     <div className="flex flex-col gap-5">
@@ -138,7 +147,7 @@ export function ContributionCalendar({
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Card className="flex flex-col gap-0.5 p-3">
           <span className="text-xs uppercase tracking-wide text-muted-foreground">
-            Contributions · 90d
+            {format(monthStart, "MMM")} contributions
           </span>
           <span className="text-xl font-semibold" style={{ color: hue }}>
             {stats.total}
@@ -172,72 +181,86 @@ export function ContributionCalendar({
         </Card>
       </div>
 
-      {/* Month grids */}
-      {months.map((monthStart) => {
-        const monthKey = format(monthStart, "yyyy-MM");
-        const daysInMonth = differenceInCalendarDays(
-          startOfMonth(addDays(monthStart, 35)),
-          monthStart
-        );
-        const leadingBlanks = monthStart.getDay();
-        const monthTotal = Array.from(counts.entries())
-          .filter(([key]) => key.startsWith(monthKey))
-          .reduce((sum, [, c]) => sum + c, 0);
-
-        return (
-          <Card key={monthKey} className="p-4">
-            <div className="mb-3 flex items-baseline justify-between">
-              <h2 className="text-sm font-semibold uppercase tracking-wide">
-                {format(monthStart, "MMMM yyyy")}
-              </h2>
-              <span className="text-xs text-muted-foreground">
-                In range: <span className="font-semibold" style={{ color: hue }}>{monthTotal}</span>
-              </span>
-            </div>
-            <div className="grid grid-cols-7 gap-1.5">
-              {WEEKDAYS.map((day) => (
-                <span
-                  key={day}
-                  className="pb-1 text-center text-[10px] font-medium uppercase tracking-wide text-muted-foreground"
-                >
-                  {day}
+      {/* Single month with prev/next navigation */}
+      <Card className="p-4">
+        <div className="mb-3 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => setMonthOffset((o) => Math.min(MAX_OFFSET, o + 1))}
+            disabled={monthOffset >= MAX_OFFSET}
+            className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
+            aria-label="Previous month"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <div className="flex items-center gap-2">
+            <h2 className="text-sm font-semibold uppercase tracking-wide">
+              {format(monthStart, "MMMM yyyy")}
+            </h2>
+            {monthOffset > 0 && (
+              <button
+                type="button"
+                onClick={() => setMonthOffset(0)}
+                className="rounded-full border px-2 py-0.5 text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground"
+              >
+                Today
+              </button>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => setMonthOffset((o) => Math.max(0, o - 1))}
+            disabled={monthOffset === 0}
+            className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
+            aria-label="Next month"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="grid grid-cols-7 gap-1.5">
+          {WEEKDAYS.map((day) => (
+            <span
+              key={day}
+              className="pb-1 text-center text-[10px] font-medium uppercase tracking-wide text-muted-foreground"
+            >
+              {day}
+            </span>
+          ))}
+          {Array.from({ length: monthStart.getDay() }).map((_, i) => (
+            <span key={`blank-${i}`} />
+          ))}
+          {Array.from({
+            length: differenceInCalendarDays(startOfMonth(addDays(monthStart, 35)), monthStart),
+          }).map((_, i) => {
+            const date = addDays(monthStart, i);
+            const key = format(date, "yyyy-MM-dd");
+            const count = counts.get(key) ?? 0;
+            const isFuture = date > today;
+            const isPeak = key === bestKey && count > 0;
+            return (
+              <div
+                key={key}
+                title={`${format(date, "MMM d")}: ${count} contribution${count === 1 ? "" : "s"}`}
+                style={heatStyle(count, max, hue)}
+                className={cn(
+                  "flex aspect-square flex-col items-center justify-center rounded-md border border-border/40 text-center sm:aspect-[4/3]",
+                  isFuture && "border-dashed opacity-40",
+                  count === 0 && !isFuture && "bg-muted/30",
+                  isPeak && "ring-2 ring-amber-400"
+                )}
+              >
+                <span className="text-[10px] leading-none text-muted-foreground">
+                  {format(date, "d")}
+                  {isPeak && <Star className="ml-0.5 inline h-2.5 w-2.5 fill-amber-400 text-amber-400" />}
                 </span>
-              ))}
-              {Array.from({ length: leadingBlanks }).map((_, i) => (
-                <span key={`blank-${i}`} />
-              ))}
-              {Array.from({ length: daysInMonth }).map((_, i) => {
-                const date = addDays(monthStart, i);
-                const key = format(date, "yyyy-MM-dd");
-                const count = counts.get(key) ?? 0;
-                const isFuture = date > today;
-                const isPeak = key === bestKey && count > 0;
-                return (
-                  <div
-                    key={key}
-                    title={`${format(date, "MMM d")}: ${count} contribution${count === 1 ? "" : "s"}`}
-                    style={heatStyle(count, max, hue)}
-                    className={cn(
-                      "flex aspect-square flex-col items-center justify-center rounded-md border border-border/40 text-center sm:aspect-[4/3]",
-                      isFuture && "border-dashed opacity-40",
-                      count === 0 && !isFuture && "bg-muted/30",
-                      isPeak && "ring-2 ring-amber-400"
-                    )}
-                  >
-                    <span className="text-[10px] leading-none text-muted-foreground">
-                      {format(date, "d")}
-                      {isPeak && <Star className="ml-0.5 inline h-2.5 w-2.5 fill-amber-400 text-amber-400" />}
-                    </span>
-                    {count > 0 && (
-                      <span className="mt-0.5 text-xs font-semibold leading-none">{count}</span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </Card>
-        );
-      })}
+                {count > 0 && (
+                  <span className="mt-0.5 text-xs font-semibold leading-none">{count}</span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </Card>
 
       {/* Legend */}
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
