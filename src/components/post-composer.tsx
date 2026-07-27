@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { RichTextEditor } from "@/components/rich-text-editor";
-import { Loader2, Megaphone } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { createPost } from "@/app/(app)/projects/[slug]/actions";
+import { POST_TAGS } from "@/lib/post-tags";
 import { cn } from "@/lib/utils";
 
 export function PostComposer({
@@ -19,7 +20,7 @@ export function PostComposer({
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
-  const [announcement, setAnnouncement] = useState(false);
+  const [tag, setTag] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -39,20 +40,14 @@ export function PostComposer({
   function handleSubmit() {
     setError(null);
     startTransition(async () => {
-      const result = await createPost(
-        projectId,
-        projectSlug,
-        title,
-        body,
-        announcement ? "announcement" : null
-      );
+      const result = await createPost(projectId, projectSlug, title, body, tag);
       if (!result.ok) {
         setError(result.error ?? "Something went wrong.");
         return;
       }
       setTitle("");
       setBody("");
-      setAnnouncement(false);
+      setTag(null);
       setOpen(false);
     });
   }
@@ -73,21 +68,27 @@ export function PostComposer({
         enableImages
       />
       {error && <p className="text-sm text-destructive">{error}</p>}
-      <div className="flex items-center justify-between gap-2">
-        <button
-          type="button"
-          onClick={() => setAnnouncement((v) => !v)}
-          aria-pressed={announcement}
-          className={cn(
-            "flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm transition-colors",
-            announcement
-              ? "border-amber-400 bg-amber-400/15 font-medium text-amber-600 dark:text-amber-400"
-              : "text-muted-foreground hover:bg-muted"
-          )}
-        >
-          <Megaphone className="h-3.5 w-3.5" />
-          Announcement
-        </button>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-1.5">
+          {POST_TAGS.map((postTag) => {
+            const active = tag === postTag.value;
+            return (
+              <button
+                key={postTag.value}
+                type="button"
+                onClick={() => setTag(active ? null : postTag.value)}
+                aria-pressed={active}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm transition-colors",
+                  active ? postTag.activeClass : "text-muted-foreground hover:bg-muted"
+                )}
+              >
+                <postTag.icon className="h-3.5 w-3.5" />
+                {postTag.label}
+              </button>
+            );
+          })}
+        </div>
         <div className="flex gap-2">
           <Button variant="ghost" onClick={() => setOpen(false)} disabled={isPending}>
             Cancel

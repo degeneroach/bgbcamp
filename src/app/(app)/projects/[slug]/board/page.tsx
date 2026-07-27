@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { Megaphone } from "lucide-react";
 import { requireCurrentUser } from "@/lib/current-user";
 import { createClient } from "@/lib/supabase/server";
 import { getProjectBySlug, getOrganizationMembers } from "@/lib/projects";
 import { PostComposer } from "@/components/post-composer";
 import { PostCard, type PostCommentWithAuthor, type PostWithAuthor } from "@/components/post-card";
+import { POST_TAGS, POST_TAG_VALUES } from "@/lib/post-tags";
 import { cn } from "@/lib/utils";
 
 export default async function ProjectMessageBoardPage({
@@ -12,11 +12,17 @@ export default async function ProjectMessageBoardPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ filter?: string }>;
+  searchParams: Promise<{ tag?: string; filter?: string }>;
 }) {
   const { slug } = await params;
-  const { filter } = await searchParams;
-  const announcementsOnly = filter === "announcements";
+  const sp = await searchParams;
+  // "filter=announcements" was the first iteration of this param.
+  const activeTag =
+    sp.tag && POST_TAG_VALUES.includes(sp.tag)
+      ? sp.tag
+      : sp.filter === "announcements"
+        ? "announcement"
+        : null;
   const { organization } = await requireCurrentUser();
   const supabase = await createClient();
   const project = await getProjectBySlug(supabase, organization.id, slug);
@@ -27,7 +33,7 @@ export default async function ProjectMessageBoardPage({
     .select("*, author:profiles!author_id(*)")
     .eq("project_id", project.id)
     .order("created_at", { ascending: false });
-  if (announcementsOnly) postsQuery = postsQuery.eq("tag", "announcement");
+  if (activeTag) postsQuery = postsQuery.eq("tag", activeTag);
 
   const { data: posts } = await postsQuery;
 
@@ -52,36 +58,37 @@ export default async function ProjectMessageBoardPage({
     <div className="flex max-w-3xl flex-col gap-4">
       <PostComposer projectId={project.id} projectSlug={slug} />
 
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Link
           href={`/projects/${slug}/board`}
           className={cn(
             "rounded-full border px-3 py-1 text-sm transition-colors",
-            !announcementsOnly
+            !activeTag
               ? "border-primary bg-primary/10 font-medium text-primary"
               : "text-muted-foreground hover:bg-muted"
           )}
         >
           All posts
         </Link>
-        <Link
-          href={`/projects/${slug}/board?filter=announcements`}
-          className={cn(
-            "flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm transition-colors",
-            announcementsOnly
-              ? "border-amber-400 bg-amber-400/15 font-medium text-amber-600 dark:text-amber-400"
-              : "text-muted-foreground hover:bg-muted"
-          )}
-        >
-          <Megaphone className="h-3.5 w-3.5" />
-          Announcements
-        </Link>
+        {POST_TAGS.map((tag) => (
+          <Link
+            key={tag.value}
+            href={`/projects/${slug}/board?tag=${tag.value}`}
+            className={cn(
+              "flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm transition-colors",
+              activeTag === tag.value ? tag.activeClass : "text-muted-foreground hover:bg-muted"
+            )}
+          >
+            <tag.icon className="h-3.5 w-3.5" />
+            {tag.label}
+          </Link>
+        ))}
       </div>
 
       {(posts ?? []).length === 0 ? (
         <p className="py-12 text-center text-sm text-muted-foreground">
-          {announcementsOnly
-            ? "No announcements yet."
+          {activeTag
+            ? "Nothing filed here yet."
             : "No posts yet. Share the first update with your team."}
         </p>
       ) : (

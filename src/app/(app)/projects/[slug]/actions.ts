@@ -10,6 +10,7 @@ import { extractMentionIds, htmlToExcerpt } from "@/lib/mentions";
 import { createMentionNotifications } from "@/lib/notifications";
 import { sendPushToUsers } from "@/lib/push";
 import { displayName } from "@/lib/display-name";
+import { POST_TAG_VALUES } from "@/lib/post-tags";
 
 export async function toggleProjectNotifications(
   projectId: string,
@@ -165,10 +166,13 @@ export async function createPost(
   projectSlug: string,
   title: string,
   bodyHtml: string,
-  tag: "announcement" | null = null
+  tag: string | null = null
 ): Promise<PostResult> {
   if (title.trim().length < 2) {
     return { ok: false, error: "Give the post a title." };
+  }
+  if (tag !== null && !POST_TAG_VALUES.includes(tag)) {
+    return { ok: false, error: "Unknown post tag." };
   }
 
   const { userId, organization } = await requireCurrentUser();
