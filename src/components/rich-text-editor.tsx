@@ -25,6 +25,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { createMentionSuggestion, type MentionCandidate } from "@/lib/tiptap-mention-suggestion";
+import { Video } from "@/lib/tiptap-video";
 import { useImageLightbox } from "@/components/image-lightbox";
 import { EMOJIS } from "@/lib/emojis";
 
@@ -223,7 +224,7 @@ function Toolbar({
             ) : (
               <ImagePlus className="h-3.5 w-3.5" />
             )}
-            Add Image
+            Add media
           </Button>
         </>
       )}
@@ -279,11 +280,17 @@ export function RichTextEditor({
     onEnterSubmitRef.current = onEnterSubmit;
   }, [onEnterSubmit]);
 
-  const uploadImageFile = useCallback(async (file: File) => {
+  const uploadMediaFile = useCallback(async (file: File) => {
     const activeEditor = editorRef.current;
     const ctx = uploadCtxRef.current;
     if (!activeEditor || !ctx.enableImages || !ctx.projectId) return;
-    if (!file.type.startsWith("image/")) return;
+    const isImage = file.type.startsWith("image/");
+    const isVideo = file.type.startsWith("video/");
+    if (!isImage && !isVideo) return;
+    if (isVideo && file.size > 50 * 1024 * 1024) {
+      window.alert("Videos must be under 50MB.");
+      return;
+    }
 
     setIsUploading(true);
     try {
@@ -294,11 +301,19 @@ export function RichTextEditor({
         .from("attachments")
         .upload(path, file, { contentType: file.type });
       if (error) {
-        window.alert(`Could not upload image: ${error.message}`);
+        window.alert(`Could not upload ${isVideo ? "video" : "image"}: ${error.message}`);
         return;
       }
       const { data } = supabase.storage.from("attachments").getPublicUrl(path);
-      activeEditor.chain().focus().setImage({ src: data.publicUrl }).run();
+      if (isVideo) {
+        activeEditor
+          .chain()
+          .focus()
+          .insertContent({ type: "video", attrs: { src: data.publicUrl } })
+          .run();
+      } else {
+        activeEditor.chain().focus().setImage({ src: data.publicUrl }).run();
+      }
     } finally {
       setIsUploading(false);
     }
@@ -311,6 +326,7 @@ export function RichTextEditor({
       Link.configure({ openOnClick: false, autolink: true }),
       Placeholder.configure({ placeholder }),
       TiptapImage.configure({ HTMLAttributes: { class: "rounded-md max-w-full" } }),
+      Video,
       ...(mentionCandidates
         ? [
             Mention.extend({
@@ -386,16 +402,19 @@ export function RichTextEditor({
         if (!ctx.enableImages || !ctx.projectId) return false;
         const items = event.clipboardData?.items;
         if (!items) return false;
-        const images: File[] = [];
+        const media: File[] = [];
         for (const item of Array.from(items)) {
-          if (item.kind === "file" && item.type.startsWith("image/")) {
+          if (
+            item.kind === "file" &&
+            (item.type.startsWith("image/") || item.type.startsWith("video/"))
+          ) {
             const file = item.getAsFile();
-            if (file) images.push(file);
+            if (file) media.push(file);
           }
         }
-        if (images.length === 0) return false;
+        if (media.length === 0) return false;
         event.preventDefault();
-        images.forEach((file) => void uploadImageFile(file));
+        media.forEach((file) => void uploadMediaFile(file));
         return true;
       },
       handleDrop: (_view, event) => {
@@ -404,10 +423,12 @@ export function RichTextEditor({
         const dropEvent = event as DragEvent;
         const files = dropEvent.dataTransfer?.files;
         if (!files || files.length === 0) return false;
-        const images = Array.from(files).filter((f) => f.type.startsWith("image/"));
-        if (images.length === 0) return false;
+        const media = Array.from(files).filter(
+          (f) => f.type.startsWith("image/") || f.type.startsWith("video/")
+        );
+        if (media.length === 0) return false;
         event.preventDefault();
-        images.forEach((file) => void uploadImageFile(file));
+        media.forEach((file) => void uploadMediaFile(file));
         return true;
       },
     },
@@ -426,7 +447,7 @@ export function RichTextEditor({
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
-    if (file) void uploadImageFile(file);
+    if (file) void uploadMediaFile(file);
   }
 
   return (
@@ -445,7 +466,7 @@ export function RichTextEditor({
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*"
+          accept="image/*,video/*"
           className="hidden"
           onChange={handleFileChange}
         />
@@ -489,7 +510,7 @@ export function RichTextContent({ html, className }: { html: string; className?:
 
   return (
     <div
-      className={`prose prose-sm max-w-none dark:prose-invert [&_img]:cursor-zoom-in [&_img]:rounded-md [&_img]:max-h-96 ${GALLERY_STYLES} ${className ?? ""}`}
+      className={`prose prose-sm max-w-none dark:prose-invert [&_img]:cursor-zoom-in [&_img]:rounded-md [&_img]:max-h-96 [&_video]:my-2 [&_video]:max-h-96 [&_video]:rounded-md ${GALLERY_STYLES} ${className ?? ""}`}
       onClick={handleClick}
       dangerouslySetInnerHTML={{ __html: groupConsecutiveImages(html) }}
     />

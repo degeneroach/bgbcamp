@@ -11,12 +11,13 @@ export function sanitizeHtml(html: string): string {
   return sanitizeHtmlLib(html, {
     allowedTags: [
       "p", "br", "strong", "em", "s", "a", "ul", "ol", "li",
-      "h2", "h3", "blockquote", "code", "pre", "img", "span",
+      "h2", "h3", "blockquote", "code", "pre", "img", "span", "video",
     ],
     allowedAttributes: {
       a: ["href", "target", "rel"],
       img: ["src", "alt", "class"],
       span: ["data-type", "data-mention-id", "class"],
+      video: ["src", "controls", "preload", "playsinline", "class"],
     },
     allowedSchemes: ["http", "https", "mailto"],
   });
