@@ -1,3 +1,4 @@
+import { Megaphone } from "lucide-react";
 import { UserAvatar } from "@/components/user-avatar";
 import { RichTextContent } from "@/components/rich-text-editor";
 import { Card } from "@/components/ui/card";
@@ -11,6 +12,7 @@ export interface PostWithAuthor {
   project_id: string;
   title: string;
   body_html: string;
+  tag: string | null;
   created_at: string;
   author: Profile | null;
 }
@@ -46,7 +48,15 @@ export function PostCard({
         </div>
       </div>
       <div>
-        <h3 className="mb-1 font-medium">{post.title}</h3>
+        <div className="mb-1 flex flex-wrap items-center gap-2">
+          <h3 className="font-medium">{post.title}</h3>
+          {post.tag === "announcement" && (
+            <span className="flex items-center gap-1 rounded-full bg-amber-400/15 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400">
+              <Megaphone className="h-3 w-3" />
+              Announcement
+            </span>
+          )}
+        </div>
         <RichTextContent html={post.body_html} />
       </div>
       <PostCommentSection

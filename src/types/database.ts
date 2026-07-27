@@ -72,6 +72,7 @@ export type Post = {
   title: string;
   body_html: string;
   pinned: boolean;
+  tag: string | null;
   created_at: string;
   updated_at: string;
 };

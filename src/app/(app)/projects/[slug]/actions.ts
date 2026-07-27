@@ -164,7 +164,8 @@ export async function createPost(
   projectId: string,
   projectSlug: string,
   title: string,
-  bodyHtml: string
+  bodyHtml: string,
+  tag: "announcement" | null = null
 ): Promise<PostResult> {
   if (title.trim().length < 2) {
     return { ok: false, error: "Give the post a title." };
@@ -180,6 +181,7 @@ export async function createPost(
       author_id: userId,
       title: title.trim(),
       body_html: sanitizeHtml(bodyHtml),
+      tag,
     })
     .select()
     .single();
