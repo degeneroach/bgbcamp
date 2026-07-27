@@ -11,7 +11,6 @@ export function ProjectTabs({ slug }: { slug: string }) {
   const tabs = [
     // Task detail pages live under /tasks/, so they count as the Tasks tab.
     { href: base, label: "Tasks", exact: true, alsoMatch: `${base}/tasks` },
-    { href: `${base}/board`, label: "Message Board" },
     { href: `${base}/activity`, label: "Activity" },
     { href: `${base}/settings`, label: "Settings" },
   ];

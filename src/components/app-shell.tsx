@@ -61,6 +61,7 @@ export function AppShell({
               Dashboard
             </NavLink>
             <MyTasksNavMenu />
+            <NavLink href="/board">Message Board</NavLink>
             <NavLink href="/activity">Activity</NavLink>
             <NavLink href="/people">People</NavLink>
           </nav>
@@ -84,6 +85,7 @@ export function AppShell({
             Dashboard
           </NavLink>
           <NavLink href="/my-tasks">My Tasks</NavLink>
+          <NavLink href="/board">Board</NavLink>
           <NavLink href="/activity-calendar">Calendar</NavLink>
           <NavLink href="/activity">Activity</NavLink>
           <NavLink href="/people">People</NavLink>

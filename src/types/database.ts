@@ -67,7 +67,9 @@ export type ProjectFavorite = {
 
 export type Post = {
   id: string;
-  project_id: string;
+  organization_id: string;
+  /** Legacy: posts created before the board went org-wide keep their project. */
+  project_id: string | null;
   author_id: string | null;
   title: string;
   body_html: string;
@@ -314,7 +316,7 @@ export type Database = {
       };
       posts: {
         Row: Post;
-        Insert: Partial<Post> & { project_id: string; title: string };
+        Insert: Partial<Post> & { organization_id: string; title: string };
         Update: Partial<Post>;
         Relationships: [
           {

@@ -35,8 +35,8 @@ export async function runSearch(
       .limit(5),
     supabase
       .from("posts")
-      .select("id, title, project_id, projects!inner(slug, name, organization_id)")
-      .eq("projects.organization_id", organizationId)
+      .select("id, title")
+      .eq("organization_id", organizationId)
       .ilike("title", like)
       .limit(5),
     supabase
@@ -62,14 +62,13 @@ export async function runSearch(
       href: `/projects/${t.projects.slug}/tasks/${t.id}`,
     });
   }
-  for (const p of (posts.data ?? []) as unknown as Array<{ id: string; title: string; projects: { slug: string; name: string } | null }>) {
-    if (!p.projects) continue;
+  for (const p of (posts.data ?? []) as unknown as Array<{ id: string; title: string }>) {
     results.push({
       type: "post",
       id: p.id,
       title: p.title,
-      subtitle: p.projects.name,
-      href: `/projects/${p.projects.slug}/board#post-${p.id}`,
+      subtitle: "Message Board",
+      href: `/board#post-${p.id}`,
     });
   }
   for (const person of people.data ?? []) {

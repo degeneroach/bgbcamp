@@ -10,7 +10,8 @@ import type { PostComment, Profile } from "@/types/database";
 
 export interface PostWithAuthor {
   id: string;
-  project_id: string;
+  organization_id: string;
+  project_id: string | null;
   title: string;
   body_html: string;
   tag: string | null;
@@ -25,12 +26,10 @@ export interface PostCommentWithAuthor extends PostComment {
 export function PostCard({
   post,
   comments,
-  projectSlug,
   members,
 }: {
   post: PostWithAuthor;
   comments: PostCommentWithAuthor[];
-  projectSlug: string;
   members: Profile[];
 }) {
   return (
@@ -70,12 +69,11 @@ export function PostCard({
         <RichTextContent html={post.body_html} />
       </div>
       <PostCommentSection
-        projectId={post.project_id}
-        projectSlug={projectSlug}
         postId={post.id}
         postTitle={post.title}
         comments={comments}
         members={members}
+        uploadScopeId={post.organization_id}
       />
     </Card>
   );

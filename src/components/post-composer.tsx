@@ -6,16 +6,15 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { Loader2 } from "lucide-react";
-import { createPost } from "@/app/(app)/projects/[slug]/actions";
+import { createPost } from "@/app/(app)/board/actions";
 import { POST_TAGS } from "@/lib/post-tags";
 import { cn } from "@/lib/utils";
 
 export function PostComposer({
-  projectId,
-  projectSlug,
+  organizationId,
 }: {
-  projectId: string;
-  projectSlug: string;
+  /** Scopes media uploads in the attachments bucket. */
+  organizationId: string;
 }) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
@@ -40,7 +39,7 @@ export function PostComposer({
   function handleSubmit() {
     setError(null);
     startTransition(async () => {
-      const result = await createPost(projectId, projectSlug, title, body, tag);
+      const result = await createPost(title, body, tag);
       if (!result.ok) {
         setError(result.error ?? "Something went wrong.");
         return;
@@ -64,7 +63,7 @@ export function PostComposer({
         content={body}
         onChange={setBody}
         placeholder="Share an update... (paste or drop images and videos)"
-        projectId={projectId}
+        projectId={organizationId}
         enableImages
       />
       {error && <p className="text-sm text-destructive">{error}</p>}

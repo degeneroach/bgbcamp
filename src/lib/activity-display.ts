@@ -149,7 +149,8 @@ export function describeActivity(
   const m = event.metadata as Metadata;
   const taskHref = projectSlug ? `/projects/${projectSlug}/tasks/${event.entity_id}` : null;
   const projectHref = projectSlug ? `/projects/${projectSlug}` : null;
-  const boardHref = projectSlug ? `/projects/${projectSlug}/board` : null;
+  // The message board is org-wide.
+  const boardHref = "/board";
 
   switch (event.action) {
     case "task.created":

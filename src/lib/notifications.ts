@@ -4,7 +4,7 @@ import { htmlToExcerpt } from "@/lib/mentions";
 
 interface CreateMentionNotificationsParams {
   organizationId: string;
-  projectId: string;
+  projectId: string | null;
   actorId: string;
   mentionedUserIds: string[];
   entityType: NotificationEntityType;
@@ -105,6 +105,10 @@ export async function getRecentNotifications(
 }
 
 export function notificationHref(notification: NotificationWithRelations): string {
+  // The message board is org-wide; post notifications go to the global board.
+  if (notification.entity_type === "post_comment" && notification.post) {
+    return `/board#post-${notification.post.id}`;
+  }
   if (!notification.project) return "/activity";
   if (
     (notification.entity_type === "task_comment" ||
@@ -113,9 +117,6 @@ export function notificationHref(notification: NotificationWithRelations): strin
     notification.task
   ) {
     return `/projects/${notification.project.slug}/tasks/${notification.task.id}`;
-  }
-  if (notification.entity_type === "post_comment" && notification.post) {
-    return `/projects/${notification.project.slug}/board#post-${notification.post.id}`;
   }
   return `/projects/${notification.project.slug}`;
 }

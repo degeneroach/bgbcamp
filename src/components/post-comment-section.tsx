@@ -6,24 +6,23 @@ import { RichTextContent } from "@/components/rich-text-editor";
 import { Separator } from "@/components/ui/separator";
 import { timeAgo } from "@/lib/format";
 import { displayName } from "@/lib/display-name";
-import { createPostComment } from "@/app/(app)/projects/[slug]/actions";
+import { createPostComment } from "@/app/(app)/board/actions";
 import type { PostCommentWithAuthor } from "@/components/post-card";
 import type { Profile } from "@/types/database";
 
 export function PostCommentSection({
-  projectId,
-  projectSlug,
   postId,
   postTitle,
   comments,
   members,
+  uploadScopeId,
 }: {
-  projectId: string;
-  projectSlug: string;
   postId: string;
   postTitle: string;
   comments: PostCommentWithAuthor[];
   members: Profile[];
+  /** Folder scope for media uploads (the organization id). */
+  uploadScopeId: string;
 }) {
   const mentionCandidates = members.map((m) => ({ id: m.id, label: displayName(m) }));
 
@@ -56,9 +55,9 @@ export function PostCommentSection({
         </>
       )}
       <CommentForm
-        projectId={projectId}
+        projectId={uploadScopeId}
         mentionCandidates={mentionCandidates}
-        onSubmit={(bodyHtml) => createPostComment(projectId, projectSlug, postId, postTitle, bodyHtml)}
+        onSubmit={(bodyHtml) => createPostComment(postId, postTitle, bodyHtml)}
       />
     </div>
   );
