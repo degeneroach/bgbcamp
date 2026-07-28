@@ -63,7 +63,6 @@ export function AppShell({
             <MyTasksNavMenu />
             <NavLink href="/board">Message Board</NavLink>
             <NavLink href="/activity">Activity</NavLink>
-            <NavLink href="/people">People</NavLink>
           </nav>
 
           <div className="ml-auto flex items-center gap-2">
@@ -88,7 +87,6 @@ export function AppShell({
           <NavLink href="/board">Board</NavLink>
           <NavLink href="/activity-calendar">Calendar</NavLink>
           <NavLink href="/activity">Activity</NavLink>
-          <NavLink href="/people">People</NavLink>
           <NavLink href="/search">Search</NavLink>
         </nav>
 
