@@ -14,7 +14,7 @@ export default async function MessageBoardPage({
 }) {
   const sp = await searchParams;
   const activeTag = sp.tag && POST_TAG_VALUES.includes(sp.tag) ? sp.tag : null;
-  const { organization } = await requireCurrentUser();
+  const { userId, organization } = await requireCurrentUser();
   const supabase = await createClient();
   const members = await getOrganizationMembers(supabase, organization.id);
 
@@ -95,6 +95,7 @@ export default async function MessageBoardPage({
             post={post}
             comments={commentsByPost.get(post.id) ?? []}
             members={members}
+            currentUserId={userId}
           />
         ))
       )}

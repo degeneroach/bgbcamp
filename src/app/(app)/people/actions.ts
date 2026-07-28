@@ -64,3 +64,84 @@ export async function inviteMember(email: string): Promise<InviteResult> {
   revalidatePath("/people");
   return { ok: true };
 }
+
+export interface TeamActionResult {
+  ok: boolean;
+  error?: string;
+}
+
+// Owners can manage anyone but themselves; admins can manage members only.
+async function authorizeTeamChange(targetUserId: string) {
+  const ctx = await requireCurrentUser();
+  if (ctx.role !== "owner" && ctx.role !== "admin") {
+    return { error: "Only owners and admins can manage the team." as const, ctx };
+  }
+  if (targetUserId === ctx.userId) {
+    return { error: "You can't change your own membership." as const, ctx };
+  }
+  const supabase = await createClient();
+  const { data: target } = await supabase
+    .from("organization_members")
+    .select("role, profiles(email)")
+    .eq("organization_id", ctx.organization.id)
+    .eq("user_id", targetUserId)
+    .maybeSingle();
+  if (!target) return { error: "Member not found." as const, ctx };
+  if (target.role === "owner") {
+    return { error: "The owner's membership can't be changed." as const, ctx };
+  }
+  if (ctx.role === "admin" && target.role === "admin") {
+    return { error: "Only the owner can manage other admins." as const, ctx };
+  }
+  const email =
+    (target as unknown as { profiles: { email: string } | null }).profiles?.email ?? "";
+  return { error: null, ctx, targetEmail: email };
+}
+
+export async function updateMemberRole(
+  targetUserId: string,
+  role: "admin" | "member"
+): Promise<TeamActionResult> {
+  const auth = await authorizeTeamChange(targetUserId);
+  if (auth.error) return { ok: false, error: auth.error };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("organization_members")
+    .update({ role })
+    .eq("organization_id", auth.ctx.organization.id)
+    .eq("user_id", targetUserId);
+
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/people");
+  revalidatePath("/profile");
+  return { ok: true };
+}
+
+export async function removeMember(targetUserId: string): Promise<TeamActionResult> {
+  const auth = await authorizeTeamChange(targetUserId);
+  if (auth.error) return { ok: false, error: auth.error };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("organization_members")
+    .delete()
+    .eq("organization_id", auth.ctx.organization.id)
+    .eq("user_id", targetUserId);
+
+  if (error) return { ok: false, error: error.message };
+
+  await logActivity(supabase, {
+    organizationId: auth.ctx.organization.id,
+    actorId: auth.ctx.userId,
+    entityType: "organization_member",
+    entityId: targetUserId,
+    action: "person.removed",
+    metadata: { email: auth.targetEmail },
+  });
+
+  revalidatePath("/people");
+  revalidatePath("/profile");
+  return { ok: true };
+}

@@ -129,3 +129,47 @@ export async function createPostComment(
   revalidatePath("/activity");
   return { ok: true };
 }
+
+export async function updatePost(
+  postId: string,
+  title: string,
+  bodyHtml: string,
+  tag: string | null = null
+): Promise<PostResult> {
+  if (title.trim().length < 2) {
+    return { ok: false, error: "Give the post a title." };
+  }
+  if (tag !== null && !POST_TAG_VALUES.includes(tag)) {
+    return { ok: false, error: "Unknown post tag." };
+  }
+
+  const { userId, organization } = await requireCurrentUser();
+  const supabase = await createClient();
+
+  // Authors edit their own posts (RLS also allows org admins, but the UI
+  // only offers editing to the author).
+  const { data: updated, error } = await supabase
+    .from("posts")
+    .update({ title: title.trim(), body_html: sanitizeHtml(bodyHtml), tag })
+    .eq("id", postId)
+    .eq("author_id", userId)
+    .select()
+    .maybeSingle();
+
+  if (error) return { ok: false, error: error.message };
+  if (!updated) return { ok: false, error: "You can only edit your own posts." };
+
+  await logActivity(supabase, {
+    organizationId: organization.id,
+    projectId: updated.project_id,
+    actorId: userId,
+    entityType: "post",
+    entityId: postId,
+    action: "post.updated",
+    metadata: { title: updated.title },
+  });
+
+  revalidatePath("/board");
+  revalidatePath("/activity");
+  return { ok: true };
+}
