@@ -21,6 +21,7 @@ import {
   Loader2,
   Smile,
   TextQuote,
+  Minus,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -205,6 +206,14 @@ function Toolbar({
         aria-label="Quote"
       >
         <TextQuote className="h-4 w-4" />
+      </Toggle>
+      <Toggle
+        size="sm"
+        pressed={false}
+        onPressedChange={() => editor.chain().focus().setHorizontalRule().run()}
+        aria-label="Divider line"
+      >
+        <Minus className="h-4 w-4" />
       </Toggle>
       <Separator orientation="vertical" className="mx-1 h-5" />
       <EmojiPicker editor={editor} />
@@ -510,7 +519,7 @@ export function RichTextContent({ html, className }: { html: string; className?:
 
   return (
     <div
-      className={`prose prose-sm max-w-none dark:prose-invert [&_img]:cursor-zoom-in [&_img]:rounded-md [&_img]:max-h-96 [&_video]:my-2 [&_video]:max-h-96 [&_video]:rounded-md ${GALLERY_STYLES} ${className ?? ""}`}
+      className={`prose prose-sm max-w-none dark:prose-invert [&_img]:cursor-zoom-in [&_img]:rounded-md [&_img]:max-h-96 [&_video]:my-2 [&_video]:max-h-96 [&_video]:rounded-md [&_hr]:my-4 [&_hr]:border-border ${GALLERY_STYLES} ${className ?? ""}`}
       onClick={handleClick}
       dangerouslySetInnerHTML={{ __html: groupConsecutiveImages(html) }}
     />
