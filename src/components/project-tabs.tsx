@@ -2,16 +2,28 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { getProjectEmbeds } from "@/lib/project-embeds";
 import { cn } from "@/lib/utils";
 
 export function ProjectTabs({ slug }: { slug: string }) {
   const pathname = usePathname();
   const base = `/projects/${slug}`;
 
-  const tabs = [
+  interface Tab {
+    href: string;
+    label: string;
+    exact?: boolean;
+    alsoMatch?: string;
+  }
+
+  const tabs: Tab[] = [
     // Task detail pages live under /tasks/, so they count as the Tasks tab.
     { href: base, label: "Tasks", exact: true, alsoMatch: `${base}/tasks` },
     { href: `${base}/activity`, label: "Activity" },
+    ...getProjectEmbeds(slug).map((embed) => ({
+      href: `${base}/embed/${embed.id}`,
+      label: embed.label,
+    })),
     { href: `${base}/settings`, label: "Settings" },
   ];
 
