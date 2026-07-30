@@ -3,6 +3,7 @@ import {
   ClipboardList,
   GraduationCap,
   FolderOpen,
+  BadgePercent,
   type LucideIcon,
 } from "lucide-react";
 
@@ -48,6 +49,14 @@ export const POST_TAGS: PostTag[] = [
     activeClass:
       "border-emerald-400 bg-emerald-400/15 font-medium text-emerald-600 dark:text-emerald-400",
     badgeClass: "bg-emerald-400/15 text-emerald-600 dark:text-emerald-400",
+  },
+  {
+    value: "promotion",
+    label: "Promotions",
+    icon: BadgePercent,
+    activeClass:
+      "border-rose-400 bg-rose-400/15 font-medium text-rose-600 dark:text-rose-400",
+    badgeClass: "bg-rose-400/15 text-rose-600 dark:text-rose-400",
   },
 ];
 
