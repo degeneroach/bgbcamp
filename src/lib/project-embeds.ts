@@ -21,6 +21,15 @@ export const PROJECT_EMBEDS: Record<string, ProjectEmbed[]> = {
         "https://docs.google.com/spreadsheets/d/14YqGnjNnw_OO2XO4ya3ffgF7AJhh5-eMfdWaVoSHFug/edit",
     },
   ],
+  "the-nonna": [
+    {
+      id: "shipments",
+      label: "On-Going Shipments",
+      src: "https://docs.google.com/spreadsheets/d/1uuuhoUEUepQMoAuejJlaFGj8-_1SoJxRFD_JrjiW258/edit?rm=minimal",
+      openUrl:
+        "https://docs.google.com/spreadsheets/d/1uuuhoUEUepQMoAuejJlaFGj8-_1SoJxRFD_JrjiW258/edit",
+    },
+  ],
 };
 
 export function getProjectEmbeds(slug: string): ProjectEmbed[] {
