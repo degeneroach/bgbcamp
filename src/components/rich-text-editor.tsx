@@ -295,9 +295,8 @@ export function RichTextEditor({
     if (!activeEditor || !ctx.enableImages || !ctx.projectId) return;
     const isImage = file.type.startsWith("image/");
     const isVideo = file.type.startsWith("video/");
-    if (!isImage && !isVideo) return;
-    if (isVideo && file.size > 50 * 1024 * 1024) {
-      window.alert("Videos must be under 50MB.");
+    if (file.size > 50 * 1024 * 1024) {
+      window.alert(`"${file.name}" is over the 50MB limit.`);
       return;
     }
 
@@ -308,9 +307,9 @@ export function RichTextEditor({
       const path = `${ctx.projectId}/${crypto.randomUUID()}${ext ? `.${ext}` : ""}`;
       const { error } = await supabase.storage
         .from("attachments")
-        .upload(path, file, { contentType: file.type });
+        .upload(path, file, { contentType: file.type || "application/octet-stream" });
       if (error) {
-        window.alert(`Could not upload ${isVideo ? "video" : "image"}: ${error.message}`);
+        window.alert(`Could not upload ${file.name}: ${error.message}`);
         return;
       }
       const { data } = supabase.storage.from("attachments").getPublicUrl(path);
@@ -320,8 +319,22 @@ export function RichTextEditor({
           .focus()
           .insertContent({ type: "video", attrs: { src: data.publicUrl } })
           .run();
-      } else {
+      } else if (isImage) {
         activeEditor.chain().focus().setImage({ src: data.publicUrl }).run();
+      } else {
+        // Any other file type becomes a paperclip link chip.
+        activeEditor
+          .chain()
+          .focus()
+          .insertContent([
+            {
+              type: "text",
+              text: `📎 ${file.name}`,
+              marks: [{ type: "link", attrs: { href: data.publicUrl } }],
+            },
+            { type: "text", text: " " },
+          ])
+          .run();
       }
     } finally {
       setIsUploading(false);
@@ -378,7 +391,8 @@ export function RichTextEditor({
     content,
     editorProps: {
       attributes: {
-        class: "prose prose-sm max-w-none focus:outline-none dark:prose-invert",
+        class:
+          "prose prose-sm max-w-none focus:outline-none dark:prose-invert [&_p]:my-1.5 [&_h2]:mt-3 [&_h2]:mb-1 [&_h3]:mt-2.5 [&_h3]:mb-1 [&_ul]:my-1.5 [&_ol]:my-1.5 [&_li]:my-0.5 [&_img]:my-1.5 [&_blockquote]:my-1.5 [&_hr]:my-2.5",
         style: `min-height: ${minHeight}`,
       },
       handleKeyDown: (_view, event) => {
@@ -413,10 +427,7 @@ export function RichTextEditor({
         if (!items) return false;
         const media: File[] = [];
         for (const item of Array.from(items)) {
-          if (
-            item.kind === "file" &&
-            (item.type.startsWith("image/") || item.type.startsWith("video/"))
-          ) {
+          if (item.kind === "file") {
             const file = item.getAsFile();
             if (file) media.push(file);
           }
@@ -432,12 +443,23 @@ export function RichTextEditor({
         const dropEvent = event as DragEvent;
         const files = dropEvent.dataTransfer?.files;
         if (!files || files.length === 0) return false;
-        const media = Array.from(files).filter(
-          (f) => f.type.startsWith("image/") || f.type.startsWith("video/")
-        );
-        if (media.length === 0) return false;
         event.preventDefault();
-        media.forEach((file) => void uploadMediaFile(file));
+        Array.from(files).forEach((file) => void uploadMediaFile(file));
+        return true;
+      },
+      // Clicking an image in the editor sets/edits its caption.
+      handleClickOn: (_view, _pos, node, nodePos, _event, direct) => {
+        if (!direct || node.type.name !== "image") return false;
+        const current = (node.attrs.alt as string | null) ?? "";
+        const caption = window.prompt("Caption for this image (leave empty for none):", current);
+        if (caption === null) return true;
+        editorRef.current
+          ?.chain()
+          .command(({ tr }) => {
+            tr.setNodeMarkup(nodePos, undefined, { ...node.attrs, alt: caption.trim() });
+            return true;
+          })
+          .run();
         return true;
       },
     },
@@ -454,9 +476,9 @@ export function RichTextEditor({
   }, []);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+    const files = Array.from(e.target.files ?? []);
     e.target.value = "";
-    if (file) void uploadMediaFile(file);
+    files.forEach((file) => void uploadMediaFile(file));
   }
 
   return (
@@ -467,7 +489,7 @@ export function RichTextEditor({
           onUploadImage={enableImages ? () => fileInputRef.current?.click() : undefined}
           isUploading={isUploading}
         />
-        <div className="px-3 py-2">
+        <div className="px-2.5 py-1.5">
           <EditorContent editor={editor} />
         </div>
       </div>
@@ -475,7 +497,7 @@ export function RichTextEditor({
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*,video/*"
+          multiple
           className="hidden"
           onChange={handleFileChange}
         />
@@ -490,13 +512,25 @@ export function RichTextEditor({
 // every image with lazy-loading hints so comment threads full of screenshots
 // don't block initial render.
 function groupConsecutiveImages(html: string): string {
-  return html
-    .replace(
-      /(?:(?:<p>\s*)?<img[^>]*\/?>(?:\s*<\/p>)?\s*){2,}/g,
-      (match) => `<div data-rte-gallery>${match}</div>`
-    )
-    .replace(/<img(?![^>]*loading=)/g, '<img loading="lazy" decoding="async"');
+  return (
+    html
+      .replace(
+        /(?:(?:<p>\s*)?<img[^>]*\/?>(?:\s*<\/p>)?\s*){2,}/g,
+        (match) => `<div data-rte-gallery>${match}</div>`
+      )
+      .replace(/<img(?![^>]*loading=)/g, '<img loading="lazy" decoding="async"')
+      // Images with an alt text (set by clicking the image in the editor)
+      // render as a figure with a visible caption underneath.
+      .replace(/<img([^>]*?)alt="([^"]+)"([^>]*?)\/?>/g, (match, pre, alt, post) =>
+        alt.trim()
+          ? `<figure data-rte-fig><img${pre}alt="${alt}"${post}><figcaption>${alt}</figcaption></figure>`
+          : match
+      )
+  );
 }
+
+const CAPTION_STYLES =
+  "[&_figure[data-rte-fig]]:my-2 [&_figure[data-rte-fig]]:w-fit [&_figure[data-rte-fig]_img]:my-0 [&_figcaption]:mt-1.5 [&_figcaption]:px-1 [&_figcaption]:text-center [&_figcaption]:text-xs [&_figcaption]:italic [&_figcaption]:leading-snug [&_figcaption]:text-muted-foreground [&_[data-rte-gallery]_figure]:m-0 [&_[data-rte-gallery]_figure]:w-28 [&_[data-rte-gallery]_figcaption]:truncate";
 
 const GALLERY_STYLES =
   "[&_[data-rte-gallery]]:my-2 [&_[data-rte-gallery]]:flex [&_[data-rte-gallery]]:flex-wrap [&_[data-rte-gallery]]:gap-2 [&_[data-rte-gallery]_p]:m-0 [&_[data-rte-gallery]_img]:m-0 [&_[data-rte-gallery]_img]:h-28 [&_[data-rte-gallery]_img]:w-28 [&_[data-rte-gallery]_img]:rounded-md [&_[data-rte-gallery]_img]:border [&_[data-rte-gallery]_img]:object-cover";
@@ -519,7 +553,7 @@ export function RichTextContent({ html, className }: { html: string; className?:
 
   return (
     <div
-      className={`prose prose-sm max-w-none dark:prose-invert [&_img]:cursor-zoom-in [&_img]:rounded-md [&_img]:max-h-96 [&_video]:my-2 [&_video]:max-h-96 [&_video]:rounded-md [&_hr]:my-4 [&_hr]:border-border ${GALLERY_STYLES} ${className ?? ""}`}
+      className={`prose prose-sm max-w-none dark:prose-invert [&_img]:cursor-zoom-in [&_img]:rounded-md [&_img]:max-h-96 [&_video]:my-2 [&_video]:max-h-96 [&_video]:rounded-md [&_hr]:my-4 [&_hr]:border-border ${GALLERY_STYLES} ${CAPTION_STYLES} ${className ?? ""}`}
       onClick={handleClick}
       dangerouslySetInnerHTML={{ __html: groupConsecutiveImages(html) }}
     />

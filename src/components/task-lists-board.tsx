@@ -1,7 +1,7 @@
 "use client";
 
 import { useOptimistic, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { ChevronDown, Check } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { TaskListHeader } from "@/components/task-list-header";
@@ -110,7 +110,6 @@ function CompletedTasksSection({
   projectSlug: string;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const router = useRouter();
 
   if (tasks.length === 0) return null;
 
@@ -131,15 +130,15 @@ function CompletedTasksSection({
       </button>
       {expanded &&
         tasks.map((task) => (
-          <div
+          <Link
             key={task.id}
-            className="flex cursor-pointer items-center gap-2 px-3 py-1.5 pl-8 hover:bg-accent/60"
-            onClick={() => router.push(`/projects/${projectSlug}/tasks/${task.id}`)}
+            href={`/projects/${projectSlug}/tasks/${task.id}`}
+            className="flex items-center gap-2 px-3 py-1.5 pl-8 hover:bg-accent/60"
           >
             <span className="truncate text-xs text-muted-foreground line-through">
               {task.title}
             </span>
-          </div>
+          </Link>
         ))}
     </div>
   );
