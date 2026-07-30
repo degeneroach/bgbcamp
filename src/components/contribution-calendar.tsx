@@ -1,12 +1,22 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { createElement, useMemo, useState, useTransition } from "react";
+import Link from "next/link";
 import { UserAvatar } from "@/components/user-avatar";
 import { Card } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { getUserAccent } from "@/lib/user-colors";
 import { displayName } from "@/lib/display-name";
+import { getActivityIcon, getActivityColor, describeActivity } from "@/lib/activity-display";
+import { getDayActivity, type DayActivityEvent } from "@/app/(app)/activity-calendar/actions";
 import { cn } from "@/lib/utils";
-import { Users, Flame, Star, ChevronLeft, ChevronRight } from "lucide-react";
+import { Users, Flame, Star, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import {
   addDays,
   differenceInCalendarDays,
@@ -43,6 +53,26 @@ export function ContributionCalendar({
   // 0 = current month; higher = further back in time.
   const [monthOffset, setMonthOffset] = useState(0);
   const MAX_OFFSET = 11;
+
+  // Day-detail modal state.
+  const [openDay, setOpenDay] = useState<Date | null>(null);
+  const [dayEvents, setDayEvents] = useState<DayActivityEvent[]>([]);
+  const [isLoadingDay, startDayLoad] = useTransition();
+
+  function openDayModal(date: Date) {
+    setOpenDay(date);
+    setDayEvents([]);
+    const start = startOfDay(date);
+    const end = addDays(start, 1);
+    startDayLoad(async () => {
+      const events = await getDayActivity(
+        start.toISOString(),
+        end.toISOString(),
+        selected === "all" ? null : selected
+      );
+      setDayEvents(events);
+    });
+  }
 
   const hue =
     selected === "all"
@@ -238,14 +268,18 @@ export function ContributionCalendar({
             const isFuture = date > today;
             const isPeak = key === bestKey && count > 0;
             return (
-              <div
+              <button
                 key={key}
+                type="button"
+                disabled={count === 0 || isFuture}
+                onClick={() => openDayModal(date)}
                 title={`${format(date, "MMM d")}: ${count} contribution${count === 1 ? "" : "s"}`}
                 style={heatStyle(count, max, hue)}
                 className={cn(
-                  "flex aspect-square flex-col items-center justify-center rounded-md border border-border/40 text-center sm:aspect-[4/3]",
+                  "flex aspect-square flex-col items-center justify-center rounded-md border border-border/40 text-center outline-none sm:aspect-[4/3]",
                   isFuture && "border-dashed opacity-40",
                   count === 0 && !isFuture && "bg-muted/30",
+                  count > 0 && "cursor-pointer transition-transform hover:scale-[1.04] hover:ring-2 hover:ring-ring/60 focus-visible:ring-2 focus-visible:ring-ring",
                   isPeak && "ring-2 ring-amber-400"
                 )}
               >
@@ -256,7 +290,7 @@ export function ContributionCalendar({
                 {count > 0 && (
                   <span className="mt-0.5 text-xs font-semibold leading-none">{count}</span>
                 )}
-              </div>
+              </button>
             );
           })}
         </div>
@@ -274,8 +308,81 @@ export function ContributionCalendar({
             />
           ))}
         </div>
-        High · ★ peak day · comments, tasks, boosts, and files all count
+        High · ★ peak day · click a day for details
       </div>
+
+      {/* Day detail modal */}
+      <Dialog open={openDay !== null} onOpenChange={(open) => !open && setOpenDay(null)}>
+        <DialogContent className="sm:max-w-lg" showCloseButton>
+          <DialogHeader>
+            <DialogTitle>{openDay ? format(openDay, "EEEE, MMMM d, yyyy") : ""}</DialogTitle>
+            <DialogDescription>
+              {selected === "all"
+                ? "Everything that happened this day."
+                : `What ${displayName(members.find((m) => m.id === selected) ?? null).split(" ")[0]} did this day.`}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="-mx-1 max-h-[60vh] overflow-y-auto px-1">
+            {isLoadingDay ? (
+              <div className="flex items-center justify-center py-10">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : dayEvents.length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                Nothing recorded for this day.
+              </p>
+            ) : (
+              <div className="flex flex-col gap-2.5">
+                {dayEvents.map((event) => {
+                  const display = describeActivity(event, event.project?.slug ?? null);
+                  const color = getActivityColor(event.action);
+                  const href =
+                    display.itemHref ??
+                    (event.project ? `/projects/${event.project.slug}` : null);
+                  return (
+                    <div key={event.id} className="flex items-start gap-2.5">
+                      <div
+                        className={cn(
+                          "flex h-7 w-7 shrink-0 items-center justify-center rounded-full",
+                          color.bg
+                        )}
+                      >
+                        {createElement(getActivityIcon(event.action), {
+                          className: cn("h-3.5 w-3.5", color.text),
+                        })}
+                      </div>
+                      <div className="min-w-0 flex-1 text-sm leading-snug">
+                        <span className="font-semibold">{displayName(event.actor)}</span>{" "}
+                        {display.verb}{" "}
+                        {display.itemLabel &&
+                          (href ? (
+                            <Link
+                              href={href}
+                              onClick={() => setOpenDay(null)}
+                              className="font-medium text-primary hover:underline"
+                            >
+                              &ldquo;{display.itemLabel}&rdquo;
+                            </Link>
+                          ) : (
+                            <span className="font-medium">&ldquo;{display.itemLabel}&rdquo;</span>
+                          ))}
+                        {display.detail && (
+                          <span className="text-muted-foreground"> {display.detail}</span>
+                        )}
+                        <div className="text-xs text-muted-foreground">
+                          {event.project?.name}
+                          {event.project && " · "}
+                          {format(new Date(event.created_at), "h:mm a")}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
