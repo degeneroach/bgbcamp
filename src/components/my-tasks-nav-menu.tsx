@@ -21,13 +21,13 @@ export function MyTasksNavMenu() {
     <DropdownMenu>
       <DropdownMenuTrigger
         className={cn(
-          "flex items-center gap-1 rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors outline-none",
+          "flex items-center gap-1 whitespace-nowrap rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors outline-none",
           active
             ? "bg-accent text-primary"
             : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
         )}
       >
-        My Tasks
+        Tasks
         <ChevronDown className="h-3.5 w-3.5" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-48">

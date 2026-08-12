@@ -21,7 +21,7 @@ export function ToolsNavMenu() {
     <DropdownMenu>
       <DropdownMenuTrigger
         className={cn(
-          "group flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors outline-none",
+          "group flex items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors outline-none",
           active
             ? "bg-accent text-primary"
             : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"

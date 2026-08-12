@@ -83,7 +83,7 @@ export function GlobalSearch() {
       <Button
         variant="outline"
         size="sm"
-        className="w-44 justify-start gap-2 border-[#33402a]/15 bg-white/60 font-normal text-muted-foreground shadow-none hover:bg-white dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+        className="hidden w-44 min-w-[160px] shrink justify-start gap-2 border-[#33402a]/15 bg-white/60 font-normal text-muted-foreground shadow-none hover:bg-white min-[900px]:flex dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
         onClick={() => setOpen(true)}
       >
         <Search className="h-3.5 w-3.5" />
@@ -91,6 +91,16 @@ export function GlobalSearch() {
         <kbd className="ml-auto rounded border bg-muted px-1.5 py-0.5 text-[10px] font-medium">
           {isMac ? "⌘K" : "Ctrl K"}
         </kbd>
+      </Button>
+      {/* Below ~900px the search collapses to an icon-only button. */}
+      <Button
+        variant="outline"
+        size="icon-sm"
+        aria-label="Search"
+        className="border-[#33402a]/15 bg-white/60 shadow-none hover:bg-white min-[900px]:hidden dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+        onClick={() => setOpen(true)}
+      >
+        <Search className="h-3.5 w-3.5" />
       </Button>
       <CommandDialog open={open} onOpenChange={setOpen} title="Search" description="Jump to a project, task, post, or person">
         <CommandInput

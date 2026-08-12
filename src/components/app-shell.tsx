@@ -51,24 +51,24 @@ export function AppShell({
               <BrandMark className="h-7 w-7" />
               <span className="text-sm font-semibold tracking-tight">BGBCamp</span>
             </Link>
-            <span className="hidden h-4 w-px bg-border lg:block" aria-hidden />
-            <div className="hidden w-40 lg:block">
+            <span className="hidden h-4 w-px bg-border min-[1100px]:block" aria-hidden />
+            <div className="hidden w-40 min-[1100px]:block">
               <OrganizationNameEditor name={organization.name} />
             </div>
           </div>
 
-          <nav className="hidden items-center gap-1 md:flex">
+          <nav className="hidden shrink-0 items-center gap-2 md:flex">
             <NavLink href="/" exact>
               Dashboard
             </NavLink>
             <MyTasksNavMenu />
-            <NavLink href="/board">Message Board</NavLink>
+            <NavLink href="/board">Messages</NavLink>
             <NavLink href="/activity">Activity</NavLink>
             <ToolsNavMenu />
           </nav>
 
-          <div className="ml-auto flex items-center gap-2">
-            <div className="hidden sm:block">
+          <div className="ml-auto flex min-w-0 items-center gap-2">
+            <div className="hidden min-w-0 shrink sm:block">
               <GlobalSearch />
             </div>
             <BoostsBell notifications={boostNotifications} unreadCount={unreadBoostCount} />
@@ -85,8 +85,8 @@ export function AppShell({
           <NavLink href="/" exact>
             Dashboard
           </NavLink>
-          <NavLink href="/my-tasks">My Tasks</NavLink>
-          <NavLink href="/board">Board</NavLink>
+          <NavLink href="/my-tasks">Tasks</NavLink>
+          <NavLink href="/board">Messages</NavLink>
           <NavLink href="/activity-calendar">Calendar</NavLink>
           <NavLink href="/activity">Activity</NavLink>
           <NavLink href="/tools/amazon-margins">Tools</NavLink>
