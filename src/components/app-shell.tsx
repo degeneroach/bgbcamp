@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Star } from "lucide-react";
 import { NavLink } from "@/components/nav-link";
 import { MyTasksNavMenu } from "@/components/my-tasks-nav-menu";
+import { ToolsNavMenu } from "@/components/tools-nav-menu";
 import { UserMenu } from "@/components/user-menu";
 import { GlobalSearch } from "@/components/global-search";
 import { NotificationsBell, BoostsBell } from "@/components/notifications-bell";
@@ -63,6 +64,7 @@ export function AppShell({
             <MyTasksNavMenu />
             <NavLink href="/board">Message Board</NavLink>
             <NavLink href="/activity">Activity</NavLink>
+            <ToolsNavMenu />
           </nav>
 
           <div className="ml-auto flex items-center gap-2">
@@ -87,6 +89,7 @@ export function AppShell({
           <NavLink href="/board">Board</NavLink>
           <NavLink href="/activity-calendar">Calendar</NavLink>
           <NavLink href="/activity">Activity</NavLink>
+          <NavLink href="/tools/amazon-margins">Tools</NavLink>
           <NavLink href="/search">Search</NavLink>
         </nav>
 
