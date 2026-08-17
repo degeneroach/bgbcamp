@@ -170,6 +170,30 @@ export type ActivitySeen = {
   seen_at: string;
 };
 
+export type WikiSection = {
+  id: string;
+  organization_id: string;
+  name: string;
+  slug: string;
+  sort_order: number;
+  created_at: string;
+};
+
+export type WikiDoc = {
+  id: string;
+  organization_id: string;
+  section_id: string;
+  title: string;
+  slug: string;
+  body_html: string;
+  is_published: boolean;
+  sort_order: number;
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type PushSubscriptionRow = {
   id: string;
   user_id: string;
@@ -455,6 +479,59 @@ export type Database = {
           {
             foreignKeyName: "task_images_uploaded_by_fkey";
             columns: ["uploaded_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      wiki_sections: {
+        Row: WikiSection;
+        Insert: Partial<WikiSection> & { organization_id: string; name: string; slug: string };
+        Update: Partial<WikiSection>;
+        Relationships: [
+          {
+            foreignKeyName: "wiki_sections_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      wiki_docs: {
+        Row: WikiDoc;
+        Insert: Partial<WikiDoc> & {
+          organization_id: string;
+          section_id: string;
+          slug: string;
+        };
+        Update: Partial<WikiDoc>;
+        Relationships: [
+          {
+            foreignKeyName: "wiki_docs_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "wiki_docs_section_id_fkey";
+            columns: ["section_id"];
+            isOneToOne: false;
+            referencedRelation: "wiki_sections";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "wiki_docs_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "wiki_docs_updated_by_fkey";
+            columns: ["updated_by"];
             isOneToOne: false;
             referencedRelation: "profiles";
             referencedColumns: ["id"];

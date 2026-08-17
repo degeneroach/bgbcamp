@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronDown, Wrench, Calculator } from "lucide-react";
+import { ChevronDown, Wrench, Calculator, NotebookText } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,6 +35,10 @@ export function ToolsNavMenu() {
         <DropdownMenuItem render={<Link href="/tools/amazon-margins" />} className="h-10 gap-2.5">
           <Calculator className="h-4 w-4" />
           Amazon Margins
+        </DropdownMenuItem>
+        <DropdownMenuItem render={<Link href="/tools/wiki" />} className="h-10 gap-2.5">
+          <NotebookText className="h-4 w-4" />
+          SOP Wiki
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
