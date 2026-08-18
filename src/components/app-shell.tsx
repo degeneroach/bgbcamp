@@ -63,7 +63,6 @@ export function AppShell({
             </NavLink>
             <MyTasksNavMenu />
             <NavLink href="/board">Messages</NavLink>
-            <NavLink href="/activity">Activity</NavLink>
             <ToolsNavMenu />
           </nav>
 

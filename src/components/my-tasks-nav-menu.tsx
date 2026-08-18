@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronDown, ListChecks, CalendarDays } from "lucide-react";
+import { ChevronDown, ListChecks, CalendarDays, Activity } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,7 +15,10 @@ import { cn } from "@/lib/utils";
 // contribution-style Activity Calendar.
 export function MyTasksNavMenu() {
   const pathname = usePathname();
-  const active = pathname.startsWith("/my-tasks") || pathname.startsWith("/activity-calendar");
+  const active =
+    pathname.startsWith("/my-tasks") ||
+    pathname.startsWith("/activity-calendar") ||
+    pathname.startsWith("/activity");
 
   return (
     <DropdownMenu>
@@ -34,6 +37,10 @@ export function MyTasksNavMenu() {
         <DropdownMenuItem render={<Link href="/my-tasks" />}>
           <ListChecks className="h-4 w-4" />
           My Tasks
+        </DropdownMenuItem>
+        <DropdownMenuItem render={<Link href="/activity" />}>
+          <Activity className="h-4 w-4" />
+          Activity Timeline
         </DropdownMenuItem>
         <DropdownMenuItem render={<Link href="/activity-calendar" />}>
           <CalendarDays className="h-4 w-4" />
