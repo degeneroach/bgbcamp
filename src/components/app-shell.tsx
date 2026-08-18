@@ -44,7 +44,7 @@ export function AppShell({
     <div className="flex min-h-screen flex-col">
       {/* Soft sage tint (pulled from the brand green) sets the header apart
           from the page background. */}
-      <header className="sticky top-0 z-40 border-b border-[#33402a]/10 bg-[#eef1e9]/95 backdrop-blur dark:border-white/10 dark:bg-[#0d1320]/95">
+      <header className="sticky top-0 z-40 border-b border-[#33402a]/10 bg-[#eef1e9]/95 backdrop-blur print:hidden dark:border-white/10 dark:bg-[#0d1320]/95">
         <div className="mx-auto flex h-12 w-full max-w-[1150px] items-center gap-4 px-4 md:px-6">
           <div className="flex items-center gap-2.5">
             <Link href="/" className="flex items-center gap-2">

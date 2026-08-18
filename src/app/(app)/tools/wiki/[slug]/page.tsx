@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getDocBySlug } from "@/lib/wiki";
 import { RichTextContent } from "@/components/rich-text-editor";
 import { WikiDocMenu } from "@/components/wiki/wiki-doc-menu";
+import { WikiDocActions } from "@/components/wiki/wiki-doc-actions";
 import { Button } from "@/components/ui/button";
 import { displayName } from "@/lib/display-name";
 import type { WikiSection } from "@/types/database";
@@ -52,7 +53,8 @@ export default async function WikiDocPage({
             {displayName(doc.updated_by_profile)}
           </p>
         </div>
-        <div className="flex shrink-0 items-center gap-1.5">
+        <div className="flex shrink-0 items-center gap-1.5 print:hidden">
+          <WikiDocActions docTitle={doc.title} />
           <Button
             variant="outline"
             size="sm"

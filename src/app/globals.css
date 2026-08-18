@@ -247,3 +247,37 @@
     margin: 1.25em 0;
   }
 }
+
+/* Print (used by the wiki "PDF" button): white page, black text, no app
+   chrome — regardless of the on-screen theme. */
+@media print {
+  body {
+    background: #fff !important;
+    color: #111 !important;
+  }
+  main {
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+  .prose.wiki-doc,
+  .prose.wiki-doc p,
+  .prose.wiki-doc li,
+  .prose.wiki-doc h2,
+  .prose.wiki-doc h3,
+  .prose.wiki-doc strong {
+    color: #111 !important;
+  }
+  .prose.wiki-doc a {
+    color: #1d4ed8 !important;
+    text-decoration: underline;
+  }
+  .prose.wiki-doc blockquote {
+    background: #f3f4f6 !important;
+    border-left-color: #9ca3af !important;
+    color: #111 !important;
+  }
+  article h1,
+  article p {
+    color: #111 !important;
+  }
+}

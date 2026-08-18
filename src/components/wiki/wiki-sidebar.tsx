@@ -56,7 +56,7 @@ export function WikiSidebar({ sections }: { sections: WikiSectionWithDocs[] }) {
   const q = query.trim().toLowerCase();
 
   return (
-    <aside className="flex flex-col gap-3 rounded-xl border bg-card p-3 lg:min-h-[70vh] lg:rounded-none lg:rounded-l-xl lg:border-0 lg:border-r">
+    <aside className="flex flex-col gap-3 rounded-xl border bg-card p-3 print:hidden lg:min-h-[70vh] lg:rounded-none lg:rounded-l-xl lg:border-0 lg:border-r">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-sm font-semibold">SOP Wiki</h2>
         <NewDocButton />
