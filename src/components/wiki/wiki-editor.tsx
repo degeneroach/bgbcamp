@@ -13,8 +13,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Check } from "lucide-react";
-import { updateWikiDoc } from "@/app/(app)/tools/wiki/actions";
+import { Loader2, Check, Trash2 } from "lucide-react";
+import { updateWikiDoc, deleteWikiDoc } from "@/app/(app)/tools/wiki/actions";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { WikiDoc, WikiSection } from "@/types/database";
@@ -82,6 +82,18 @@ export function WikiEditor({
     });
   }
 
+  function handleDelete() {
+    if (!window.confirm(`Delete "${latest.current.title.trim() || "Untitled"}"? This can't be undone.`)) return;
+    startTransition(async () => {
+      const result = await deleteWikiDoc(doc.id);
+      if (!result.ok) {
+        toast.error(result.error ?? "Could not delete the doc.");
+        return;
+      }
+      router.push("/tools/wiki");
+    });
+  }
+
   const sectionItems: Record<string, React.ReactNode> = Object.fromEntries(
     sections.map((s) => [s.id, s.business ? `${s.business} · ${s.name}` : s.name])
   );
@@ -130,6 +142,16 @@ export function WikiEditor({
             )}
             {saveState === "dirty" && "Unsaved changes"}
           </span>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={handleDelete}
+            disabled={isPending}
+            aria-label="Delete doc"
+            className="text-muted-foreground hover:text-destructive"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
           <Button
             variant="ghost"
             size="sm"
