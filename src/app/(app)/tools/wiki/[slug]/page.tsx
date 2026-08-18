@@ -33,14 +33,17 @@ export default async function WikiDocPage({
   if (!doc) notFound();
 
   return (
-    <article className="flex flex-col gap-1">
+    // The reader paints its own slightly lighter "paper" surface, expanding
+    // to fill the pane (negative margins cancel the layout padding). The
+    // editor view keeps the plain card surface.
+    <article className="-m-5 flex min-h-full flex-col gap-1 bg-[var(--surface-reading)] p-5 lg:-m-6 lg:p-8">
       <p className="text-xs text-muted-foreground">
         {doc.section?.business ? `${doc.section.business} › ` : ""}{doc.section?.name ?? "Wiki"} <span aria-hidden>›</span> {doc.title}
       </p>
 
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <h1 className="text-[28px] font-semibold leading-[1.2] tracking-tight">
             {doc.title}
             {!doc.is_published && (
               <span className="ml-2 align-middle rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
@@ -48,7 +51,7 @@ export default async function WikiDocPage({
               </span>
             )}
           </h1>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="mt-2 text-[13px] text-muted-foreground">
             Last updated {format(new Date(doc.updated_at), "MMM d, yyyy")} by{" "}
             {displayName(doc.updated_by_profile)}
           </p>
