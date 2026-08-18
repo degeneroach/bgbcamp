@@ -127,6 +127,7 @@ export default async function ProjectTasksPage({
       <RecentActivityCard
         events={(events ?? []) as unknown as ActivityEventWithRelations[]}
         viewAllHref={`/projects/${slug}/activity`}
+        projectSlug={slug}
       />
     </div>
   );

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { UserAvatar } from "@/components/user-avatar";
 import { type ActivityEventWithRelations } from "@/components/activity-item";
 import { activitySummary } from "@/lib/activity-summary";
+import { describeActivity } from "@/lib/activity-display";
 import { timeAgo } from "@/lib/format";
 import { getUserAccent } from "@/lib/user-colors";
 import { displayName } from "@/lib/display-name";
@@ -16,13 +17,17 @@ const PAGE_SIZE = 12;
 function ActivityRow({
   event,
   mirrored,
+  projectSlug,
 }: {
   event: ActivityEventWithRelations;
   mirrored: boolean;
+  projectSlug: string;
 }) {
   const accent = getUserAccent(event.actor?.email || event.actor?.full_name || null);
-  return (
-    <div className={cn("flex items-start gap-2", mirrored && "flex-row-reverse text-right")}>
+  const href = describeActivity(event, projectSlug).itemHref;
+
+  const content = (
+    <>
       <UserAvatar
         name={event.actor?.full_name}
         email={event.actor?.email ?? ""}
@@ -36,7 +41,20 @@ function ActivityRow({
         <span className="text-foreground/80">{activitySummary(event)}</span>
         <span className="whitespace-nowrap text-muted-foreground/70"> · {timeAgo(event.created_at)}</span>
       </div>
-    </div>
+    </>
+  );
+
+  const rowClass = cn("flex items-start gap-2", mirrored && "flex-row-reverse text-right");
+
+  return href ? (
+    <Link
+      href={href}
+      className={cn(rowClass, "-mx-1 rounded-md px-1 py-0.5 hover:bg-muted/60 [&_span]:hover:opacity-90")}
+    >
+      {content}
+    </Link>
+  ) : (
+    <div className={rowClass}>{content}</div>
   );
 }
 
@@ -46,9 +64,11 @@ function ActivityRow({
 export function RecentActivityCard({
   events,
   viewAllHref,
+  projectSlug,
 }: {
   events: ActivityEventWithRelations[];
   viewAllHref: string;
+  projectSlug: string;
 }) {
   const [visibleCount, setVisibleCount] = useState(INITIAL_COUNT);
   const visible = events.slice(0, visibleCount);
@@ -87,7 +107,7 @@ export function RecentActivityCard({
           {/* Mobile: simple left rail. */}
           <div className="flex flex-col gap-2.5 sm:hidden">
             {visible.map((event) => (
-              <ActivityRow key={event.id} event={event} mirrored={false} />
+              <ActivityRow key={event.id} event={event} mirrored={false} projectSlug={projectSlug} />
             ))}
           </div>
 
@@ -101,13 +121,13 @@ export function RecentActivityCard({
                   className="grid grid-cols-[minmax(0,1fr)_1.5rem_minmax(0,1fr)] items-start"
                 >
                   <div className="min-w-0">
-                    {sides[i] === "left" && <ActivityRow event={event} mirrored />}
+                    {sides[i] === "left" && <ActivityRow event={event} mirrored projectSlug={projectSlug} />}
                   </div>
                   <div className="flex justify-center pt-2">
                     <span className="relative z-10 h-1.5 w-1.5 rounded-full bg-border" />
                   </div>
                   <div className="min-w-0">
-                    {sides[i] === "right" && <ActivityRow event={event} mirrored={false} />}
+                    {sides[i] === "right" && <ActivityRow event={event} mirrored={false} projectSlug={projectSlug} />}
                   </div>
                 </div>
               ))}
