@@ -53,17 +53,27 @@ export default async function ProjectLayout({
     );
   }
 
-  const controls = (
-    <div className="flex items-center gap-1.5">
+  const baseControls = (
+    <>
       <FavoriteToggle projectId={project.id} initialFavorited={Boolean(favoriteRow)} />
       <NotificationToggle
         projectId={project.id}
         projectSlug={slug}
         initialEnabled={currentMembership?.notifications_enabled ?? true}
       />
+    </>
+  );
+
+  const controls = (
+    <div className="flex items-center gap-1.5">
+      {baseControls}
       <ProjectSettingsMenu projectId={project.id} projectSlug={slug} />
     </div>
   );
+
+  // Task view: no project-level settings/archive menu — too easy to archive
+  // the whole project while focused on one task.
+  const compactControls = <div className="flex items-center gap-1.5">{baseControls}</div>;
 
   const fullHeader = (
     <div className="flex flex-col gap-3">
@@ -115,7 +125,7 @@ export default async function ProjectLayout({
             {project.name}
           </span>
         </Link>
-        {controls}
+        {compactControls}
       </div>
       <ProjectTabs slug={slug} />
     </div>
