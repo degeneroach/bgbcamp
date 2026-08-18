@@ -7,7 +7,8 @@ export type ActivityEntityType =
   | "task_comment"
   | "task_image"
   | "task_list"
-  | "organization_member";
+  | "organization_member"
+  | "wiki_doc";
 
 export type Profile = {
   id: string;

@@ -13,6 +13,7 @@ import {
   CalendarClock,
   RotateCcw,
   Zap,
+  NotebookText,
   Activity as ActivityIcon,
   type LucideIcon,
 } from "lucide-react";
@@ -46,6 +47,10 @@ const ICONS: Record<string, LucideIcon> = {
   "task_list.renamed": Pencil,
   "person.added": UserPlus,
   "person.removed": UserMinus,
+  "wiki.created": NotebookText,
+  "wiki.updated": NotebookText,
+  "wiki.published": NotebookText,
+  "wiki.deleted": Trash2,
 };
 
 export function getActivityIcon(action: string): LucideIcon {
@@ -86,6 +91,10 @@ const COLOR_FAMILIES: { match: (action: string) => boolean; color: ActivityColor
   {
     match: (a) => a === "task.due_date_changed",
     color: { bg: "bg-rose-100 dark:bg-rose-950", text: "text-rose-500" },
+  },
+  {
+    match: (a) => a.startsWith("wiki"),
+    color: { bg: "bg-indigo-100 dark:bg-indigo-950", text: "text-indigo-500 dark:text-indigo-400" },
   },
   {
     match: (a) => a.startsWith("task") || a.startsWith("project"),
@@ -240,6 +249,14 @@ export function describeActivity(
       return { verb: "created the list", itemLabel: m.name ?? null, itemHref: projectHref };
     case "task_list.renamed":
       return { verb: "renamed a list to", itemLabel: m.name ?? null, itemHref: projectHref };
+    case "wiki.created":
+      return { verb: "created the SOP", itemLabel: m.title ?? null, itemHref: m.slug ? `/tools/wiki/${m.slug}` : null };
+    case "wiki.updated":
+      return { verb: "updated the SOP", itemLabel: m.title ?? null, itemHref: m.slug ? `/tools/wiki/${m.slug}` : null };
+    case "wiki.published":
+      return { verb: "published the SOP", itemLabel: m.title ?? null, itemHref: m.slug ? `/tools/wiki/${m.slug}` : null };
+    case "wiki.deleted":
+      return { verb: "deleted the SOP", itemLabel: m.title ?? null, itemHref: null };
     case "person.added":
       return { verb: "invited", itemLabel: m.email ?? null, itemHref: "/people" };
     case "person.removed":

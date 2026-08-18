@@ -47,6 +47,14 @@ export function activitySummary(event: Pick<ActivityEvent, "action" | "metadata"
       return `created the list “${m.name}”`;
     case "task_list.renamed":
       return `renamed a list to “${m.name}”`;
+    case "wiki.created":
+      return `created the SOP ${title}`;
+    case "wiki.updated":
+      return `updated the SOP ${title}`;
+    case "wiki.published":
+      return `published the SOP ${title}`;
+    case "wiki.deleted":
+      return `deleted the SOP ${title}`;
     case "person.added":
       return `invited ${m.email} to the team`;
     default:

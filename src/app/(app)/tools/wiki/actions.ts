@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentUser } from "@/lib/current-user";
 import { sanitizeHtml } from "@/lib/sanitize";
+import { logActivity } from "@/lib/activity";
 import { uniqueDocSlug } from "@/lib/wiki";
 
 export interface WikiActionResult {
@@ -70,6 +71,14 @@ export async function updateWikiDoc(
   const { userId, organization } = await requireCurrentUser();
   const supabase = await createClient();
 
+  const { data: existing } = await supabase
+    .from("wiki_docs")
+    .select("title, is_published")
+    .eq("id", docId)
+    .eq("organization_id", organization.id)
+    .maybeSingle();
+  if (!existing) return { ok: false, error: "Doc not found." };
+
   const update: Partial<
     Pick<import("@/types/database").WikiDoc, "title" | "section_id" | "body_html" | "is_published" | "updated_by">
   > = { updated_by: userId };
@@ -83,19 +92,54 @@ export async function updateWikiDoc(
     .update(update)
     .eq("id", docId)
     .eq("organization_id", organization.id)
-    .select("slug")
+    .select("slug, title")
     .maybeSingle();
 
   if (error) return { ok: false, error: error.message };
   if (!updated) return { ok: false, error: "Doc not found." };
+
+  // Activity feed, without autosave spam:
+  // - The first save that names an "Untitled" doc counts as creating it.
+  // - Flipping Published on gets its own event.
+  // - Everything else logs an update at most once per hour per doc.
+  const base = {
+    organizationId: organization.id,
+    actorId: userId,
+    entityType: "wiki_doc" as const,
+    entityId: docId,
+    metadata: { title: updated.title, slug: updated.slug },
+  };
+  if (existing.title === "Untitled" && updated.title !== "Untitled") {
+    await logActivity(supabase, { ...base, action: "wiki.created" });
+  } else if (input.isPublished === true && !existing.is_published) {
+    await logActivity(supabase, { ...base, action: "wiki.published" });
+  } else {
+    const { data: recent } = await supabase
+      .from("activity_events")
+      .select("created_at")
+      .eq("entity_id", docId)
+      .in("action", ["wiki.updated", "wiki.created", "wiki.published"])
+      .gte("created_at", new Date(Date.now() - 60 * 60 * 1000).toISOString())
+      .limit(1);
+    if (!recent || recent.length === 0) {
+      await logActivity(supabase, { ...base, action: "wiki.updated" });
+    }
+  }
 
   wikiPaths(updated.slug);
   return { ok: true, slug: updated.slug };
 }
 
 export async function deleteWikiDoc(docId: string): Promise<WikiActionResult> {
-  const { organization } = await requireCurrentUser();
+  const { userId, organization } = await requireCurrentUser();
   const supabase = await createClient();
+
+  const { data: existing } = await supabase
+    .from("wiki_docs")
+    .select("title")
+    .eq("id", docId)
+    .eq("organization_id", organization.id)
+    .maybeSingle();
 
   const { error } = await supabase
     .from("wiki_docs")
@@ -104,6 +148,17 @@ export async function deleteWikiDoc(docId: string): Promise<WikiActionResult> {
     .eq("organization_id", organization.id);
 
   if (error) return { ok: false, error: error.message };
+
+  if (existing && existing.title !== "Untitled") {
+    await logActivity(supabase, {
+      organizationId: organization.id,
+      actorId: userId,
+      entityType: "wiki_doc",
+      entityId: docId,
+      action: "wiki.deleted",
+      metadata: { title: existing.title },
+    });
+  }
 
   wikiPaths();
   return { ok: true };
