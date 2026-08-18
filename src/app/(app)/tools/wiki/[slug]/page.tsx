@@ -73,10 +73,7 @@ export default async function WikiDocPage({
 
       {doc.body_html.trim() ? (
         <div className="mt-4">
-          <RichTextContent
-            html={doc.body_html}
-            className="max-w-[760px] text-base leading-[1.7] [&_a]:text-primary"
-          />
+          <RichTextContent html={doc.body_html} className="wiki-doc" />
         </div>
       ) : (
         <p className="mt-8 text-sm italic text-muted-foreground">

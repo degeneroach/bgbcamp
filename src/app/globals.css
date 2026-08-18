@@ -186,3 +186,64 @@
     letter-spacing: -0.02em;
   }
 }
+
+/* Wiki doc reading typography: compact, high-legibility long-form text.
+   15px body with a calm 1.65 line height, tight paragraph/list rhythm,
+   modest heading scale, bold text popping to full foreground. */
+@layer components {
+  .prose.wiki-doc {
+    max-width: 70ch;
+    font-size: 0.9375rem;
+    line-height: 1.65;
+    letter-spacing: -0.006em;
+    color: color-mix(in oklab, var(--foreground) 88%, var(--muted-foreground));
+  }
+  .prose.wiki-doc p {
+    margin: 0.65em 0;
+  }
+  .prose.wiki-doc h2 {
+    font-size: 1.2em;
+    font-weight: 600;
+    margin: 1.7em 0 0.5em;
+    color: var(--foreground);
+  }
+  .prose.wiki-doc h2:first-child {
+    margin-top: 0.4em;
+  }
+  .prose.wiki-doc h3 {
+    font-size: 1.05em;
+    font-weight: 600;
+    margin: 1.4em 0 0.4em;
+    color: var(--foreground);
+  }
+  .prose.wiki-doc ul,
+  .prose.wiki-doc ol {
+    margin: 0.5em 0;
+    padding-left: 1.35em;
+  }
+  .prose.wiki-doc li {
+    margin: 0.25em 0;
+    padding-left: 0.1em;
+  }
+  .prose.wiki-doc li p {
+    margin: 0.2em 0;
+  }
+  .prose.wiki-doc blockquote {
+    margin: 0.75em 0;
+    padding: 0.5rem 0.85rem;
+    font-size: 0.95em;
+  }
+  .prose.wiki-doc strong {
+    color: var(--foreground);
+  }
+  .prose.wiki-doc a {
+    color: var(--primary);
+    text-decoration: none;
+  }
+  .prose.wiki-doc a:hover {
+    text-decoration: underline;
+  }
+  .prose.wiki-doc hr {
+    margin: 1.25em 0;
+  }
+}
