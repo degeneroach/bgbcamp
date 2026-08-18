@@ -163,3 +163,48 @@ export async function deleteWikiDoc(docId: string): Promise<WikiActionResult> {
   wikiPaths();
   return { ok: true };
 }
+
+export async function duplicateWikiDoc(docId: string): Promise<WikiActionResult> {
+  const { userId, organization } = await requireCurrentUser();
+  const supabase = await createClient();
+
+  const { data: source } = await supabase
+    .from("wiki_docs")
+    .select("*")
+    .eq("id", docId)
+    .eq("organization_id", organization.id)
+    .maybeSingle();
+  if (!source) return { ok: false, error: "Doc not found." };
+
+  const title = `${source.title} (copy)`;
+  const slug = await uniqueDocSlug(supabase, organization.id, title);
+
+  const { data: copy, error } = await supabase
+    .from("wiki_docs")
+    .insert({
+      organization_id: organization.id,
+      section_id: source.section_id,
+      title,
+      slug,
+      body_html: source.body_html,
+      is_published: false,
+      created_by: userId,
+      updated_by: userId,
+    })
+    .select("id, slug")
+    .single();
+
+  if (error || !copy) return { ok: false, error: error?.message ?? "Could not duplicate." };
+
+  await logActivity(supabase, {
+    organizationId: organization.id,
+    actorId: userId,
+    entityType: "wiki_doc",
+    entityId: copy.id,
+    action: "wiki.created",
+    metadata: { title, slug: copy.slug },
+  });
+
+  wikiPaths(copy.slug);
+  return { ok: true, slug: copy.slug };
+}
