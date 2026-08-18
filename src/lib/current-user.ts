@@ -74,6 +74,16 @@ export const requireCurrentUser = cache(async (): Promise<CurrentUserContext> =>
     redirect("/onboarding");
   }
 
+  // Presence heartbeat: stamp last_seen_at at most once per 5 minutes so
+  // the admin People card can show when someone was last active.
+  const lastSeen = profile.last_seen_at ? Date.parse(profile.last_seen_at) : 0;
+  if (Date.now() - lastSeen > 5 * 60 * 1000) {
+    await supabase
+      .from("profiles")
+      .update({ last_seen_at: new Date().toISOString() })
+      .eq("id", user.id);
+  }
+
   return {
     userId: user.id,
     profile,

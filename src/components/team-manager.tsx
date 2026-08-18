@@ -14,6 +14,7 @@ import {
 import { Trash2 } from "lucide-react";
 import { updateMemberRole, removeMember } from "@/app/(app)/people/actions";
 import { displayName } from "@/lib/display-name";
+import { timeAgo } from "@/lib/format";
 import type { Profile, Role } from "@/types/database";
 
 export interface TeamMember {
@@ -25,6 +26,25 @@ const ROLE_ITEMS: Record<string, React.ReactNode> = {
   admin: "Admin",
   member: "Member",
 };
+
+// Only rendered inside the admin-only People card — members never see this.
+function LastSeen({ lastSeenAt }: { lastSeenAt: string | null }) {
+  if (!lastSeenAt) {
+    return (
+      <span className="text-[11px] italic text-muted-foreground/70">Hasn&apos;t signed in yet</span>
+    );
+  }
+  const activeNow = Date.now() - Date.parse(lastSeenAt) < 15 * 60 * 1000;
+  return (
+    <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground/80">
+      <span
+        className={`h-1.5 w-1.5 rounded-full ${activeNow ? "bg-success" : "bg-muted-foreground/40"}`}
+        aria-hidden
+      />
+      {activeNow ? "Active now" : `Last seen ${timeAgo(lastSeenAt)}`}
+    </span>
+  );
+}
 
 export function TeamManager({
   members,
@@ -82,6 +102,7 @@ export function TeamManager({
                 <span className="truncate text-xs text-muted-foreground">
                   {member.profile.email}
                 </span>
+                {!isSelf && <LastSeen lastSeenAt={member.profile.last_seen_at} />}
               </div>
               {canManage ? (
                 <>
