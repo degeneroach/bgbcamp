@@ -283,6 +283,26 @@
   }
 }
 
+/* Distraction-free wiki reading: hide the app chrome and the wiki sidebar,
+   center the reading paper. Toggled via data-wiki-zen on <html>. */
+html[data-wiki-zen] header {
+  display: none;
+}
+html[data-wiki-zen] .wiki-shell {
+  grid-template-columns: 1fr !important;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+html[data-wiki-zen] .wiki-shell aside {
+  display: none;
+}
+html[data-wiki-zen] .wiki-reader {
+  max-width: 800px;
+  margin-inline: auto;
+  border-radius: var(--radius-xl);
+}
+
 /* Print (used by the wiki "PDF" button): white page, black text, no app
    chrome — regardless of the on-screen theme. */
 @media print {

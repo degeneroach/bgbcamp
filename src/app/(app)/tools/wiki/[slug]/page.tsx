@@ -8,6 +8,7 @@ import { getDocBySlug } from "@/lib/wiki";
 import { RichTextContent } from "@/components/rich-text-editor";
 import { WikiDocMenu } from "@/components/wiki/wiki-doc-menu";
 import { WikiDocActions } from "@/components/wiki/wiki-doc-actions";
+import { WikiZenToggle } from "@/components/wiki/wiki-zen-toggle";
 import { Button } from "@/components/ui/button";
 import { displayName } from "@/lib/display-name";
 import type { WikiSection } from "@/types/database";
@@ -36,7 +37,7 @@ export default async function WikiDocPage({
     // The reader paints its own slightly lighter "paper" surface, expanding
     // to fill the pane (negative margins cancel the layout padding). The
     // editor view keeps the plain card surface.
-    <article className="-m-5 flex min-h-full flex-col gap-1 bg-[var(--surface-reading)] p-5 lg:-m-6 lg:p-8">
+    <article className="wiki-reader -m-5 flex min-h-full flex-col gap-1 bg-[var(--surface-reading)] p-6 lg:-m-6 lg:px-12 lg:py-8">
       <p className="text-xs text-muted-foreground">
         {doc.section?.business ? `${doc.section.business} › ` : ""}{doc.section?.name ?? "Wiki"} <span aria-hidden>›</span> {doc.title}
       </p>
@@ -57,6 +58,7 @@ export default async function WikiDocPage({
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-1.5 print:hidden">
+          <WikiZenToggle />
           <WikiDocActions docTitle={doc.title} />
           <Button
             variant="outline"
