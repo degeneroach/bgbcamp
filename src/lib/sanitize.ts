@@ -12,12 +12,16 @@ export function sanitizeHtml(html: string): string {
     allowedTags: [
       "p", "br", "strong", "em", "s", "a", "ul", "ol", "li",
       "h2", "h3", "blockquote", "code", "pre", "img", "span", "video", "hr",
+      "table", "thead", "tbody", "tr", "th", "td", "colgroup", "col",
     ],
     allowedAttributes: {
       a: ["href", "target", "rel"],
       img: ["src", "alt", "class"],
       span: ["data-type", "data-mention-id", "class"],
       video: ["src", "controls", "preload", "playsinline", "class"],
+      th: ["colspan", "rowspan"],
+      td: ["colspan", "rowspan"],
+      col: ["span"],
     },
     allowedSchemes: ["http", "https", "mailto"],
   });

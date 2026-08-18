@@ -6,6 +6,8 @@ import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
 import TiptapImage from "@tiptap/extension-image";
 import Mention from "@tiptap/extension-mention";
+import { TableKit } from "@tiptap/extension-table";
+import { marked } from "marked";
 import { Toggle } from "@/components/ui/toggle";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
@@ -83,6 +85,22 @@ function EmojiPicker({ editor }: { editor: Editor }) {
       )}
     </div>
   );
+}
+
+// Heuristic: does pasted plain text read as Markdown? Requires at least two
+// distinct signals so ordinary prose with a stray dash isn't converted.
+function looksLikeMarkdown(text: string): boolean {
+  const signals = [
+    /^#{1,6}\s/m, // headings
+    /^\s*[-*]\s+\S/m, // bullet lists
+    /^\s*\d+\.\s+\S/m, // ordered lists
+    /\*\*[^*\n]+\*\*/, // bold
+    /^\|.+\|\s*$/m, // tables
+    /^>\s/m, // blockquotes
+    /^-{3,}\s*$/m, // horizontal rules
+    /\[[^\]]+\]\([^)]+\)/, // links
+  ];
+  return signals.filter((re) => re.test(text)).length >= 2;
 }
 
 // Quote only what's highlighted: TipTap's toggleBlockquote wraps whole
@@ -360,6 +378,7 @@ export function RichTextEditor({
       Placeholder.configure({ placeholder }),
       TiptapImage.configure({ HTMLAttributes: { class: "rounded-md max-w-full" } }),
       Video,
+      TableKit,
       ...(mentionCandidates
         ? [
             Mention.extend({
@@ -432,6 +451,17 @@ export function RichTextEditor({
         return true;
       },
       handlePaste: (_view, event) => {
+        // Plain-text paste that looks like Markdown (SOPs written elsewhere,
+        // AI output, etc.) converts to rich content — tables included.
+        const plain = event.clipboardData?.getData("text/plain") ?? "";
+        const richHtml = event.clipboardData?.getData("text/html") ?? "";
+        if (plain && !richHtml && looksLikeMarkdown(plain)) {
+          event.preventDefault();
+          const html = marked.parse(plain, { async: false, gfm: true }) as string;
+          editorRef.current?.chain().focus().insertContent(html).run();
+          return true;
+        }
+
         const ctx = uploadCtxRef.current;
         if (!ctx.enableImages || !ctx.projectId) return false;
         const items = event.clipboardData?.items;

@@ -203,7 +203,13 @@
     color: color-mix(in oklab, var(--foreground) 92%, transparent);
   }
   .prose.wiki-doc p {
-    margin: 0 0 12px;
+    margin: 0 0 10px;
+  }
+  .prose.wiki-doc blockquote p {
+    margin: 0 0 6px;
+  }
+  .prose.wiki-doc blockquote p:last-child {
+    margin-bottom: 0;
   }
   .prose.wiki-doc h2 {
     font-size: 1.25rem;
@@ -268,9 +274,35 @@
   .prose.wiki-doc a {
     color: var(--primary);
     text-decoration: none;
+    overflow-wrap: anywhere;
   }
   .prose.wiki-doc a:hover {
     text-decoration: underline;
+  }
+  .prose.wiki-doc table {
+    width: 100%;
+    margin: 12px 0;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+    line-height: 1.45;
+  }
+  .prose.wiki-doc th,
+  .prose.wiki-doc td {
+    border: 1px solid var(--border);
+    padding: 6px 10px;
+    text-align: left;
+    vertical-align: top;
+  }
+  .prose.wiki-doc th {
+    background: color-mix(in oklab, var(--foreground) 6%, transparent);
+    font-weight: 600;
+    color: var(--foreground);
+  }
+  .prose.wiki-doc tbody tr:nth-child(even) {
+    background: color-mix(in oklab, var(--foreground) 2.5%, transparent);
+  }
+  .prose.wiki-doc table p {
+    margin: 0;
   }
   .prose.wiki-doc hr {
     margin: 24px 0;
