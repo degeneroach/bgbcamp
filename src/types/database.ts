@@ -175,6 +175,8 @@ export type WikiSection = {
   organization_id: string;
   name: string;
   slug: string;
+  /** Which business this category set belongs to, e.g. "The Nonna". */
+  business: string;
   sort_order: number;
   created_at: string;
 };

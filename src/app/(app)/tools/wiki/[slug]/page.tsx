@@ -24,7 +24,7 @@ export default async function WikiDocPage({
     getDocBySlug(supabase, organization.id, slug),
     supabase
       .from("wiki_sections")
-      .select("id, name")
+      .select("id, name, business")
       .eq("organization_id", organization.id)
       .order("sort_order", { ascending: true }),
   ]);
@@ -34,7 +34,7 @@ export default async function WikiDocPage({
   return (
     <article className="flex flex-col gap-1">
       <p className="text-xs text-muted-foreground">
-        {doc.section?.name ?? "Wiki"} <span aria-hidden>›</span> {doc.title}
+        {doc.section?.business ? `${doc.section.business} › ` : ""}{doc.section?.name ?? "Wiki"} <span aria-hidden>›</span> {doc.title}
       </p>
 
       <div className="flex items-start justify-between gap-3">
@@ -66,7 +66,7 @@ export default async function WikiDocPage({
             docId={doc.id}
             docTitle={doc.title}
             currentSectionId={doc.section_id}
-            sections={(sections ?? []) as Pick<WikiSection, "id" | "name">[]}
+            sections={(sections ?? []) as Pick<WikiSection, "id" | "name" | "business">[]}
           />
         </div>
       </div>

@@ -18,7 +18,7 @@ export default async function WikiDocEditPage({
     getDocBySlug(supabase, organization.id, slug),
     supabase
       .from("wiki_sections")
-      .select("id, name")
+      .select("id, name, business")
       .eq("organization_id", organization.id)
       .order("sort_order", { ascending: true }),
   ]);
@@ -28,7 +28,7 @@ export default async function WikiDocEditPage({
   return (
     <WikiEditor
       doc={doc}
-      sections={(sections ?? []) as Pick<WikiSection, "id" | "name">[]}
+      sections={(sections ?? []) as Pick<WikiSection, "id" | "name" | "business">[]}
       organizationId={organization.id}
     />
   );

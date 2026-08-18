@@ -36,7 +36,7 @@ export function WikiDocMenu({
   docId: string;
   docTitle: string;
   currentSectionId: string;
-  sections: Pick<WikiSection, "id" | "name">[];
+  sections: Pick<WikiSection, "id" | "name" | "business">[];
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [, startTransition] = useTransition();
@@ -77,7 +77,7 @@ export function WikiDocMenu({
         >
           <MoreHorizontal className="h-4 w-4" />
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuContent align="end" className="max-h-96 w-72 overflow-y-auto">
           <DropdownMenuItem onSelect={rename}>
             <Pencil className="h-4 w-4" />
             Rename
@@ -92,7 +92,9 @@ export function WikiDocMenu({
               .filter((s) => s.id !== currentSectionId)
               .map((section) => (
                 <DropdownMenuItem key={section.id} onSelect={() => move(section.id)}>
-                  {section.name}
+                  <span className="truncate">
+                    {section.business ? `${section.business} · ${section.name}` : section.name}
+                  </span>
                 </DropdownMenuItem>
               ))}
           </DropdownMenuGroup>

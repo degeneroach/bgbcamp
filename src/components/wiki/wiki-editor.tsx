@@ -27,7 +27,7 @@ export function WikiEditor({
   organizationId,
 }: {
   doc: WikiDoc;
-  sections: Pick<WikiSection, "id" | "name">[];
+  sections: Pick<WikiSection, "id" | "name" | "business">[];
   organizationId: string;
 }) {
   const [title, setTitle] = useState(doc.title === "Untitled" ? "" : doc.title);
@@ -83,7 +83,7 @@ export function WikiEditor({
   }
 
   const sectionItems: Record<string, React.ReactNode> = Object.fromEntries(
-    sections.map((s) => [s.id, s.name])
+    sections.map((s) => [s.id, s.business ? `${s.business} · ${s.name}` : s.name])
   );
 
   return (
@@ -93,13 +93,13 @@ export function WikiEditor({
           <div className="flex flex-col gap-1">
             <Label className="text-xs text-muted-foreground">Section</Label>
             <Select items={sectionItems} value={sectionId} onValueChange={(v) => v && setSectionId(v)}>
-              <SelectTrigger className="h-8 w-[190px]">
+              <SelectTrigger className="h-8 w-[260px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {sections.map((section) => (
                   <SelectItem key={section.id} value={section.id}>
-                    {section.name}
+                    {section.business ? `${section.business} · ${section.name}` : section.name}
                   </SelectItem>
                 ))}
               </SelectContent>
