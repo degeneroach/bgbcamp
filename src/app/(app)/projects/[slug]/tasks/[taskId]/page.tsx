@@ -7,6 +7,7 @@ import { TaskDescriptionEditor } from "@/components/task-description-editor";
 import { TaskAssigneesPicker } from "@/components/task-assignees-picker";
 import { TaskDueDatePicker } from "@/components/task-due-date-picker";
 import { TaskStatusCheckbox } from "@/components/task-status-checkbox";
+import { TaskMenu } from "@/components/task-menu";
 import { TaskImages } from "@/components/task-images";
 import { TaskFiles } from "@/components/task-files";
 import { TaskCommentSection } from "@/components/task-comment-section";
@@ -133,6 +134,15 @@ export default async function TaskDetailPage({
                 projectId={project.id}
                 projectSlug={slug}
                 dueDate={typedTask.due_date}
+              />
+            </div>
+            <div className="ml-auto">
+              <TaskMenu
+                taskId={taskId}
+                projectId={project.id}
+                projectSlug={slug}
+                taskTitle={typedTask.title}
+                redirectAfterDelete
               />
             </div>
           </div>

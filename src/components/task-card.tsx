@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { TaskStatusCheckbox } from "@/components/task-status-checkbox";
+import { TaskMenu } from "@/components/task-menu";
 import { CommentCountBadge } from "@/components/comment-count-badge";
 import { UserAvatar } from "@/components/user-avatar";
 import { isTaskCompleted } from "@/lib/tasks";
@@ -22,7 +23,7 @@ export function TaskCard({
   const completed = isTaskCompleted(task);
 
   return (
-    <div className="flex items-center gap-4 border-b px-3 py-2.5 last:border-b-0 hover:bg-accent/60">
+    <div className="group/task flex items-center gap-3 border-b px-3 py-2.5 last:border-b-0 hover:bg-accent/60">
       <TaskStatusCheckbox
         taskId={task.id}
         projectId={task.project_id}
@@ -65,6 +66,13 @@ export function TaskCard({
           <span className="h-6 w-6" />
         )}
       </Link>
+      <TaskMenu
+        taskId={task.id}
+        projectId={task.project_id}
+        projectSlug={projectSlug}
+        taskTitle={task.title}
+        triggerClassName="shrink-0 opacity-0 transition-opacity group-hover/task:opacity-100 aria-expanded:opacity-100"
+      />
     </div>
   );
 }

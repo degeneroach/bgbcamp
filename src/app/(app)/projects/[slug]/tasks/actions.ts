@@ -207,6 +207,34 @@ export async function createTask(
   return { ok: true };
 }
 
+export async function deleteTask(
+  taskId: string,
+  projectId: string,
+  projectSlug: string,
+  taskTitle: string
+): Promise<ActionResult> {
+  const { userId, organization } = await requireCurrentUser();
+  const supabase = await createClient();
+
+  // Comments, images, files, assignees, and boosts all cascade via FKs.
+  const { error } = await supabase.from("tasks").delete().eq("id", taskId);
+
+  if (error) return { ok: false, error: error.message };
+
+  await logActivity(supabase, {
+    organizationId: organization.id,
+    projectId,
+    actorId: userId,
+    entityType: "task",
+    entityId: taskId,
+    action: "task.deleted",
+    metadata: { title: taskTitle },
+  });
+
+  taskPaths(projectSlug, taskId);
+  return { ok: true };
+}
+
 export async function toggleTaskCompleted(
   taskId: string,
   projectId: string,

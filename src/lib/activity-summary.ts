@@ -17,6 +17,8 @@ export function activitySummary(event: Pick<ActivityEvent, "action" | "metadata"
       return `commented on “${m.postTitle}”`;
     case "task.created":
       return `created the task ${title}`;
+    case "task.deleted":
+      return `deleted the task ${title}`;
     case "task.assigned":
       return `assigned ${title} to ${m.assigneeName}`;
     case "task.completed":

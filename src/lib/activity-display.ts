@@ -1,5 +1,6 @@
 import {
   CheckCircle2,
+  Trash2,
   MessageSquare,
   ListPlus,
   Image as ImageIcon,
@@ -23,6 +24,7 @@ import type { ActivityEvent } from "@/types/database";
 // without a UI change.
 const ICONS: Record<string, LucideIcon> = {
   "task.created": ListPlus,
+  "task.deleted": Trash2,
   "task.completed": CheckCircle2,
   "task.reopened": RotateCcw,
   "task.edited": Pencil,
@@ -102,6 +104,7 @@ export type ActivityTypeBucket = "task" | "comment" | "image" | "project";
 
 const TYPE_BUCKETS: Record<string, ActivityTypeBucket> = {
   "task.created": "task",
+  "task.deleted": "task",
   "task.completed": "task",
   "task.reopened": "task",
   "task.edited": "task",
@@ -155,6 +158,8 @@ export function describeActivity(
   switch (event.action) {
     case "task.created":
       return { verb: "created", itemLabel: m.title ?? null, itemHref: taskHref };
+    case "task.deleted":
+      return { verb: "deleted", itemLabel: m.title ?? null, itemHref: null };
     case "task.completed":
       return { verb: "completed", itemLabel: m.title ?? null, itemHref: taskHref };
     case "task.reopened":
