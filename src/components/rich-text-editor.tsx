@@ -313,20 +313,31 @@ export function RichTextEditor({
         return;
       }
       const { data } = supabase.storage.from("attachments").getPublicUrl(path);
+      // Insert AFTER the current selection rather than over it — a freshly
+      // inserted video/image stays node-selected, and plain insertContent
+      // would replace it, so a second video used to swallow the first.
+      const insertPos = activeEditor.state.selection.to;
       if (isVideo) {
         activeEditor
           .chain()
           .focus()
-          .insertContent({ type: "video", attrs: { src: data.publicUrl } })
+          .insertContentAt(insertPos, [
+            { type: "video", attrs: { src: data.publicUrl } },
+            { type: "paragraph" },
+          ])
           .run();
       } else if (isImage) {
-        activeEditor.chain().focus().setImage({ src: data.publicUrl }).run();
+        activeEditor
+          .chain()
+          .focus()
+          .insertContentAt(insertPos, { type: "image", attrs: { src: data.publicUrl } })
+          .run();
       } else {
         // Any other file type becomes a paperclip link chip.
         activeEditor
           .chain()
           .focus()
-          .insertContent([
+          .insertContentAt(insertPos, [
             {
               type: "text",
               text: `📎 ${file.name}`,
@@ -434,7 +445,9 @@ export function RichTextEditor({
         }
         if (media.length === 0) return false;
         event.preventDefault();
-        media.forEach((file) => void uploadMediaFile(file));
+        void (async () => {
+          for (const file of media) await uploadMediaFile(file);
+        })();
         return true;
       },
       handleDrop: (_view, event) => {
@@ -444,7 +457,10 @@ export function RichTextEditor({
         const files = dropEvent.dataTransfer?.files;
         if (!files || files.length === 0) return false;
         event.preventDefault();
-        Array.from(files).forEach((file) => void uploadMediaFile(file));
+        const dropped = Array.from(files);
+        void (async () => {
+          for (const file of dropped) await uploadMediaFile(file);
+        })();
         return true;
       },
       // Clicking an image in the editor sets/edits its caption.
@@ -478,7 +494,9 @@ export function RichTextEditor({
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
     e.target.value = "";
-    files.forEach((file) => void uploadMediaFile(file));
+    void (async () => {
+      for (const file of files) await uploadMediaFile(file);
+    })();
   }
 
   return (
