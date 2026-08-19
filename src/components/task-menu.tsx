@@ -44,15 +44,30 @@ export function TaskMenu({
   const [, startTransition] = useTransition();
   const router = useRouter();
 
-  async function copyShareLink() {
-    try {
-      await navigator.clipboard.writeText(
-        `${window.location.origin}/projects/${projectSlug}/tasks/${taskId}`
-      );
+  function copyShareLink() {
+    const url = `${window.location.origin}/projects/${projectSlug}/tasks/${taskId}`;
+    // The clipboard API refuses writes while the document isn't focused, and
+    // when a menu item is picked the browser is mid-way through closing the
+    // menu and moving focus. Wait a beat, then fall back to execCommand.
+    setTimeout(async () => {
+      try {
+        await navigator.clipboard.writeText(url);
+      } catch {
+        const textarea = document.createElement("textarea");
+        textarea.value = url;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.select();
+        const ok = document.execCommand("copy");
+        textarea.remove();
+        if (!ok) {
+          toast.error("Couldn't copy the link.");
+          return;
+        }
+      }
       toast.success("Link copied — paste it to a teammate.");
-    } catch {
-      toast.error("Couldn't copy the link.");
-    }
+    }, 150);
   }
 
   function handleDelete() {
