@@ -314,7 +314,10 @@ export function RichTextEditor({
     const ctx = uploadCtxRef.current;
     if (!activeEditor || !ctx.enableImages || !ctx.projectId) return;
     const isImage = file.type.startsWith("image/");
-    const isVideo = file.type.startsWith("video/");
+    // Windows drag-and-drop sometimes hands over files with an empty MIME
+    // type, so recognize videos by extension as well.
+    const isVideo =
+      file.type.startsWith("video/") || /\.(mp4|mov|webm|m4v|mkv)$/i.test(file.name);
     const MB = 1024 * 1024;
     if (file.size > 50 * MB && !(isVideo && canCompressVideo())) {
       window.alert(`"${file.name}" is over the 50MB limit.`);
