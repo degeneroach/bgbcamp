@@ -348,6 +348,12 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.prose a[data-gdoc] > span[data-gdoc-url] {
+  max-width: 34ch;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: color-mix(in oklab, var(--gdoc) 40%, var(--muted-foreground));
+}
 .prose a[data-gdoc="sheet"] {
   --gdoc: #34a853;
 }

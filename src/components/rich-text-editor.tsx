@@ -666,11 +666,14 @@ function decorateGoogleLinks(html: string): string {
     (match, attrs: string, href: string, inner: string) => {
       const type = GDOC_TYPES.find((t) => t.match.test(href));
       if (!type) return match;
-      // A raw pasted URL as the link text becomes a clean product name;
-      // hand-written link text is kept as the chip label.
+      // A raw pasted URL as the link text becomes the product name with the
+      // URL in muted text beside it; hand-written link text is kept as-is.
       const text = inner.replace(/<[^>]+>/g, "").trim();
-      const label = /^https?:\/\//i.test(text) ? type.label : inner;
-      return `<a ${attrs} data-gdoc="${type.kind}">${type.icon}<span>${label}</span></a>`;
+      if (!/^https?:\/\//i.test(text)) {
+        return `<a ${attrs} data-gdoc="${type.kind}">${type.icon}<span>${inner}</span></a>`;
+      }
+      const displayUrl = href.replace(/^https:\/\//, "");
+      return `<a ${attrs} data-gdoc="${type.kind}">${type.icon}<span>${type.label}</span><span data-gdoc-url>${displayUrl}</span></a>`;
     }
   );
 }
