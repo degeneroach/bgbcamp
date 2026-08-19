@@ -31,6 +31,8 @@ import { createMentionSuggestion, type MentionCandidate } from "@/lib/tiptap-men
 import { Video } from "@/lib/tiptap-video";
 import { useImageLightbox } from "@/components/image-lightbox";
 import { EMOJIS } from "@/lib/emojis";
+import { canCompressVideo, compressVideo } from "@/lib/compress-video";
+import { toast } from "sonner";
 
 function EmojiPicker({ editor }: { editor: Editor }) {
   const [open, setOpen] = useState(false);
@@ -313,19 +315,59 @@ export function RichTextEditor({
     if (!activeEditor || !ctx.enableImages || !ctx.projectId) return;
     const isImage = file.type.startsWith("image/");
     const isVideo = file.type.startsWith("video/");
-    if (file.size > 50 * 1024 * 1024) {
+    const MB = 1024 * 1024;
+    if (file.size > 50 * MB && !(isVideo && canCompressVideo())) {
       window.alert(`"${file.name}" is over the 50MB limit.`);
       return;
     }
 
     setIsUploading(true);
     try {
+      let uploadFile = file;
+      // Big videos get re-encoded in the browser (720p-class MP4) before
+      // upload, so a 200MB screen recording doesn't eat storage or take a
+      // million years to load for whoever opens the SOP.
+      if (isVideo && file.size > 8 * MB && canCompressVideo()) {
+        const toastId = toast.loading(`Compressing ${file.name}… 0%`);
+        try {
+          uploadFile = await compressVideo(file, (fraction) => {
+            toast.loading(
+              `Compressing ${file.name}… ${Math.round(fraction * 100)}%`,
+              { id: toastId }
+            );
+          });
+          toast.success(
+            `Compressed ${file.name}: ${Math.round(file.size / MB)}MB → ${Math.max(1, Math.round(uploadFile.size / MB))}MB`,
+            { id: toastId }
+          );
+        } catch {
+          // Compression can fail on exotic codecs — upload the original if
+          // it fits, otherwise there's nothing valid to send.
+          toast.dismiss(toastId);
+          if (file.size > 50 * MB) {
+            toast.error(
+              `Couldn't compress ${file.name}, and it's over the 50MB upload limit.`
+            );
+            return;
+          }
+          uploadFile = file;
+        }
+        if (uploadFile.size > 50 * MB) {
+          toast.error(
+            `${file.name} is still over the 50MB upload limit after compression — try trimming it down.`
+          );
+          return;
+        }
+      }
+
       const supabase = createClient();
-      const ext = file.name.split(".").pop();
+      const ext = uploadFile.name.split(".").pop();
       const path = `${ctx.projectId}/${crypto.randomUUID()}${ext ? `.${ext}` : ""}`;
       const { error } = await supabase.storage
         .from("attachments")
-        .upload(path, file, { contentType: file.type || "application/octet-stream" });
+        .upload(path, uploadFile, {
+          contentType: uploadFile.type || "application/octet-stream",
+        });
       if (error) {
         window.alert(`Could not upload ${file.name}: ${error.message}`);
         return;

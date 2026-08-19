@@ -27,6 +27,7 @@
     "date-fns": "^4.4.0",
     "lucide-react": "^1.23.0",
     "marked": "^18.0.10",
+    "mediabunny": "^1.55.1",
     "next": "16.2.10",
     "next-themes": "^0.4.6",
     "react": "19.2.4",
