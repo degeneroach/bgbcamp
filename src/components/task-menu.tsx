@@ -6,6 +6,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -18,7 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { MoreHorizontal, Trash2 } from "lucide-react";
+import { Link2, MoreHorizontal, Trash2 } from "lucide-react";
 import { deleteTask } from "@/app/(app)/projects/[slug]/tasks/actions";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -42,6 +43,17 @@ export function TaskMenu({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [, startTransition] = useTransition();
   const router = useRouter();
+
+  async function copyShareLink() {
+    try {
+      await navigator.clipboard.writeText(
+        `${window.location.origin}/projects/${projectSlug}/tasks/${taskId}`
+      );
+      toast.success("Link copied — paste it to a teammate.");
+    } catch {
+      toast.error("Couldn't copy the link.");
+    }
+  }
 
   function handleDelete() {
     startTransition(async () => {
@@ -67,6 +79,11 @@ export function TaskMenu({
           <MoreHorizontal className="h-4 w-4" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-44">
+          <DropdownMenuItem onSelect={copyShareLink}>
+            <Link2 className="h-4 w-4" />
+            Copy share link
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem variant="destructive" onSelect={() => setConfirmOpen(true)}>
             <Trash2 className="h-4 w-4" />
             Delete task
