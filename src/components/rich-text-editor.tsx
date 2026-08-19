@@ -622,6 +622,59 @@ function groupConsecutiveImages(html: string): string {
   );
 }
 
+// Google Drive links render as pill chips with a per-product icon (styled
+// via .prose a[data-gdoc] rules in globals.css). Inline 14px SVGs, stroke
+// follows the chip color via currentColor.
+const GDOC_SVG_OPEN =
+  '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">';
+const GDOC_TYPES: { match: RegExp; kind: string; label: string; icon: string }[] = [
+  {
+    match: /docs\.google\.com\/document/,
+    kind: "doc",
+    label: "Google Doc",
+    icon: `${GDOC_SVG_OPEN}<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M15 2v5h5"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>`,
+  },
+  {
+    match: /docs\.google\.com\/spreadsheets/,
+    kind: "sheet",
+    label: "Google Sheet",
+    icon: `${GDOC_SVG_OPEN}<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="9" x2="9" y2="21"/><line x1="15" y1="9" x2="15" y2="21"/></svg>`,
+  },
+  {
+    match: /docs\.google\.com\/presentation/,
+    kind: "slides",
+    label: "Google Slides",
+    icon: `${GDOC_SVG_OPEN}<path d="M2 3h20"/><path d="M21 3v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3"/><path d="m7 21 5-5 5 5"/></svg>`,
+  },
+  {
+    match: /docs\.google\.com\/forms/,
+    kind: "form",
+    label: "Google Form",
+    icon: `${GDOC_SVG_OPEN}<rect x="3" y="3" width="18" height="18" rx="2"/><path d="m9 9.5 1.5 1.5L13 8.5"/><line x1="15" y1="10" x2="17" y2="10"/><path d="m9 15.5 1.5 1.5 2.5-2.5"/><line x1="15" y1="16" x2="17" y2="16"/></svg>`,
+  },
+  {
+    match: /drive\.google\.com/,
+    kind: "drive",
+    label: "Google Drive file",
+    icon: `${GDOC_SVG_OPEN}<path d="M12 2v8"/><path d="m16 6-4 4-4-4"/><rect x="2" y="14" width="20" height="8" rx="2"/><path d="M6 18h.01"/><path d="M10 18h.01"/></svg>`,
+  },
+];
+
+function decorateGoogleLinks(html: string): string {
+  return html.replace(
+    /<a\s+([^>]*href="(https:\/\/(?:docs|drive)\.google\.com\/[^"]*)"[^>]*)>([\s\S]*?)<\/a>/g,
+    (match, attrs: string, href: string, inner: string) => {
+      const type = GDOC_TYPES.find((t) => t.match.test(href));
+      if (!type) return match;
+      // A raw pasted URL as the link text becomes a clean product name;
+      // hand-written link text is kept as the chip label.
+      const text = inner.replace(/<[^>]+>/g, "").trim();
+      const label = /^https?:\/\//i.test(text) ? type.label : inner;
+      return `<a ${attrs} data-gdoc="${type.kind}">${type.icon}<span>${label}</span></a>`;
+    }
+  );
+}
+
 const CAPTION_STYLES =
   "[&_figure[data-rte-fig]]:my-2 [&_figure[data-rte-fig]]:w-fit [&_figure[data-rte-fig]_img]:my-0 [&_figcaption]:mt-1.5 [&_figcaption]:px-1 [&_figcaption]:text-center [&_figcaption]:text-xs [&_figcaption]:italic [&_figcaption]:leading-snug [&_figcaption]:text-muted-foreground [&_[data-rte-gallery]_figure]:m-0 [&_[data-rte-gallery]_figure]:w-28 [&_[data-rte-gallery]_figcaption]:truncate";
 
@@ -648,7 +701,7 @@ export function RichTextContent({ html, className }: { html: string; className?:
     <div
       className={`prose prose-sm max-w-none dark:prose-invert [&_img]:cursor-zoom-in [&_img]:rounded-md [&_img]:max-h-96 [&_video]:my-2 [&_video]:max-h-96 [&_video]:rounded-md [&_hr]:my-4 [&_hr]:border-border ${GALLERY_STYLES} ${CAPTION_STYLES} ${className ?? ""}`}
       onClick={handleClick}
-      dangerouslySetInnerHTML={{ __html: groupConsecutiveImages(html) }}
+      dangerouslySetInnerHTML={{ __html: decorateGoogleLinks(groupConsecutiveImages(html)) }}
     />
   );
 }
