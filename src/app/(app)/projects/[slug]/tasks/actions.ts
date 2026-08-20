@@ -161,6 +161,28 @@ export async function reorderTaskLists(
   return { ok: true };
 }
 
+// Persists a task drag-and-drop. Writing task_list_id alongside position
+// makes the same call handle both same-list reorders and cross-list moves.
+export async function reorderTasks(
+  projectSlug: string,
+  taskListId: string,
+  orderedTaskIds: string[]
+): Promise<ActionResult> {
+  const supabase = await createClient();
+
+  const results = await Promise.all(
+    orderedTaskIds.map((id, index) =>
+      supabase.from("tasks").update({ position: index, task_list_id: taskListId }).eq("id", id)
+    )
+  );
+
+  const failed = results.find((r) => r.error);
+  if (failed?.error) return { ok: false, error: failed.error.message };
+
+  revalidatePath(`/projects/${projectSlug}`);
+  return { ok: true };
+}
+
 export async function createTask(
   projectId: string,
   projectSlug: string,

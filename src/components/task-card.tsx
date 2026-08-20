@@ -14,16 +14,33 @@ export function TaskCard({
   projectSlug,
   assignees,
   commentCount,
+  dragging = false,
+  isDropTarget = false,
+  dragHandlers,
 }: {
   task: Task;
   projectSlug: string;
   assignees: Profile[];
   commentCount: number;
+  /** True while this card is the one being dragged. */
+  dragging?: boolean;
+  /** True while another task is hovering over this card. */
+  isDropTarget?: boolean;
+  dragHandlers?: React.HTMLAttributes<HTMLDivElement> & { draggable?: boolean };
 }) {
   const completed = isTaskCompleted(task);
 
   return (
-    <div className="group/task flex items-center gap-3 border-b px-3 py-2.5 last:border-b-0 hover:bg-accent/60">
+    <div
+      {...dragHandlers}
+      className={cn(
+        // One step lighter than the list card so tasks read as distinct,
+        // grabbable tiles.
+        "group/task flex cursor-grab items-center gap-3 rounded-lg border bg-muted/50 px-3 py-2.5 transition-colors hover:bg-accent/60 active:cursor-grabbing dark:bg-white/[0.05] dark:hover:bg-accent/60",
+        dragging && "opacity-40",
+        isDropTarget && "ring-2 ring-primary/60"
+      )}
+    >
       <TaskStatusCheckbox
         taskId={task.id}
         projectId={task.project_id}
@@ -31,9 +48,11 @@ export function TaskCard({
         taskTitle={task.title}
         initialCompleted={completed}
       />
-      {/* A real link so right-click / Ctrl+click "open in new tab" works. */}
+      {/* A real link so right-click / Ctrl+click "open in new tab" works.
+          draggable=false so dragging the row moves the task, not the URL. */}
       <Link
         href={`/projects/${projectSlug}/tasks/${task.id}`}
+        draggable={false}
         className="flex min-w-0 flex-1 items-center gap-4"
       >
         <span
