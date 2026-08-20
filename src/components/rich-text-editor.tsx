@@ -165,7 +165,10 @@ function Toolbar({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-0.5 border-b p-1">
+    // Sticky so the toolbar follows you down long documents; top-20 clears
+    // the sticky app header + favorites bar. Needs an opaque background and
+    // its own z so content scrolling underneath doesn't bleed through.
+    <div className="sticky top-20 z-20 flex flex-wrap items-center gap-0.5 rounded-t-md border-b bg-card p-1">
       <Toggle
         size="sm"
         pressed={editor.isActive("heading", { level: 2 })}

@@ -10,7 +10,10 @@ export default async function WikiLayout({ children }: { children: React.ReactNo
   const sections = await getSectionsWithDocs(supabase, organization.id);
 
   return (
-    <Card className="wiki-shell grid grid-cols-1 overflow-hidden p-0 lg:grid-cols-[290px_minmax(0,1fr)] print:block print:border-0 print:shadow-none">
+    // overflow-clip (not -hidden) keeps the rounded-corner clipping without
+    // creating a scroll container, which would break the editor's sticky
+    // toolbar.
+    <Card className="wiki-shell grid grid-cols-1 overflow-clip p-0 lg:grid-cols-[290px_minmax(0,1fr)] print:block print:border-0 print:shadow-none">
       <WikiSidebar sections={sections} />
       <div className="min-w-0 p-5 lg:p-6 print:p-0">{children}</div>
     </Card>
