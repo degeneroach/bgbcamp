@@ -35,7 +35,7 @@ export function NewForYou({ events }: { events: ActivityEventFull[] }) {
   function dismissAll() {
     startTransition(async () => {
       for (const event of visible) removeOptimistic(event.id);
-      await markAllActivitySeen(visible.map((e) => e.id));
+      await markAllActivitySeen();
     });
   }
 
