@@ -38,7 +38,7 @@ export function TaskCard({
       className={cn(
         // One step lighter than the list card so tasks read as distinct,
         // grabbable tiles.
-        "group/task flex cursor-grab items-center gap-3 rounded-lg border bg-muted/50 px-3 py-2.5 transition-colors hover:bg-accent/60 active:cursor-grabbing dark:bg-white/[0.05] dark:hover:bg-accent/60",
+        "group/task flex cursor-grab items-start gap-2.5 rounded-lg border bg-muted/50 px-3 py-2.5 transition-colors hover:bg-accent/60 active:cursor-grabbing dark:bg-white/[0.05] dark:hover:bg-accent/60",
         dragging && "opacity-40",
         isDropTarget && "ring-2 ring-primary/60"
       )}
@@ -51,55 +51,57 @@ export function TaskCard({
         initialCompleted={completed}
       />
       {/* A real link so right-click / Ctrl+click "open in new tab" works.
-          draggable=false so dragging the row moves the task, not the URL. */}
+          draggable=false so dragging the row moves the task, not the URL.
+          Title gets the full card width; date/comments/assignee condense
+          into a small meta row underneath. */}
       <Link
         href={`/projects/${projectSlug}/tasks/${task.id}`}
         draggable={false}
-        className="flex min-w-0 flex-1 items-center gap-4"
+        className="flex min-w-0 flex-1 flex-col gap-1"
       >
         <span
           className={cn(
-            // Smaller type, wrapping instead of truncating, so the whole
-            // title is readable on the card.
-            "flex-1 break-words text-[13px] font-medium leading-snug",
+            "break-words text-[13px] font-medium leading-snug",
             completed && "text-muted-foreground line-through"
           )}
         >
           {task.title}
         </span>
-        {task.due_date && (
-          <span
-            className={cn(
-              "flex shrink-0 items-center gap-1 text-xs tabular-nums",
-              !completed && parseISO(task.due_date) < startOfDay(new Date())
-                ? "font-medium text-destructive"
-                : "text-muted-foreground"
-            )}
-          >
-            <CalendarDays className="h-3.5 w-3.5" />
-            {format(parseISO(task.due_date), "MMM d")}
-          </span>
-        )}
-        <CommentCountBadge count={commentCount} />
-        {assignees.length > 0 ? (
-          <div className="flex -space-x-2">
-            {assignees.slice(0, 3).map((assignee) => (
-              <UserAvatar
-                key={assignee.id}
-                name={assignee.full_name}
-                email={assignee.email}
-                avatarUrl={assignee.avatar_url}
-                className="h-6 w-6 border-2 border-background"
-              />
-            ))}
-            {assignees.length > 3 && (
-              <span className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-background bg-muted text-[10px] font-medium text-muted-foreground">
-                +{assignees.length - 3}
+        {(task.due_date || commentCount > 0 || assignees.length > 0) && (
+          <span className="flex items-center gap-2.5">
+            {task.due_date && (
+              <span
+                className={cn(
+                  "flex shrink-0 items-center gap-1 text-xs tabular-nums",
+                  !completed && parseISO(task.due_date) < startOfDay(new Date())
+                    ? "font-medium text-destructive"
+                    : "text-muted-foreground"
+                )}
+              >
+                <CalendarDays className="h-3.5 w-3.5" />
+                {format(parseISO(task.due_date), "MMM d")}
               </span>
             )}
-          </div>
-        ) : (
-          <span className="h-6 w-6" />
+            <CommentCountBadge count={commentCount} />
+            {assignees.length > 0 && (
+              <span className="ml-auto flex -space-x-1.5">
+                {assignees.slice(0, 3).map((assignee) => (
+                  <UserAvatar
+                    key={assignee.id}
+                    name={assignee.full_name}
+                    email={assignee.email}
+                    avatarUrl={assignee.avatar_url}
+                    className="h-5 w-5 border-2 border-background"
+                  />
+                ))}
+                {assignees.length > 3 && (
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-background bg-muted text-[10px] font-medium text-muted-foreground">
+                    +{assignees.length - 3}
+                  </span>
+                )}
+              </span>
+            )}
+          </span>
         )}
       </Link>
       <TaskMenu
