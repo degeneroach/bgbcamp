@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { CalendarDays } from "lucide-react";
+import { format, parseISO, startOfDay } from "date-fns";
 import { TaskStatusCheckbox } from "@/components/task-status-checkbox";
 import { TaskMenu } from "@/components/task-menu";
 import { CommentCountBadge } from "@/components/comment-count-badge";
@@ -63,6 +65,19 @@ export function TaskCard({
         >
           {task.title}
         </span>
+        {task.due_date && (
+          <span
+            className={cn(
+              "flex shrink-0 items-center gap-1 text-xs tabular-nums",
+              !completed && parseISO(task.due_date) < startOfDay(new Date())
+                ? "font-medium text-destructive"
+                : "text-muted-foreground"
+            )}
+          >
+            <CalendarDays className="h-3.5 w-3.5" />
+            {format(parseISO(task.due_date), "MMM d")}
+          </span>
+        )}
         <CommentCountBadge count={commentCount} />
         {assignees.length > 0 ? (
           <div className="flex -space-x-2">
