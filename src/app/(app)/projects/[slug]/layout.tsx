@@ -9,6 +9,7 @@ import { ProjectSettingsMenu } from "@/components/project-settings-menu";
 import { ProjectTabs } from "@/components/project-tabs";
 import { ProjectHeaderSwitcher } from "@/components/project-header-switcher";
 import { RichTextContent } from "@/components/rich-text-editor";
+import { NewTaskListForm } from "@/components/new-task-list-form";
 
 export default async function ProjectLayout({
   children,
@@ -111,7 +112,10 @@ export default async function ProjectLayout({
           {controls}
         </div>
       </div>
-      <ProjectTabs slug={slug} />
+      <ProjectTabs
+        slug={slug}
+        action={<NewTaskListForm projectId={project.id} projectSlug={slug} />}
+      />
     </div>
   );
 

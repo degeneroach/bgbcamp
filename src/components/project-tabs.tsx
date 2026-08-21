@@ -5,7 +5,14 @@ import { usePathname } from "next/navigation";
 import { getProjectEmbeds } from "@/lib/project-embeds";
 import { cn } from "@/lib/utils";
 
-export function ProjectTabs({ slug }: { slug: string }) {
+export function ProjectTabs({
+  slug,
+  action,
+}: {
+  slug: string;
+  /** Right-aligned control on the tabs row, shown only on the board page. */
+  action?: React.ReactNode;
+}) {
   const pathname = usePathname();
   const base = `/projects/${slug}`;
 
@@ -28,7 +35,7 @@ export function ProjectTabs({ slug }: { slug: string }) {
   ];
 
   return (
-    <div className="flex gap-1 border-b">
+    <div className="flex items-center gap-1 border-b">
       {tabs.map((tab) => {
         const active = tab.exact
           ? pathname === tab.href || (tab.alsoMatch ? pathname.startsWith(tab.alsoMatch) : false)
@@ -48,6 +55,7 @@ export function ProjectTabs({ slug }: { slug: string }) {
           </Link>
         );
       })}
+      {action && pathname === base && <div className="ml-auto pb-1.5">{action}</div>}
     </div>
   );
 }
