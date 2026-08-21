@@ -109,6 +109,11 @@ export function notificationHref(notification: NotificationWithRelations): strin
   if (notification.entity_type === "post_comment" && notification.post) {
     return `/board#post-${notification.post.id}`;
   }
+  // Event invites open the company calendar, where the event's
+  // "Add to Google Calendar" link lives.
+  if (notification.entity_type === "calendar_event") {
+    return "/calendar";
+  }
   if (!notification.project) return "/activity";
   if (
     (notification.entity_type === "task_comment" ||

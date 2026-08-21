@@ -162,7 +162,26 @@ export type ActivityEvent = {
   created_at: string;
 };
 
-export type NotificationEntityType = "task_comment" | "post_comment" | "task" | "boost";
+export type NotificationEntityType =
+  | "task_comment"
+  | "post_comment"
+  | "task"
+  | "boost"
+  | "calendar_event";
+
+export type CalendarEvent = {
+  id: string;
+  organization_id: string;
+  title: string;
+  notes: string;
+  /** YYYY-MM-DD */
+  event_date: string;
+  /** HH:MM:SS, or null for an all-day event. */
+  start_time: string | null;
+  attendee_ids: string[];
+  created_by: string | null;
+  created_at: string;
+};
 
 export type BoostEntityType = "task" | "task_comment";
 
@@ -536,6 +555,31 @@ export type Database = {
           {
             foreignKeyName: "wiki_docs_updated_by_fkey";
             columns: ["updated_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      calendar_events: {
+        Row: CalendarEvent;
+        Insert: Partial<CalendarEvent> & {
+          organization_id: string;
+          title: string;
+          event_date: string;
+        };
+        Update: Partial<CalendarEvent>;
+        Relationships: [
+          {
+            foreignKeyName: "calendar_events_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "calendar_events_created_by_fkey";
+            columns: ["created_by"];
             isOneToOne: false;
             referencedRelation: "profiles";
             referencedColumns: ["id"];

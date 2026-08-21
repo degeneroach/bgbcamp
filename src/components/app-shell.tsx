@@ -62,6 +62,7 @@ export function AppShell({
               Dashboard
             </NavLink>
             <MyTasksNavMenu />
+            <NavLink href="/calendar">Calendar</NavLink>
             <NavLink href="/board">Messages</NavLink>
             <ToolsNavMenu />
           </nav>
@@ -85,8 +86,8 @@ export function AppShell({
             Dashboard
           </NavLink>
           <NavLink href="/my-tasks">Tasks</NavLink>
+          <NavLink href="/calendar">Calendar</NavLink>
           <NavLink href="/board">Messages</NavLink>
-          <NavLink href="/activity-calendar">Calendar</NavLink>
           <NavLink href="/activity">Activity</NavLink>
           <NavLink href="/tools/amazon-margins">Tools</NavLink>
           <NavLink href="/search">Search</NavLink>
