@@ -59,7 +59,9 @@ export function TaskCard({
       >
         <span
           className={cn(
-            "flex-1 truncate text-sm font-medium",
+            // Smaller type, wrapping instead of truncating, so the whole
+            // title is readable on the card.
+            "flex-1 break-words text-[13px] font-medium leading-snug",
             completed && "text-muted-foreground line-through"
           )}
         >
