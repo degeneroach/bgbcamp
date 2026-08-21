@@ -1,7 +1,7 @@
 "use client";
 
 import { CommentForm } from "@/components/comment-form";
-import { UserAvatar } from "@/components/user-avatar";
+import { EnlargeableAvatar } from "@/components/enlargeable-avatar";
 import { RichTextContent } from "@/components/rich-text-editor";
 import { Separator } from "@/components/ui/separator";
 import { timeAgo } from "@/lib/format";
@@ -34,7 +34,7 @@ export function PostCommentSection({
           <div className="flex flex-col gap-3">
             {comments.map((comment) => (
               <div key={comment.id} className="flex items-start gap-2">
-                <UserAvatar
+                <EnlargeableAvatar
                   name={comment.author?.full_name}
                   email={comment.author?.email ?? ""}
                   avatarUrl={comment.author?.avatar_url}

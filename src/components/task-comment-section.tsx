@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { CommentForm } from "@/components/comment-form";
-import { UserAvatar } from "@/components/user-avatar";
+import { EnlargeableAvatar } from "@/components/enlargeable-avatar";
 import { RichTextEditor, RichTextContent } from "@/components/rich-text-editor";
 import { BoostBar, type BoostWithAuthor } from "@/components/boost-bar";
 import { Button } from "@/components/ui/button";
@@ -58,7 +58,7 @@ function CommentItem({
 
   return (
     <div className="group/comment flex items-start gap-2">
-      <UserAvatar
+      <EnlargeableAvatar
         name={comment.author?.full_name}
         email={comment.author?.email ?? ""}
         avatarUrl={comment.author?.avatar_url}

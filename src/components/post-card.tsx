@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { UserAvatar } from "@/components/user-avatar";
+import { EnlargeableAvatar } from "@/components/enlargeable-avatar";
 import { RichTextEditor, RichTextContent } from "@/components/rich-text-editor";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -76,7 +76,7 @@ export function PostCard({
   return (
     <Card id={`post-${post.id}`} className="group/post flex flex-col gap-3 p-4 scroll-mt-24">
       <div className="flex items-center gap-2">
-        <UserAvatar
+        <EnlargeableAvatar
           name={post.author?.full_name}
           email={post.author?.email ?? ""}
           avatarUrl={post.author?.avatar_url}
