@@ -12,6 +12,12 @@ function isBlankHtml(html: string) {
   return html.replace(/<[^>]*>/g, "").trim().length === 0;
 }
 
+// Unsaved drafts, keyed by task id, kept outside React. Server actions on
+// the same page (setting the due date, assigning, completing) revalidate
+// and can remount this component mid-edit; without this, the in-progress
+// description silently vanished.
+const drafts = new Map<string, string>();
+
 export function TaskDescriptionEditor({
   taskId,
   projectId,
@@ -28,21 +34,31 @@ export function TaskDescriptionEditor({
   const mentionCandidates = members.map((m) => ({ id: m.id, label: displayName(m) }));
   // The committed (saved) description shown in read-only mode.
   const [savedHtml, setSavedHtml] = useState(descriptionHtml);
-  // Draft being edited. Start in edit mode only when there's nothing yet.
-  const [draftHtml, setDraftHtml] = useState(descriptionHtml);
-  const [editing, setEditing] = useState(() => isBlankHtml(descriptionHtml));
+  // Draft being edited; a stashed draft survives a mid-edit remount.
+  const [draftHtml, setDraftHtmlState] = useState(
+    () => drafts.get(taskId) ?? descriptionHtml
+  );
+  const [editing, setEditing] = useState(
+    () => drafts.has(taskId) || isBlankHtml(descriptionHtml)
+  );
   const [isPending, startTransition] = useTransition();
+
+  function setDraftHtml(html: string) {
+    drafts.set(taskId, html);
+    setDraftHtmlState(html);
+  }
 
   function handleUpdate() {
     startTransition(async () => {
       await updateTask(taskId, projectId, projectSlug, { descriptionHtml: draftHtml });
+      drafts.delete(taskId);
       setSavedHtml(draftHtml);
       setEditing(false);
     });
   }
 
   function startEditing() {
-    setDraftHtml(savedHtml);
+    setDraftHtmlState(savedHtml);
     setEditing(true);
   }
 
@@ -92,7 +108,8 @@ export function TaskDescriptionEditor({
             variant="ghost"
             size="sm"
             onClick={() => {
-              setDraftHtml(savedHtml);
+              drafts.delete(taskId);
+              setDraftHtmlState(savedHtml);
               setEditing(false);
             }}
             disabled={isPending}
