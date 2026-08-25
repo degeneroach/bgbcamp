@@ -5,6 +5,7 @@ import { ProfileNameForm } from "@/components/profile-name-form";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { PushNotificationsToggle } from "@/components/push-notifications-toggle";
 import { TeamManager, type TeamMember } from "@/components/team-manager";
+import { OrganizationNameEditor } from "@/components/organization-name-editor";
 import { Card } from "@/components/ui/card";
 import type { Profile, Role } from "@/types/database";
 
@@ -67,6 +68,14 @@ export default async function ProfilePage() {
 
       {isAdmin && (
         <Card className="flex flex-col gap-4 p-5">
+          <div>
+            <h2 className="mb-3 font-medium">Organization name</h2>
+            {/* Renaming moved here from the header, which now shows the
+                rotating daily greeting. */}
+            <div className="max-w-xs rounded-md border px-2 py-1.5">
+              <OrganizationNameEditor name={organization.name} />
+            </div>
+          </div>
           <div>
             <h2 className="font-medium">People</h2>
             <p className="mt-1 text-sm text-muted-foreground">

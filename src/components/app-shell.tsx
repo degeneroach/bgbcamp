@@ -6,7 +6,7 @@ import { ToolsNavMenu } from "@/components/tools-nav-menu";
 import { UserMenu } from "@/components/user-menu";
 import { GlobalSearch } from "@/components/global-search";
 import { NotificationsBell, BoostsBell } from "@/components/notifications-bell";
-import { OrganizationNameEditor } from "@/components/organization-name-editor";
+import { DailyGreeting } from "@/components/daily-greeting";
 import { BrandMark } from "@/components/brand-mark";
 import { ImageLightboxProvider } from "@/components/image-lightbox";
 import type { Profile, Organization } from "@/types/database";
@@ -22,7 +22,7 @@ export interface FavoriteProject {
 
 export function AppShell({
   profile,
-  organization,
+  organization: _organization,
   notifications,
   unreadCount,
   unreadBoostCount,
@@ -52,8 +52,10 @@ export function AppShell({
               <span className="text-sm font-semibold tracking-tight">BGBCamp</span>
             </Link>
             <span className="hidden h-4 w-px bg-border min-[1100px]:block" aria-hidden />
-            <div className="hidden w-40 min-[1100px]:block">
-              <OrganizationNameEditor name={organization.name} />
+            <div className="hidden max-w-60 min-[1100px]:block">
+              <DailyGreeting
+                firstName={(profile.full_name ?? profile.email).trim().split(/\s+/)[0]}
+              />
             </div>
           </div>
 
