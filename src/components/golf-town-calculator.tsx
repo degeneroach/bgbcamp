@@ -76,6 +76,7 @@ export function GolfTownCalculator() {
     const projectsN = intVal(projects);
     const tier = TIERS.find((t) => dozensN >= t.minDozen && dozensN <= t.maxDozen) ?? null;
     const perBall = (tier?.rate ?? 0) * sides;
+    const perDozen = perBall * 12;
     const printCost = balls * perBall;
     const setupCost = projectsN * SETUP_FEE;
     return {
@@ -84,6 +85,7 @@ export function GolfTownCalculator() {
       projectsN,
       tier,
       perBall,
+      perDozen,
       printCost,
       setupCost,
       total: printCost + setupCost,
@@ -202,6 +204,12 @@ export function GolfTownCalculator() {
               <span className="font-medium tabular-nums">
                 ${(results.tier?.rate ?? 0).toFixed(2)} × {sides} {sides === 1 ? "side" : "sides"} ={" "}
                 {money(results.perBall)}
+              </span>
+            </div>
+            <div className="flex items-baseline justify-between text-sm">
+              <span className="text-muted-foreground">Per dozen</span>
+              <span className="font-medium tabular-nums">
+                {money(results.perDozen)}
               </span>
             </div>
             <div className="flex items-baseline justify-between text-sm">
