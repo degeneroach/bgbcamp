@@ -50,6 +50,25 @@ const MESSAGES = [
   "Nonna's rule: nothing good gets rushed ☕",
 ];
 
+// Personal flavor pools, keyed by lowercase first name. Every fourth day
+// the greeting comes from here instead of the shared pool.
+const PERSONAL: Record<string, string[]> = {
+  justin: [
+    "“The only thing that comes to a sleeping man is dreams.” — 2Pac",
+    "“Reality is wrong. Dreams are for real.” — 2Pac",
+    "All eyez on the task list today, {name} 👀",
+    "Me against the world? Nah — you've got the team, {name} 💪",
+    "Keep ya head up, {name} 🙏",
+  ],
+  summer: [
+    "Ho ho ho, {name} — sleigh this {weekday} 🎅",
+    "It's beginning to look a lot like productivity 🎄",
+    "You're on the nice list, {name} ✨🎁",
+    "Deck the halls (and clear the inbox), {name} 🎄",
+    "Snow much to do, {name} — let's go ❄️",
+  ],
+};
+
 function dayOfYear(date: Date): number {
   const start = new Date(date.getFullYear(), 0, 0);
   return Math.floor((date.getTime() - start.getTime()) / 86_400_000);
@@ -62,7 +81,12 @@ export function DailyGreeting({ firstName }: { firstName: string }) {
 
   useEffect(() => {
     const now = new Date();
-    const pick = MESSAGES[(dayOfYear(now) + now.getFullYear()) % MESSAGES.length];
+    const day = dayOfYear(now) + now.getFullYear();
+    const personal = PERSONAL[firstName.toLowerCase()] ?? [];
+    const pick =
+      personal.length > 0 && day % 4 === 0
+        ? personal[Math.floor(day / 4) % personal.length]
+        : MESSAGES[day % MESSAGES.length];
     const weekday = now.toLocaleDateString("en-US", { weekday: "long" });
     setMessage(pick.replaceAll("{name}", firstName).replaceAll("{weekday}", weekday));
   }, [firstName]);
