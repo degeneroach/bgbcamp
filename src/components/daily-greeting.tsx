@@ -28,6 +28,26 @@ const MESSAGES = [
   "Big day energy, {name} ⚡",
   "Done beats perfect, every time.",
   "New day, clean slate 🗓️",
+  // Golf
+  "Grip it and rip it, {name} 🏌️",
+  "Straight down the fairway today ⛳",
+  "Play it as it lies, {name}.",
+  "Today's forecast: birdies 🐦",
+  "Swing easy, {name} — the tasks will fall.",
+  "No mulligans needed today 🏌️",
+  "Drive for show, ship for dough ⛳",
+  "Sink the putt, {name} — you're this close 🕳️",
+  "Tee it high and let it fly 🚀",
+  "Eyes on the pin, {name} 🎯",
+  // Coffee / Nonna
+  "Nonna says: espresso first, then email ☕",
+  "Brewed fresh, just like this {weekday} ☕",
+  "Slow drip, strong finish, {name} ☕",
+  "Nonna would be proud of you, {name} ❤️",
+  "Percolating some big ideas today ☕",
+  "Life's too short for weak coffee 💪☕",
+  "A little cream, a lot of hustle ☕",
+  "Nonna's rule: nothing good gets rushed ☕",
 ];
 
 function dayOfYear(date: Date): number {
