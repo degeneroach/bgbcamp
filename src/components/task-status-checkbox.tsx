@@ -32,7 +32,9 @@ export function TaskStatusCheckbox({
       }}
       onClick={(e) => e.stopPropagation()}
       aria-label={completed ? "Mark task incomplete" : "Mark task complete"}
-      className="data-checked:border-success data-checked:bg-success data-checked:text-success-foreground"
+      // cursor-pointer overrides the board tile's grab cursor — checking a
+      // box is a click, not a drag.
+      className="cursor-pointer data-checked:border-success data-checked:bg-success data-checked:text-success-foreground"
     />
   );
 }
