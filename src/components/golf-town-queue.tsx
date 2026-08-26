@@ -462,14 +462,13 @@ function OrderSheet({
       : null
   );
   const [pickedFile, setPickedFile] = useState<File | null>(null);
+  const [artDragOver, setArtDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
-  function handleFilePick(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
+  function acceptFile(file: File | null | undefined) {
     if (!file) return;
     if (!ACCEPTED_EXTENSIONS.has(fileExtension(file.name))) {
       toast.error("Use a PDF, AI, EPS, SVG, PNG, or JPG file.");
@@ -480,6 +479,12 @@ function OrderSheet({
       return;
     }
     setPickedFile(file);
+  }
+
+  function handleFilePick(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    acceptFile(file);
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -645,15 +650,26 @@ function OrderSheet({
                 </button>
               </div>
             ) : (
-              <Button
+              <button
                 type="button"
-                variant="outline"
-                size="sm"
-                className="w-fit"
                 onClick={() => fileInputRef.current?.click()}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setArtDragOver(true);
+                }}
+                onDragLeave={() => setArtDragOver(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setArtDragOver(false);
+                  acceptFile(e.dataTransfer.files?.[0]);
+                }}
+                className={cn(
+                  "flex w-full items-center justify-center rounded-lg border border-dashed px-3 py-4 text-sm text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground",
+                  artDragOver && "border-primary bg-primary/10 text-primary"
+                )}
               >
-                Choose file…
-              </Button>
+                {artDragOver ? "Drop it here" : "Choose file… or drag & drop"}
+              </button>
             )}
             <input
               ref={fileInputRef}
