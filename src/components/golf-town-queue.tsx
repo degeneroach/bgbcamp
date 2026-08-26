@@ -323,13 +323,7 @@ export function GolfTownQueue({
                           </>
                         )}
                         <span className="text-muted-foreground"> · </span>
-                        <span
-                          className={cn(
-                            order.imprint_sides === 2
-                              ? "font-bold text-warning"
-                              : "font-medium text-muted-foreground"
-                          )}
-                        >
+                        <span className="font-bold text-warning">
                           {order.imprint_sides === 2 ? "Double" : "Single"} sided
                         </span>
                       </p>
