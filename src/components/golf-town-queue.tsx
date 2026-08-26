@@ -116,11 +116,16 @@ function ArtworkThumb({ order }: { order: GolfTownOrder }) {
       rel="noreferrer"
       draggable={false}
       title={order.artwork_filename ?? "Artwork"}
-      className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-black/40 dark:bg-black/60"
+      className={cn(
+        "flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg",
+        // Grey behind images so transparent/dark logos stay visible;
+        // file-type badges keep the darker tile.
+        IMAGE_EXTENSIONS.has(ext) ? "bg-zinc-300 dark:bg-zinc-500" : "bg-black/40 dark:bg-black/60"
+      )}
     >
       {IMAGE_EXTENSIONS.has(ext) ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={url} alt="" className="h-full w-full object-contain" draggable={false} />
+        <img src={url} alt="" className="h-full w-full object-contain p-1" draggable={false} />
       ) : (
         <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
           {ext || "file"}
@@ -306,11 +311,27 @@ export function GolfTownQueue({
                       <p className="text-[15px] font-semibold leading-snug">
                         {order.end_customer}
                       </p>
-                      <p className="mt-0.5 text-[13px] text-muted-foreground">
-                        {order.quantity_dozen} dz
-                        {order.ball_type && ` · ${order.ball_type}`}
-                        {" · "}
-                        {order.imprint_sides === 2 ? "Double" : "Single"} sided
+                      {/* The print spec is what Rob works from — make it loud. */}
+                      <p className="mt-0.5 text-sm">
+                        <span className="font-bold text-primary">
+                          {order.quantity_dozen} dz
+                        </span>
+                        {order.ball_type && (
+                          <>
+                            <span className="text-muted-foreground"> · </span>
+                            <span className="font-semibold">{order.ball_type}</span>
+                          </>
+                        )}
+                        <span className="text-muted-foreground"> · </span>
+                        <span
+                          className={cn(
+                            order.imprint_sides === 2
+                              ? "font-bold text-warning"
+                              : "font-medium text-muted-foreground"
+                          )}
+                        >
+                          {order.imprint_sides === 2 ? "Double" : "Single"} sided
+                        </span>
                       </p>
                     </div>
                     <div className="flex flex-col items-end gap-1">
