@@ -28,6 +28,20 @@ async function portalOrgId(): Promise<string | null> {
 }
 
 export async function portalSignIn(username: string, password: string): Promise<ActionResult> {
+  // Distinguish "env vars never reached this deployment" from a wrong
+  // password — otherwise both look like a failed login.
+  if (
+    !process.env.GOLFTOWN_PORTAL_USER ||
+    !process.env.GOLFTOWN_PORTAL_PASSWORD ||
+    !process.env.GOLFTOWN_PORTAL_SECRET
+  ) {
+    console.error("golftown portal env missing", {
+      user: Boolean(process.env.GOLFTOWN_PORTAL_USER),
+      password: Boolean(process.env.GOLFTOWN_PORTAL_PASSWORD),
+      secret: Boolean(process.env.GOLFTOWN_PORTAL_SECRET),
+    });
+    return { ok: false, error: "Portal is not configured yet — env vars missing." };
+  }
   if (!verifyPortalCredentials(username, password)) {
     // Flat delay on failure; same generic message regardless of which
     // field was wrong.
