@@ -7,6 +7,7 @@ import {
   ChevronDown,
   GripVertical,
   Loader2,
+  Pencil,
   Plus,
   Printer,
   RotateCcw,
@@ -301,10 +302,18 @@ export function GolfTownQueue({
                   }}
                   className={cn(
                     "flex flex-col gap-3 rounded-xl border bg-card p-4 transition-colors duration-150 hover:border-foreground/15",
+                    !isStaff && order.submitted_by === "golftown" && "cursor-pointer",
                     dragId === order.id && "border-primary/50 opacity-60"
                   )}
                 >
                   <div className="flex flex-wrap items-center gap-3">
+                    {/* Portal: make Matt's own (editable) orders visibly so. */}
+                    {!isStaff && order.submitted_by === "golftown" && (
+                      <span className="order-last ml-auto flex items-center gap-1 self-start text-xs text-muted-foreground">
+                        <Pencil className="h-3 w-3" />
+                        Edit
+                      </span>
+                    )}
                     {isStaff && (
                       <>
                         <span
