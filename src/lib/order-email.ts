@@ -9,8 +9,12 @@ import type { GolfTownOrder } from "@/types/database";
 export async function sendGolfTownOrderEmail(order: GolfTownOrder): Promise<void> {
   try {
     const apiKey = process.env.RESEND_API_KEY;
-    const to = process.env.ORDER_NOTIFY_EMAIL;
-    if (!apiKey || !to) {
+    // Comma-separated list, e.g. "hello@x.com, rob@x.com".
+    const to = (process.env.ORDER_NOTIFY_EMAIL ?? "")
+      .split(",")
+      .map((address) => address.trim())
+      .filter(Boolean);
+    if (!apiKey || to.length === 0) {
       console.log("golf town order email skipped: RESEND_API_KEY / ORDER_NOTIFY_EMAIL not set");
       return;
     }
@@ -110,7 +114,7 @@ export async function sendGolfTownOrderEmail(order: GolfTownOrder): Promise<void
         from:
           process.env.ORDER_FROM_EMAIL ??
           "BGBCamp <orders@updates.customgolfballprinting.com>",
-        to: [to],
+        to,
         subject: `Golf Town Wholesale Order Placed - ${order.quantity_dozen} dozen`,
         html,
         text,
