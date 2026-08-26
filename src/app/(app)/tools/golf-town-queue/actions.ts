@@ -128,12 +128,14 @@ export async function setGolfTownOrderFlag(
   return { ok: true };
 }
 
-export async function completeGolfTownOrder(orderId: string): Promise<ActionResult> {
+// Checking "Picked up" archives the job in one step: the flag and
+// completed_at are set together and the card leaves the queue.
+export async function pickUpGolfTownOrder(orderId: string): Promise<ActionResult> {
   await requireCurrentUser();
   const supabase = await createClient();
   const { error } = await supabase
     .from("golf_town_orders")
-    .update({ completed_at: new Date().toISOString() })
+    .update({ shipped: true, completed_at: new Date().toISOString() })
     .eq("id", orderId);
   if (error) return { ok: false, error: error.message };
   revalidatePath(PAGE);
@@ -156,7 +158,9 @@ export async function restoreGolfTownOrder(orderId: string): Promise<ActionResul
 
   const { error } = await supabase
     .from("golf_town_orders")
-    .update({ completed_at: null, position: (last?.position ?? -1) + 1 })
+    // Clear the picked-up flag too — otherwise the restored card would
+    // immediately look done again.
+    .update({ completed_at: null, shipped: false, position: (last?.position ?? -1) + 1 })
     .eq("id", orderId);
   if (error) return { ok: false, error: error.message };
   revalidatePath(PAGE);

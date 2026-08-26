@@ -30,7 +30,7 @@ import {
   deleteGolfTownOrder,
   reorderGolfTownOrders,
   setGolfTownOrderFlag,
-  completeGolfTownOrder,
+  pickUpGolfTownOrder,
   restoreGolfTownOrder,
   type OrderInput,
 } from "@/app/(app)/tools/golf-town-queue/actions";
@@ -52,9 +52,8 @@ const MAX_ARTWORK_BYTES = 25 * 1024 * 1024;
 
 const FLAGS = [
   { key: "balls_received", label: "Balls received" },
-  { key: "proof_approved", label: "Proof approved" },
   { key: "printed", label: "Printed" },
-  { key: "shipped", label: "Shipped" },
+  { key: "shipped", label: "Picked up" },
 ] as const;
 
 function fileExtension(name: string): string {
@@ -197,30 +196,22 @@ export function GolfTownQueue({
 
   function toggleFlag(order: GolfTownOrder, flag: (typeof FLAGS)[number]["key"], value: boolean) {
     const previous = localOrders;
-    setLocalOrders((current) =>
-      current.map((o) => (o.id === order.id ? { ...o, [flag]: value } : o))
-    );
-    startTransition(async () => {
-      const result = await setGolfTownOrderFlag(order.id, flag, value);
-      if (!result.ok) {
-        setLocalOrders(previous);
-        toast.error(result.error ?? "Couldn't save.");
-      }
-    });
-  }
-
-  function markComplete(order: GolfTownOrder) {
-    const previous = localOrders;
+    // "Picked up" archives the job: it leaves the queue in the same click.
+    const archives = flag === "shipped" && value;
     setLocalOrders((current) =>
       current.map((o) =>
-        o.id === order.id ? { ...o, completed_at: new Date().toISOString() } : o
+        o.id === order.id
+          ? { ...o, [flag]: value, ...(archives ? { completed_at: new Date().toISOString() } : {}) }
+          : o
       )
     );
     startTransition(async () => {
-      const result = await completeGolfTownOrder(order.id);
+      const result = archives
+        ? await pickUpGolfTownOrder(order.id)
+        : await setGolfTownOrderFlag(order.id, flag, value);
       if (!result.ok) {
         setLocalOrders(previous);
-        toast.error(result.error ?? "Couldn't complete the order.");
+        toast.error(result.error ?? "Couldn't save.");
       }
     });
   }
@@ -266,7 +257,6 @@ export function GolfTownQueue({
       ) : (
         <div className="flex flex-col gap-3" onDragEnd={() => { setDragId(null); setDropIndex(null); }}>
           {active.map((order, index) => {
-            const allChecked = FLAGS.every((f) => order[f.key]);
             return (
               <div key={order.id}>
                 {dropIndex === index && dragId && (
@@ -291,8 +281,7 @@ export function GolfTownQueue({
                   }}
                   className={cn(
                     "flex flex-col gap-3 rounded-xl border bg-card p-4 transition-colors duration-150 hover:border-foreground/15",
-                    dragId === order.id && "border-primary/50 opacity-60",
-                    allChecked && "opacity-55"
+                    dragId === order.id && "border-primary/50 opacity-60"
                   )}
                 >
                   <div className="flex flex-wrap items-center gap-3">
@@ -348,15 +337,6 @@ export function GolfTownQueue({
                         </span>
                       </label>
                     ))}
-                    {allChecked && (
-                      <button
-                        type="button"
-                        onClick={() => markComplete(order)}
-                        className="ml-auto text-xs font-medium text-primary hover:underline"
-                      >
-                        Mark complete
-                      </button>
-                    )}
                   </div>
                 </div>
               </div>
@@ -392,7 +372,7 @@ export function GolfTownQueue({
             <ChevronDown
               className={cn("h-4 w-4 transition-transform", !completedOpen && "-rotate-90")}
             />
-            Completed ({completed.length})
+            Archive ({completed.length})
           </button>
           {completedOpen && (
             <div className="flex flex-col divide-y rounded-xl border">
@@ -407,7 +387,7 @@ export function GolfTownQueue({
                       {" "}· {order.quantity_dozen} dz
                       {order.ball_type && ` · ${order.ball_type}`}
                       {order.completed_at &&
-                        ` · done ${format(parseISO(order.completed_at), "MMM d")}`}
+                        ` · picked up ${format(parseISO(order.completed_at), "MMM d")}`}
                     </span>
                   </span>
                   <button
