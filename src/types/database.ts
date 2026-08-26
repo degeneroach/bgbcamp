@@ -254,6 +254,31 @@ export type Notification = {
   created_at: string;
 };
 
+export type GolfTownOrder = {
+  id: string;
+  organization_id: string;
+  /** Ascending = higher print priority. */
+  position: number;
+  end_customer: string;
+  contact: string | null;
+  ball_type: string;
+  quantity_dozen: number;
+  /** 1 = single sided, 2 = double sided. */
+  imprint_sides: number;
+  /** YYYY-MM-DD */
+  date_needed: string | null;
+  artwork_path: string | null;
+  artwork_filename: string | null;
+  notes: string | null;
+  balls_received: boolean;
+  proof_approved: boolean;
+  printed: boolean;
+  shipped: boolean;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -557,6 +582,24 @@ export type Database = {
             columns: ["updated_by"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      golf_town_orders: {
+        Row: GolfTownOrder;
+        Insert: Partial<GolfTownOrder> & {
+          organization_id: string;
+          position: number;
+          end_customer: string;
+        };
+        Update: Partial<GolfTownOrder>;
+        Relationships: [
+          {
+            foreignKeyName: "golf_town_orders_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
             referencedColumns: ["id"];
           },
         ];

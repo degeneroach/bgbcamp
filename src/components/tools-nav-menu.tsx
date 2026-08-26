@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronDown, Wrench, Calculator, NotebookText, Receipt } from "lucide-react";
+import { ChevronDown, Wrench, Calculator, NotebookText, Receipt, ListOrdered } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,6 +39,10 @@ export function ToolsNavMenu() {
         <DropdownMenuItem render={<Link href="/tools/golf-town" />} className="h-10 gap-2.5">
           <Receipt className="h-4 w-4" />
           Golf Town Invoice
+        </DropdownMenuItem>
+        <DropdownMenuItem render={<Link href="/tools/golf-town-queue" />} className="h-10 gap-2.5">
+          <ListOrdered className="h-4 w-4" />
+          Golf Town Queue
         </DropdownMenuItem>
         <DropdownMenuItem render={<Link href="/tools/wiki" />} className="h-10 gap-2.5">
           <NotebookText className="h-4 w-4" />
