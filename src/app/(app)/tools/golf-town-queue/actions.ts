@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentUser } from "@/lib/current-user";
+import { sendGolfTownOrderEmail } from "@/lib/order-email";
 import type { GolfTownOrder } from "@/types/database";
 
 interface ActionResult {
@@ -40,21 +41,28 @@ export async function createGolfTownOrder(input: OrderInput): Promise<ActionResu
     .limit(1)
     .maybeSingle();
 
-  const { error } = await supabase.from("golf_town_orders").insert({
-    organization_id: organization.id,
-    position: (last?.position ?? -1) + 1,
-    end_customer: input.endCustomer.trim(),
-    ball_type: input.ballType.trim(),
-    quantity_dozen: Math.max(1, Math.round(input.quantityDozen)),
-    imprint_sides: input.imprintSides,
-    date_needed: input.dateNeeded,
-    drop_off_expected: input.dropOffExpected,
-    artwork_path: input.artworkPath,
-    artwork_filename: input.artworkFilename,
-    notes: input.notes.trim() || null,
-    contact: input.contact.trim() || null,
-  });
+  const { data: created, error } = await supabase
+    .from("golf_town_orders")
+    .insert({
+      organization_id: organization.id,
+      position: (last?.position ?? -1) + 1,
+      end_customer: input.endCustomer.trim(),
+      ball_type: input.ballType.trim(),
+      quantity_dozen: Math.max(1, Math.round(input.quantityDozen)),
+      imprint_sides: input.imprintSides,
+      date_needed: input.dateNeeded,
+      drop_off_expected: input.dropOffExpected,
+      artwork_path: input.artworkPath,
+      artwork_filename: input.artworkFilename,
+      notes: input.notes.trim() || null,
+      contact: input.contact.trim() || null,
+    })
+    .select("*")
+    .single();
   if (error) return { ok: false, error: error.message };
+
+  // Notify after the insert succeeded; a failed email never fails the order.
+  await sendGolfTownOrderEmail(created as GolfTownOrder);
 
   revalidatePath(PAGE);
   return { ok: true };

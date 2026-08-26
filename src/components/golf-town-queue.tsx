@@ -36,6 +36,7 @@ import {
   restoreGolfTownOrder,
   type OrderInput,
 } from "@/app/(app)/tools/golf-town-queue/actions";
+import { portalCreateOrder, portalUpdateOrder } from "@/app/(golftown)/golftown/actions";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import type { GolfTownOrder } from "@/types/database";
@@ -62,8 +63,10 @@ function fileExtension(name: string): string {
   return name.split(".").pop()?.toLowerCase() ?? "";
 }
 
+// Plain URL construction — no Supabase client needed, which keeps the
+// public portal page free of any Supabase key usage.
 function artworkPublicUrl(path: string): string {
-  return createClient().storage.from("golf-town-artwork").getPublicUrl(path).data.publicUrl;
+  return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/golf-town-artwork/${path}`;
 }
 
 function DatePill({ dateNeeded }: { dateNeeded: string | null }) {
@@ -140,11 +143,19 @@ export function GolfTownQueue({
   orders,
   organizationId,
   loadError,
+  mode = "staff",
 }: {
   orders: GolfTownOrder[];
   organizationId: string;
   loadError: string | null;
+  /**
+   * "staff" (internal queue, full capabilities) or "portal" (Matt's view:
+   * no reorder/delete/complete/flags, staff orders read-only). Portal
+   * restrictions are ALSO enforced server-side in the portal actions.
+   */
+  mode?: "staff" | "portal";
 }) {
+  const isStaff = mode === "staff";
   const [localOrders, setLocalOrders] = useState(orders);
   useEffect(() => setLocalOrders(orders), [orders]);
   const [, startTransition] = useTransition();
@@ -284,6 +295,8 @@ export function GolfTownQueue({
                   onClick={(e) => {
                     if ((e.target as HTMLElement).closest("a,button,label,input,[data-drag-handle]"))
                       return;
+                    // Portal: staff-created orders are read-only to Matt.
+                    if (!isStaff && order.submitted_by !== "golftown") return;
                     setEditing(order);
                   }}
                   className={cn(
@@ -292,25 +305,34 @@ export function GolfTownQueue({
                   )}
                 >
                   <div className="flex flex-wrap items-center gap-3">
-                    <span
-                      data-drag-handle
-                      draggable
-                      onDragStart={(e) => {
-                        e.dataTransfer.effectAllowed = "move";
-                        setDragId(order.id);
-                      }}
-                      className="hidden shrink-0 cursor-grab text-muted-foreground active:cursor-grabbing md:block"
-                      aria-label="Drag to reorder"
-                    >
-                      <GripVertical className="h-5 w-5" />
-                    </span>
-                    <span className="w-5 shrink-0 text-sm tabular-nums text-muted-foreground">
-                      {index + 1}
-                    </span>
+                    {isStaff && (
+                      <>
+                        <span
+                          data-drag-handle
+                          draggable
+                          onDragStart={(e) => {
+                            e.dataTransfer.effectAllowed = "move";
+                            setDragId(order.id);
+                          }}
+                          className="hidden shrink-0 cursor-grab text-muted-foreground active:cursor-grabbing md:block"
+                          aria-label="Drag to reorder"
+                        >
+                          <GripVertical className="h-5 w-5" />
+                        </span>
+                        <span className="w-5 shrink-0 text-sm tabular-nums text-muted-foreground">
+                          {index + 1}
+                        </span>
+                      </>
+                    )}
                     <ArtworkThumb order={order} />
                     <div className="min-w-0 flex-1">
                       <p className="text-[15px] font-semibold leading-snug">
                         {order.end_customer}
+                        {isStaff && order.submitted_by === "golftown" && (
+                          <span className="ml-2 align-middle text-[11px] font-normal text-muted-foreground">
+                            via Golf Town
+                          </span>
+                        )}
                       </p>
                       {/* The print spec is what Rob works from — make it loud. */}
                       <p className="mt-0.5 text-sm">
@@ -331,17 +353,19 @@ export function GolfTownQueue({
                     </div>
                     <div className="flex flex-col items-end gap-1">
                       <div className="flex items-center gap-3">
-                        <a
-                          href={`/tools/golf-town-queue/${order.id}/print`}
-                          target="_blank"
-                          rel="noreferrer"
-                          draggable={false}
-                          onClick={(e) => e.stopPropagation()}
-                          className="flex items-center gap-1 text-xs text-muted-foreground transition-colors duration-150 hover:text-primary"
-                        >
-                          <Printer className="h-3.5 w-3.5" />
-                          Work order
-                        </a>
+                        {isStaff && (
+                          <a
+                            href={`/tools/golf-town-queue/${order.id}/print`}
+                            target="_blank"
+                            rel="noreferrer"
+                            draggable={false}
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex items-center gap-1 text-xs text-muted-foreground transition-colors duration-150 hover:text-primary"
+                          >
+                            <Printer className="h-3.5 w-3.5" />
+                            Work order
+                          </a>
+                        )}
                         <DatePill dateNeeded={order.date_needed} />
                       </div>
                       {order.drop_off_expected && (
@@ -367,12 +391,19 @@ export function GolfTownQueue({
                     {FLAGS.map((flag) => (
                       <label
                         key={flag.key}
-                        className="flex cursor-pointer items-center gap-1.5"
+                        className={cn(
+                          "flex items-center gap-1.5",
+                          isStaff ? "cursor-pointer" : "cursor-default"
+                        )}
                       >
                         <Checkbox
                           checked={order[flag.key]}
+                          // Status flags are production state — read-only on
+                          // the portal (also unenforceable there: portal has
+                          // no flag action).
+                          disabled={!isStaff}
                           onCheckedChange={(checked) =>
-                            toggleFlag(order, flag.key, checked === true)
+                            isStaff && toggleFlag(order, flag.key, checked === true)
                           }
                         />
                         <span
@@ -438,23 +469,27 @@ export function GolfTownQueue({
                         ` · picked up ${format(parseISO(order.completed_at), "MMM d")}`}
                     </span>
                   </span>
-                  <a
-                    href={`/tools/golf-town-queue/${order.id}/print`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground transition-colors duration-150 hover:text-primary"
-                  >
-                    <Printer className="h-3 w-3" />
-                    Work order
-                  </a>
-                  <button
-                    type="button"
-                    onClick={() => restore(order)}
-                    className="flex shrink-0 items-center gap-1 text-xs font-medium text-primary hover:underline"
-                  >
-                    <RotateCcw className="h-3 w-3" />
-                    Restore
-                  </button>
+                  {isStaff && (
+                    <>
+                      <a
+                        href={`/tools/golf-town-queue/${order.id}/print`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground transition-colors duration-150 hover:text-primary"
+                      >
+                        <Printer className="h-3 w-3" />
+                        Work order
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => restore(order)}
+                        className="flex shrink-0 items-center gap-1 text-xs font-medium text-primary hover:underline"
+                      >
+                        <RotateCcw className="h-3 w-3" />
+                        Restore
+                      </button>
+                    </>
+                  )}
                 </div>
               ))}
             </div>
@@ -466,6 +501,7 @@ export function GolfTownQueue({
         <OrderSheet
           order={editing === "new" ? null : editing}
           organizationId={organizationId}
+          mode={mode}
           onClose={() => setEditing(null)}
         />
       )}
@@ -476,12 +512,15 @@ export function GolfTownQueue({
 function OrderSheet({
   order,
   organizationId,
+  mode,
   onClose,
 }: {
   order: GolfTownOrder | null;
   organizationId: string;
+  mode: "staff" | "portal";
   onClose: () => void;
 }) {
+  const isStaff = mode === "staff";
   const [endCustomer, setEndCustomer] = useState(order?.end_customer ?? "");
   const [ballType, setBallType] = useState(order?.ball_type ?? "");
   const [quantity, setQuantity] = useState(order ? String(order.quantity_dozen) : "");
@@ -532,19 +571,34 @@ function OrderSheet({
       let artworkFilename = existingArtwork?.filename ?? null;
 
       if (pickedFile) {
-        const supabase = createClient();
-        const path = `${organizationId}/${crypto.randomUUID()}-${pickedFile.name}`;
-        const { error } = await supabase.storage
-          .from("golf-town-artwork")
-          .upload(path, pickedFile, {
-            contentType: pickedFile.type || "application/octet-stream",
-          });
-        if (error) {
-          toast.error(`Couldn't upload the artwork: ${error.message}`);
-          return;
+        if (isStaff) {
+          const supabase = createClient();
+          const path = `${organizationId}/${crypto.randomUUID()}-${pickedFile.name}`;
+          const { error } = await supabase.storage
+            .from("golf-town-artwork")
+            .upload(path, pickedFile, {
+              contentType: pickedFile.type || "application/octet-stream",
+            });
+          if (error) {
+            toast.error(`Couldn't upload the artwork: ${error.message}`);
+            return;
+          }
+          artworkPath = path;
+          artworkFilename = pickedFile.name;
+        } else {
+          // Portal uploads go through the cookie-gated route handler —
+          // no Supabase key in the portal browser.
+          const form = new FormData();
+          form.append("file", pickedFile);
+          const res = await fetch("/golftown/upload", { method: "POST", body: form });
+          const body = (await res.json()) as { path?: string; filename?: string; error?: string };
+          if (!res.ok || !body.path) {
+            toast.error(body.error ?? "Couldn't upload the artwork.");
+            return;
+          }
+          artworkPath = body.path;
+          artworkFilename = body.filename ?? pickedFile.name;
         }
-        artworkPath = path;
-        artworkFilename = pickedFile.name;
       }
 
       const input: OrderInput = {
@@ -560,8 +614,12 @@ function OrderSheet({
         contact,
       };
       const result = order
-        ? await updateGolfTownOrder(order.id, input)
-        : await createGolfTownOrder(input);
+        ? isStaff
+          ? await updateGolfTownOrder(order.id, input)
+          : await portalUpdateOrder(order.id, input)
+        : isStaff
+          ? await createGolfTownOrder(input)
+          : await portalCreateOrder(input);
       if (!result.ok) {
         toast.error(result.error ?? "Couldn't save the order.");
         return;
@@ -753,7 +811,7 @@ function OrderSheet({
 
           <div className="flex items-center justify-between pt-1">
             <div className="flex items-center gap-3">
-              {order && (
+              {order && isStaff && (
                 <Button
                   type="button"
                   variant="outline"
@@ -770,7 +828,7 @@ function OrderSheet({
                   Work order
                 </Button>
               )}
-            {order ? (
+            {order && isStaff ? (
               confirmDelete ? (
                 <span className="flex items-center gap-2 text-xs">
                   Delete this order?

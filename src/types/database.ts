@@ -277,6 +277,8 @@ export type GolfTownOrder = {
   printed: boolean;
   shipped: boolean;
   completed_at: string | null;
+  /** 'staff' (internal queue) or 'golftown' (Matt's portal). */
+  submitted_by: string;
   created_at: string;
   updated_at: string;
 };

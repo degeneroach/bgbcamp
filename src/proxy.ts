@@ -1,7 +1,9 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_PATHS = ["/login", "/auth/callback"];
+// /golftown has its own cookie gate (see lib/golftown-auth) — it is public
+// as far as the Supabase session check is concerned.
+const PUBLIC_PATHS = ["/login", "/auth/callback", "/golftown"];
 
 export async function proxy(request: NextRequest) {
   // Next.js prefetches every visible <Link> in the background. Each prefetch
