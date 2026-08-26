@@ -8,6 +8,7 @@ import {
   GripVertical,
   Loader2,
   Plus,
+  Printer,
   RotateCcw,
   Trash2,
   Truck,
@@ -329,7 +330,20 @@ export function GolfTownQueue({
                       </p>
                     </div>
                     <div className="flex flex-col items-end gap-1">
-                      <DatePill dateNeeded={order.date_needed} />
+                      <div className="flex items-center gap-3">
+                        <a
+                          href={`/tools/golf-town-queue/${order.id}/print`}
+                          target="_blank"
+                          rel="noreferrer"
+                          draggable={false}
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex items-center gap-1 text-xs text-muted-foreground transition-colors duration-150 hover:text-primary"
+                        >
+                          <Printer className="h-3.5 w-3.5" />
+                          Work order
+                        </a>
+                        <DatePill dateNeeded={order.date_needed} />
+                      </div>
                       {order.drop_off_expected && (
                         <span
                           className={cn(
@@ -424,6 +438,15 @@ export function GolfTownQueue({
                         ` · picked up ${format(parseISO(order.completed_at), "MMM d")}`}
                     </span>
                   </span>
+                  <a
+                    href={`/tools/golf-town-queue/${order.id}/print`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground transition-colors duration-150 hover:text-primary"
+                  >
+                    <Printer className="h-3 w-3" />
+                    Work order
+                  </a>
                   <button
                     type="button"
                     onClick={() => restore(order)}
@@ -729,6 +752,24 @@ function OrderSheet({
           </div>
 
           <div className="flex items-center justify-between pt-1">
+            <div className="flex items-center gap-3">
+              {order && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  render={
+                    <a
+                      href={`/tools/golf-town-queue/${order.id}/print`}
+                      target="_blank"
+                      rel="noreferrer"
+                    />
+                  }
+                >
+                  <Printer className="h-3.5 w-3.5" />
+                  Work order
+                </Button>
+              )}
             {order ? (
               confirmDelete ? (
                 <span className="flex items-center gap-2 text-xs">
@@ -761,6 +802,7 @@ function OrderSheet({
             ) : (
               <span />
             )}
+            </div>
             <div className="flex gap-2">
               <Button type="button" variant="ghost" size="sm" onClick={onClose}>
                 <X className="h-4 w-4" />
