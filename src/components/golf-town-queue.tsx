@@ -276,25 +276,38 @@ export function GolfTownQueue({
         </div>
       ) : (
         <div className="flex flex-col gap-3" onDragEnd={() => { setDragId(null); setDropIndex(null); }}>
-          {(isStaff
-            ? active
-            : // Portal: ready-for-pickup orders float to a green section on
-              // top; the rest keep queue order below.
-              [...active.filter((o) => o.printed && !o.shipped), ...active.filter((o) => !(o.printed && !o.shipped))]
-          ).map((order, index) => {
-            const isReady = !isStaff && order.printed && !order.shipped;
-            const firstNotReady =
-              !isStaff && !isReady && index === active.filter((o) => o.printed && !o.shipped).length;
+          {(() => {
+            // Portal grouping: green ready-for-pickup on top, yellow
+            // payment-required next, everything else under In progress.
+            const isReadyFn = (o: GolfTownOrder) => o.printed && !o.shipped;
+            const isPayDueFn = (o: GolfTownOrder) => !isReadyFn(o) && o.invoiced && !o.paid;
+            const readyList = isStaff ? [] : active.filter(isReadyFn);
+            const payList = isStaff ? [] : active.filter(isPayDueFn);
+            const restList = isStaff
+              ? active
+              : active.filter((o) => !isReadyFn(o) && !isPayDueFn(o));
+            const displayList = isStaff ? active : [...readyList, ...payList, ...restList];
+            return displayList.map((order, index) => {
+            const isReady = !isStaff && isReadyFn(order);
+            const isPayDue = !isStaff && isPayDueFn(order);
             return (
               <div key={order.id}>
-                {!isStaff && isReady && index === 0 && (
-                  <p className="mb-1 flex items-center gap-1.5 text-sm font-semibold text-success">
-                    Ready For Pick-Up
+                {!isStaff && readyList.length > 0 && index === 0 && (
+                  <p className="mb-1 text-sm font-semibold text-success">Ready For Pick-Up</p>
+                )}
+                {!isStaff && payList.length > 0 && index === readyList.length && (
+                  <p className={cn("mb-1 text-sm font-semibold text-warning", index > 0 && "mt-3")}>
+                    Payment Required
                   </p>
                 )}
-                {firstNotReady && active.some((o) => o.printed && !o.shipped) && (
-                  <p className="mb-1 mt-3 text-sm font-medium text-muted-foreground">In progress</p>
-                )}
+                {!isStaff &&
+                  restList.length > 0 &&
+                  (readyList.length > 0 || payList.length > 0) &&
+                  index === readyList.length + payList.length && (
+                    <p className="mb-1 mt-3 text-sm font-medium text-muted-foreground">
+                      In progress
+                    </p>
+                  )}
                 {dropIndex === index && dragId && (
                   <div className="mb-1.5 h-0.5 rounded bg-primary" aria-hidden />
                 )}
@@ -320,9 +333,12 @@ export function GolfTownQueue({
                   className={cn(
                     "flex flex-col gap-3 rounded-xl border bg-card p-4 transition-colors duration-150 hover:border-foreground/15",
                     !isStaff && order.submitted_by === "golftown" && "cursor-pointer",
-                    // Portal: ready-for-pickup jobs glow green.
+                    // Portal: ready-for-pickup glows green, unpaid invoices
+                    // glow yellow.
                     isReady &&
                       "border-success/60 bg-success/10 hover:border-success",
+                    isPayDue &&
+                      "border-warning/60 bg-warning/10 hover:border-warning",
                     dragId === order.id && "border-primary/50 opacity-60"
                   )}
                 >
@@ -475,7 +491,8 @@ export function GolfTownQueue({
                 </div>
               </div>
             );
-          })}
+            });
+          })()}
           {dropIndex === active.length && dragId && (
             <div className="h-0.5 rounded bg-primary" aria-hidden />
           )}
