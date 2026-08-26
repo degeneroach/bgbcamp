@@ -18,6 +18,7 @@ export interface OrderInput {
   quantityDozen: number;
   imprintSides: 1 | 2;
   dateNeeded: string | null;
+  dropOffExpected: string | null;
   artworkPath: string | null;
   artworkFilename: string | null;
   notes: string;
@@ -47,6 +48,7 @@ export async function createGolfTownOrder(input: OrderInput): Promise<ActionResu
     quantity_dozen: Math.max(1, Math.round(input.quantityDozen)),
     imprint_sides: input.imprintSides,
     date_needed: input.dateNeeded,
+    drop_off_expected: input.dropOffExpected,
     artwork_path: input.artworkPath,
     artwork_filename: input.artworkFilename,
     notes: input.notes.trim() || null,
@@ -74,6 +76,7 @@ export async function updateGolfTownOrder(
       quantity_dozen: Math.max(1, Math.round(input.quantityDozen)),
       imprint_sides: input.imprintSides,
       date_needed: input.dateNeeded,
+      drop_off_expected: input.dropOffExpected,
       artwork_path: input.artworkPath,
       artwork_filename: input.artworkFilename,
       notes: input.notes.trim() || null,

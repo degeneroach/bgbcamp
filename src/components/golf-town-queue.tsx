@@ -10,6 +10,7 @@ import {
   Plus,
   RotateCcw,
   Trash2,
+  Truck,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -312,7 +313,25 @@ export function GolfTownQueue({
                         {order.imprint_sides === 2 ? "Double" : "Single"} sided
                       </p>
                     </div>
-                    <DatePill dateNeeded={order.date_needed} />
+                    <div className="flex flex-col items-end gap-1">
+                      <DatePill dateNeeded={order.date_needed} />
+                      {order.drop_off_expected && (
+                        <span
+                          className={cn(
+                            "flex items-center gap-1 text-xs tabular-nums",
+                            // Drop-off date passed but balls still not here:
+                            // that's the thing Rob needs to chase.
+                            !order.balls_received &&
+                              parseISO(order.drop_off_expected) < startOfDay(new Date())
+                              ? "font-medium text-warning"
+                              : "text-muted-foreground"
+                          )}
+                        >
+                          <Truck className="h-3.5 w-3.5" />
+                          Drop-off {format(parseISO(order.drop_off_expected), "MMM d")}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-x-6 gap-y-2 md:pl-[3.75rem]">
@@ -430,6 +449,7 @@ function OrderSheet({
   const [quantity, setQuantity] = useState(order ? String(order.quantity_dozen) : "");
   const [sides, setSides] = useState<1 | 2>(order?.imprint_sides === 2 ? 2 : 1);
   const [dateNeeded, setDateNeeded] = useState(order?.date_needed ?? "");
+  const [dropOff, setDropOff] = useState(order?.drop_off_expected ?? "");
   const [notes, setNotes] = useState(order?.notes ?? "");
   const [contact, setContact] = useState(order?.contact ?? "");
   // Existing artwork (edit) or a freshly picked file (uploads on save).
@@ -495,6 +515,7 @@ function OrderSheet({
         quantityDozen: parseInt(quantity, 10) || 1,
         imprintSides: sides,
         dateNeeded: dateNeeded || null,
+        dropOffExpected: dropOff || null,
         artworkPath,
         artworkFilename,
         notes,
@@ -589,6 +610,17 @@ function OrderSheet({
                 type="date"
                 value={dateNeeded}
                 onChange={(e) => setDateNeeded(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="gtq-dropoff" className="text-xs text-muted-foreground">
+                Balls dropped off (expected)
+              </Label>
+              <Input
+                id="gtq-dropoff"
+                type="date"
+                value={dropOff}
+                onChange={(e) => setDropOff(e.target.value)}
               />
             </div>
           </div>

@@ -267,6 +267,8 @@ export type GolfTownOrder = {
   imprint_sides: number;
   /** YYYY-MM-DD */
   date_needed: string | null;
+  /** YYYY-MM-DD — when Golf Town should drop the blank balls off. */
+  drop_off_expected: string | null;
   artwork_path: string | null;
   artwork_filename: string | null;
   notes: string | null;
