@@ -10,6 +10,7 @@ import {
   Pencil,
   Plus,
   Printer,
+  Receipt,
   RotateCcw,
   Trash2,
   Truck,
@@ -33,7 +34,6 @@ import {
   deleteGolfTownOrder,
   reorderGolfTownOrders,
   setGolfTownOrderFlag,
-  pickUpGolfTownOrder,
   restoreGolfTownOrder,
   type OrderInput,
 } from "@/app/(app)/tools/golf-town-queue/actions";
@@ -56,8 +56,10 @@ const MAX_ARTWORK_BYTES = 25 * 1024 * 1024;
 
 const FLAGS = [
   { key: "balls_received", label: "Balls received" },
-  { key: "printed", label: "Printed" },
+  { key: "printed", label: "Printed / Ready for Pick Up" },
   { key: "shipped", label: "Picked up" },
+  { key: "invoiced", label: "Invoiced" },
+  { key: "paid", label: "Paid" },
 ] as const;
 
 function fileExtension(name: string): string {
@@ -215,19 +217,18 @@ export function GolfTownQueue({
 
   function toggleFlag(order: GolfTownOrder, flag: (typeof FLAGS)[number]["key"], value: boolean) {
     const previous = localOrders;
-    // "Picked up" archives the job: it leaves the queue in the same click.
-    const archives = flag === "shipped" && value;
+    // Finished = picked up AND paid; either alone keeps the order active.
+    const next = { ...order, [flag]: value };
+    const finishes = next.shipped && next.paid && !order.completed_at;
     setLocalOrders((current) =>
       current.map((o) =>
         o.id === order.id
-          ? { ...o, [flag]: value, ...(archives ? { completed_at: new Date().toISOString() } : {}) }
+          ? { ...next, ...(finishes ? { completed_at: new Date().toISOString() } : {}) }
           : o
       )
     );
     startTransition(async () => {
-      const result = archives
-        ? await pickUpGolfTownOrder(order.id)
-        : await setGolfTownOrderFlag(order.id, flag, value);
+      const result = await setGolfTownOrderFlag(order.id, flag, value);
       if (!result.ok) {
         setLocalOrders(previous);
         toast.error(result.error ?? "Couldn't save.");
@@ -275,9 +276,25 @@ export function GolfTownQueue({
         </div>
       ) : (
         <div className="flex flex-col gap-3" onDragEnd={() => { setDragId(null); setDropIndex(null); }}>
-          {active.map((order, index) => {
+          {(isStaff
+            ? active
+            : // Portal: ready-for-pickup orders float to a green section on
+              // top; the rest keep queue order below.
+              [...active.filter((o) => o.printed && !o.shipped), ...active.filter((o) => !(o.printed && !o.shipped))]
+          ).map((order, index) => {
+            const isReady = !isStaff && order.printed && !order.shipped;
+            const firstNotReady =
+              !isStaff && !isReady && index === active.filter((o) => o.printed && !o.shipped).length;
             return (
               <div key={order.id}>
+                {!isStaff && isReady && index === 0 && (
+                  <p className="mb-1 flex items-center gap-1.5 text-sm font-semibold text-success">
+                    Ready For Pick-Up
+                  </p>
+                )}
+                {firstNotReady && active.some((o) => o.printed && !o.shipped) && (
+                  <p className="mb-1 mt-3 text-sm font-medium text-muted-foreground">In progress</p>
+                )}
                 {dropIndex === index && dragId && (
                   <div className="mb-1.5 h-0.5 rounded bg-primary" aria-hidden />
                 )}
@@ -303,6 +320,9 @@ export function GolfTownQueue({
                   className={cn(
                     "flex flex-col gap-3 rounded-xl border bg-card p-4 transition-colors duration-150 hover:border-foreground/15",
                     !isStaff && order.submitted_by === "golftown" && "cursor-pointer",
+                    // Portal: ready-for-pickup jobs glow green.
+                    isReady &&
+                      "border-success/60 bg-success/10 hover:border-success",
                     dragId === order.id && "border-primary/50 opacity-60"
                   )}
                 >
@@ -362,6 +382,19 @@ export function GolfTownQueue({
                     </div>
                     <div className="flex flex-col items-end gap-1">
                       <div className="flex items-center gap-3">
+                        {isStaff && order.invoice_url && (
+                          <a
+                            href={order.invoice_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            draggable={false}
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex items-center gap-1 text-xs text-muted-foreground transition-colors duration-150 hover:text-primary"
+                          >
+                            <Receipt className="h-3.5 w-3.5" />
+                            Invoice
+                          </a>
+                        )}
                         {isStaff && (
                           <a
                             href={`/tools/golf-town-queue/${order.id}/print`}
@@ -425,6 +458,19 @@ export function GolfTownQueue({
                         </span>
                       </label>
                     ))}
+                    {/* Portal: pay button when staff has attached an invoice. */}
+                    {!isStaff && order.invoice_url && (
+                      <a
+                        href={order.invoice_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="ml-auto flex items-center gap-1.5 rounded-full border border-primary/40 px-3 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary/10"
+                      >
+                        <Receipt className="h-3.5 w-3.5" />
+                        View invoice
+                      </a>
+                    )}
                   </div>
                 </div>
               </div>
@@ -460,7 +506,7 @@ export function GolfTownQueue({
             <ChevronDown
               className={cn("h-4 w-4 transition-transform", !completedOpen && "-rotate-90")}
             />
-            Archive ({completed.length})
+            Finished Orders ({completed.length})
           </button>
           {completedOpen && (
             <div className="flex flex-col divide-y rounded-xl border">
@@ -536,6 +582,7 @@ function OrderSheet({
   const [sides, setSides] = useState<1 | 2>(order?.imprint_sides === 2 ? 2 : 1);
   const [dateNeeded, setDateNeeded] = useState(order?.date_needed ?? "");
   const [dropOff, setDropOff] = useState(order?.drop_off_expected ?? "");
+  const [invoiceUrl, setInvoiceUrl] = useState(order?.invoice_url ?? "");
   const [notes, setNotes] = useState(order?.notes ?? "");
   const [contact, setContact] = useState(order?.contact ?? "");
   // Existing artwork (edit) or a freshly picked file (uploads on save).
@@ -621,6 +668,7 @@ function OrderSheet({
         artworkFilename,
         notes,
         contact,
+        invoiceUrl: isStaff ? invoiceUrl || null : null,
       };
       const result = order
         ? isStaff
@@ -817,6 +865,20 @@ function OrderSheet({
               onChange={(e) => setContact(e.target.value)}
             />
           </div>
+          {isStaff && (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="gtq-invoice" className="text-xs text-muted-foreground">
+                Invoice link (optional) — shown to Golf Town as a pay button
+              </Label>
+              <Input
+                id="gtq-invoice"
+                type="url"
+                placeholder="https://..."
+                value={invoiceUrl}
+                onChange={(e) => setInvoiceUrl(e.target.value)}
+              />
+            </div>
+          )}
 
           <div className="flex items-center justify-between pt-1">
             <div className="flex items-center gap-3">

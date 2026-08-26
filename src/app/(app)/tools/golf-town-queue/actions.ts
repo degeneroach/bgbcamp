@@ -24,6 +24,8 @@ export interface OrderInput {
   artworkFilename: string | null;
   notes: string;
   contact: string;
+  /** Staff-only; the portal never writes it. */
+  invoiceUrl?: string | null;
 }
 
 export async function createGolfTownOrder(input: OrderInput): Promise<ActionResult> {
@@ -56,6 +58,7 @@ export async function createGolfTownOrder(input: OrderInput): Promise<ActionResu
       artwork_filename: input.artworkFilename,
       notes: input.notes.trim() || null,
       contact: input.contact.trim() || null,
+      invoice_url: input.invoiceUrl?.trim() || null,
     })
     .select("*")
     .single();
@@ -89,6 +92,7 @@ export async function updateGolfTownOrder(
       artwork_filename: input.artworkFilename,
       notes: input.notes.trim() || null,
       contact: input.contact.trim() || null,
+      invoice_url: input.invoiceUrl?.trim() || null,
       updated_at: new Date().toISOString(),
     })
     .eq("id", orderId);
@@ -125,30 +129,28 @@ export async function reorderGolfTownOrders(orderedIds: string[]): Promise<Actio
 
 export async function setGolfTownOrderFlag(
   orderId: string,
-  flag: "balls_received" | "proof_approved" | "printed" | "shipped",
+  flag: "balls_received" | "proof_approved" | "printed" | "shipped" | "invoiced" | "paid",
   value: boolean
 ): Promise<ActionResult> {
   await requireCurrentUser();
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data: row, error } = await supabase
     .from("golf_town_orders")
     .update({ [flag]: value, updated_at: new Date().toISOString() } as Partial<GolfTownOrder>)
-    .eq("id", orderId);
+    .eq("id", orderId)
+    .select("shipped, paid, completed_at")
+    .single();
   if (error) return { ok: false, error: error.message };
-  revalidatePath(PAGE);
-  return { ok: true };
-}
 
-// Checking "Picked up" archives the job in one step: the flag and
-// completed_at are set together and the card leaves the queue.
-export async function pickUpGolfTownOrder(orderId: string): Promise<ActionResult> {
-  await requireCurrentUser();
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("golf_town_orders")
-    .update({ shipped: true, completed_at: new Date().toISOString() })
-    .eq("id", orderId);
-  if (error) return { ok: false, error: error.message };
+  // An order is finished once it's both picked up AND paid — picked up but
+  // unpaid (or paid but not picked up) stays in the active queue.
+  if (row.shipped && row.paid && !row.completed_at) {
+    await supabase
+      .from("golf_town_orders")
+      .update({ completed_at: new Date().toISOString() })
+      .eq("id", orderId);
+  }
+
   revalidatePath(PAGE);
   return { ok: true };
 }
@@ -169,9 +171,9 @@ export async function restoreGolfTownOrder(orderId: string): Promise<ActionResul
 
   const { error } = await supabase
     .from("golf_town_orders")
-    // Clear the picked-up flag too — otherwise the restored card would
-    // immediately look done again.
-    .update({ completed_at: null, shipped: false, position: (last?.position ?? -1) + 1 })
+    // Flags are left as-is: restore means "this isn't finished", and Rob
+    // unchecks whichever flag was wrong (picked up or paid).
+    .update({ completed_at: null, position: (last?.position ?? -1) + 1 })
     .eq("id", orderId);
   if (error) return { ok: false, error: error.message };
   revalidatePath(PAGE);

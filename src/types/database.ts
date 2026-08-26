@@ -276,6 +276,10 @@ export type GolfTownOrder = {
   proof_approved: boolean;
   printed: boolean;
   shipped: boolean;
+  invoiced: boolean;
+  paid: boolean;
+  /** Staff-entered payment link, surfaced to the Golf Town portal. */
+  invoice_url: string | null;
   completed_at: string | null;
   /** 'staff' (internal queue) or 'golftown' (Matt's portal). */
   submitted_by: string;
