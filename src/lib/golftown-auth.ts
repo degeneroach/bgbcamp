@@ -28,12 +28,15 @@ function expectedToken(): string | null {
 }
 
 export function verifyPortalCredentials(username: string, password: string): boolean {
-  const expectedUser = process.env.GOLFTOWN_PORTAL_USER;
-  const expectedPass = process.env.GOLFTOWN_PORTAL_PASSWORD;
+  // Trimmed on both sides: pasting values into Vercel's env UI easily picks
+  // up a stray trailing newline/space, and typed usernames pick up
+  // autocomplete spaces.
+  const expectedUser = process.env.GOLFTOWN_PORTAL_USER?.trim();
+  const expectedPass = process.env.GOLFTOWN_PORTAL_PASSWORD?.trim();
   if (!expectedUser || !expectedPass) return false;
   // Evaluate both so timing doesn't reveal which field was wrong.
-  const userOk = safeEqual(username, expectedUser);
-  const passOk = safeEqual(password, expectedPass);
+  const userOk = safeEqual(username.trim(), expectedUser);
+  const passOk = safeEqual(password.trim(), expectedPass);
   return userOk && passOk;
 }
 
