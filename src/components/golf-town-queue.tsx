@@ -14,6 +14,7 @@ import {
   RotateCcw,
   Trash2,
   Truck,
+  Upload,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -846,11 +847,17 @@ function OrderSheet({
                   acceptFile(e.dataTransfer.files?.[0]);
                 }}
                 className={cn(
-                  "flex w-full items-center justify-center rounded-lg border border-dashed px-3 py-4 text-sm text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground",
-                  artDragOver && "border-primary bg-primary/10 text-primary"
+                  "flex w-full flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 px-3 py-6 transition-colors hover:border-primary/70 hover:bg-primary/10",
+                  artDragOver && "border-primary bg-primary/15"
                 )}
               >
-                {artDragOver ? "Drop it here" : "Choose file… or drag & drop"}
+                <Upload className={cn("h-5 w-5", artDragOver ? "text-primary" : "text-primary/80")} />
+                <span className="text-sm font-medium text-foreground">
+                  {artDragOver ? "Drop it here!" : "Drag & drop artwork here"}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  or click to browse · PDF, AI, EPS, SVG, PNG, JPG · max 25MB
+                </span>
               </button>
             )}
             <input
