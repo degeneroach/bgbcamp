@@ -6,6 +6,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { PushNotificationsToggle } from "@/components/push-notifications-toggle";
 import { TeamManager, type TeamMember } from "@/components/team-manager";
 import { OrganizationNameEditor } from "@/components/organization-name-editor";
+import { timeAgo } from "@/lib/format";
 import { Card } from "@/components/ui/card";
 import type { Profile, Role } from "@/types/database";
 
@@ -14,19 +15,38 @@ export default async function ProfilePage() {
   const isAdmin = role === "owner" || role === "admin";
 
   let teamMembers: TeamMember[] = [];
+  let portalLastLogin: string | null = null;
+  let portalLastOrder: { end_customer: string; created_at: string } | null = null;
   if (isAdmin) {
     const supabase = await createClient();
-    const { data: memberRows } = await supabase
-      .from("organization_members")
-      .select("role, profiles(*)")
-      .eq("organization_id", organization.id)
-      .order("created_at", { ascending: true });
+    const [{ data: memberRows }, { data: statusRow }, { data: lastOrder }] = await Promise.all([
+      supabase
+        .from("organization_members")
+        .select("role, profiles(*)")
+        .eq("organization_id", organization.id)
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("golftown_portal_status")
+        .select("last_login_at")
+        .eq("organization_id", organization.id)
+        .maybeSingle(),
+      supabase
+        .from("golf_town_orders")
+        .select("end_customer, created_at")
+        .eq("organization_id", organization.id)
+        .eq("submitted_by", "golftown")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
     teamMembers = (memberRows ?? [])
       .map((row) => ({
         role: row.role as Role,
         profile: row.profiles as unknown as Profile | null,
       }))
       .filter((m): m is TeamMember => m.profile !== null);
+    portalLastLogin = statusRow?.last_login_at ?? null;
+    portalLastOrder = lastOrder ?? null;
   }
 
   return (
@@ -75,6 +95,25 @@ export default async function ProfilePage() {
             <div className="max-w-xs rounded-md border px-2 py-1.5">
               <OrganizationNameEditor name={organization.name} />
             </div>
+          </div>
+          <div>
+            <h2 className="mb-1 font-medium">Golf Town portal</h2>
+            <p className="text-sm text-muted-foreground">
+              Last sign-in:{" "}
+              <span className="font-medium text-foreground">
+                {portalLastLogin ? timeAgo(portalLastLogin) : "never"}
+              </span>
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Last order submitted:{" "}
+              {portalLastOrder ? (
+                <span className="font-medium text-foreground">
+                  &ldquo;{portalLastOrder.end_customer}&rdquo; · {timeAgo(portalLastOrder.created_at)}
+                </span>
+              ) : (
+                <span className="font-medium text-foreground">none yet</span>
+              )}
+            </p>
           </div>
           <div>
             <h2 className="font-medium">People</h2>

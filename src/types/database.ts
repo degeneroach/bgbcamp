@@ -288,6 +288,11 @@ export type GolfTownOrder = {
   updated_at: string;
 };
 
+export type GolftownPortalStatus = {
+  organization_id: string;
+  last_login_at: string | null;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -591,6 +596,20 @@ export type Database = {
             columns: ["updated_by"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      golftown_portal_status: {
+        Row: GolftownPortalStatus;
+        Insert: Partial<GolftownPortalStatus> & { organization_id: string };
+        Update: Partial<GolftownPortalStatus>;
+        Relationships: [
+          {
+            foreignKeyName: "golftown_portal_status_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: true;
+            referencedRelation: "organizations";
             referencedColumns: ["id"];
           },
         ];

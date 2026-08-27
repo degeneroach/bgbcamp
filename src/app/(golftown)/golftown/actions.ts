@@ -50,6 +50,24 @@ export async function portalSignIn(username: string, password: string): Promise<
   }
   const set = await setPortalCookie();
   if (!set) return { ok: false, error: "Portal is not configured yet." };
+
+  // Record the sign-in for the admin "last portal login" readout. Best
+  // effort — a failure here must not block the login.
+  try {
+    const admin = createAdminClient();
+    const organizationId = await portalOrgId();
+    if (organizationId) {
+      await admin
+        .from("golftown_portal_status")
+        .upsert(
+          { organization_id: organizationId, last_login_at: new Date().toISOString() },
+          { onConflict: "organization_id" }
+        );
+    }
+  } catch (error) {
+    console.error("failed to record portal login", error);
+  }
+
   revalidatePath(PAGE);
   return { ok: true };
 }
