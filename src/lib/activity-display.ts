@@ -14,6 +14,7 @@ import {
   RotateCcw,
   Zap,
   NotebookText,
+  Printer,
   Activity as ActivityIcon,
   type LucideIcon,
 } from "lucide-react";
@@ -51,6 +52,10 @@ const ICONS: Record<string, LucideIcon> = {
   "wiki.updated": NotebookText,
   "wiki.published": NotebookText,
   "wiki.deleted": Trash2,
+  "golftown.created": Printer,
+  "golftown.updated": Pencil,
+  "golftown.status": Printer,
+  "golftown.deleted": Trash2,
 };
 
 export function getActivityIcon(action: string): LucideIcon {
@@ -95,6 +100,10 @@ const COLOR_FAMILIES: { match: (action: string) => boolean; color: ActivityColor
   {
     match: (a) => a.startsWith("wiki"),
     color: { bg: "bg-indigo-100 dark:bg-indigo-950", text: "text-indigo-500 dark:text-indigo-400" },
+  },
+  {
+    match: (a) => a.startsWith("golftown"),
+    color: { bg: "bg-cyan-100 dark:bg-cyan-950", text: "text-cyan-600 dark:text-cyan-400" },
   },
   {
     match: (a) => a.startsWith("task") || a.startsWith("project"),
@@ -257,6 +266,28 @@ export function describeActivity(
       return { verb: "published the SOP", itemLabel: m.title ?? null, itemHref: m.slug ? `/tools/wiki/${m.slug}` : null };
     case "wiki.deleted":
       return { verb: "deleted the SOP", itemLabel: m.title ?? null, itemHref: null };
+    case "golftown.created":
+      return {
+        verb: "added the Golf Town order",
+        itemLabel: m.customer ?? null,
+        itemHref: "/tools/golf-town-queue",
+        detail: m.quantity ? `(${m.quantity} dz)` : undefined,
+      };
+    case "golftown.updated":
+      return {
+        verb: "updated the Golf Town order",
+        itemLabel: m.customer ?? null,
+        itemHref: "/tools/golf-town-queue",
+      };
+    case "golftown.status":
+      return {
+        verb: "marked the Golf Town order",
+        itemLabel: m.customer ?? null,
+        itemHref: "/tools/golf-town-queue",
+        detail: m.status ? `as ${m.status}` : undefined,
+      };
+    case "golftown.deleted":
+      return { verb: "deleted the Golf Town order", itemLabel: m.customer ?? null, itemHref: null };
     case "person.added":
       return { verb: "invited", itemLabel: m.email ?? null, itemHref: "/people" };
     case "person.removed":

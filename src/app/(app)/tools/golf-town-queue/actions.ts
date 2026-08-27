@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentUser } from "@/lib/current-user";
 import { sendGolfTownOrderEmail } from "@/lib/order-email";
+import { logActivity } from "@/lib/activity";
 import type { GolfTownOrder } from "@/types/database";
 
 interface ActionResult {
@@ -30,7 +31,7 @@ export interface OrderInput {
 
 export async function createGolfTownOrder(input: OrderInput): Promise<ActionResult> {
   if (!input.endCustomer.trim()) return { ok: false, error: "Enter the customer name." };
-  const { organization } = await requireCurrentUser();
+  const { userId, organization } = await requireCurrentUser();
   const supabase = await createClient();
 
   // Append to the bottom of the active queue.
@@ -67,6 +68,15 @@ export async function createGolfTownOrder(input: OrderInput): Promise<ActionResu
   // Notify after the insert succeeded; a failed email never fails the order.
   await sendGolfTownOrderEmail(created as GolfTownOrder);
 
+  await logActivity(supabase, {
+    organizationId: organization.id,
+    actorId: userId,
+    entityType: "golf_town_order",
+    entityId: created.id,
+    action: "golftown.created",
+    metadata: { customer: created.end_customer, quantity: String(created.quantity_dozen) },
+  });
+
   revalidatePath(PAGE);
   return { ok: true };
 }
@@ -76,7 +86,7 @@ export async function updateGolfTownOrder(
   input: OrderInput
 ): Promise<ActionResult> {
   if (!input.endCustomer.trim()) return { ok: false, error: "Enter the customer name." };
-  await requireCurrentUser();
+  const { userId, organization } = await requireCurrentUser();
   const supabase = await createClient();
 
   const { error } = await supabase
@@ -98,15 +108,39 @@ export async function updateGolfTownOrder(
     .eq("id", orderId);
   if (error) return { ok: false, error: error.message };
 
+  await logActivity(supabase, {
+    organizationId: organization.id,
+    actorId: userId,
+    entityType: "golf_town_order",
+    entityId: orderId,
+    action: "golftown.updated",
+    metadata: { customer: input.endCustomer.trim() },
+  });
+
   revalidatePath(PAGE);
   return { ok: true };
 }
 
 export async function deleteGolfTownOrder(orderId: string): Promise<ActionResult> {
-  await requireCurrentUser();
+  const { userId, organization } = await requireCurrentUser();
   const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from("golf_town_orders")
+    .select("end_customer")
+    .eq("id", orderId)
+    .maybeSingle();
   const { error } = await supabase.from("golf_town_orders").delete().eq("id", orderId);
   if (error) return { ok: false, error: error.message };
+
+  await logActivity(supabase, {
+    organizationId: organization.id,
+    actorId: userId,
+    entityType: "golf_town_order",
+    entityId: orderId,
+    action: "golftown.deleted",
+    metadata: { customer: existing?.end_customer ?? "order" },
+  });
+
   revalidatePath(PAGE);
   return { ok: true };
 }
@@ -132,13 +166,13 @@ export async function setGolfTownOrderFlag(
   flag: "balls_received" | "proof_approved" | "printed" | "shipped" | "invoiced" | "paid",
   value: boolean
 ): Promise<ActionResult> {
-  await requireCurrentUser();
+  const { userId, organization } = await requireCurrentUser();
   const supabase = await createClient();
   const { data: row, error } = await supabase
     .from("golf_town_orders")
     .update({ [flag]: value, updated_at: new Date().toISOString() } as Partial<GolfTownOrder>)
     .eq("id", orderId)
-    .select("shipped, paid, completed_at")
+    .select("end_customer, shipped, paid, completed_at")
     .single();
   if (error) return { ok: false, error: error.message };
 
@@ -149,6 +183,27 @@ export async function setGolfTownOrderFlag(
       .from("golf_town_orders")
       .update({ completed_at: new Date().toISOString() })
       .eq("id", orderId);
+  }
+
+  // Progress lands on the activity feed/calendar; unchecking (a correction)
+  // stays quiet.
+  if (value) {
+    const STATUS_LABELS: Record<string, string> = {
+      balls_received: "balls received",
+      proof_approved: "proof approved",
+      printed: "printed / ready for pick up",
+      shipped: "picked up",
+      invoiced: "invoiced",
+      paid: "paid",
+    };
+    await logActivity(supabase, {
+      organizationId: organization.id,
+      actorId: userId,
+      entityType: "golf_town_order",
+      entityId: orderId,
+      action: "golftown.status",
+      metadata: { customer: row.end_customer, status: STATUS_LABELS[flag] ?? flag },
+    });
   }
 
   revalidatePath(PAGE);

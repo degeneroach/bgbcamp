@@ -55,6 +55,14 @@ export function activitySummary(event: Pick<ActivityEvent, "action" | "metadata"
       return `published the SOP ${title}`;
     case "wiki.deleted":
       return `deleted the SOP ${title}`;
+    case "golftown.created":
+      return `added the Golf Town order “${m.customer}”`;
+    case "golftown.updated":
+      return `updated the Golf Town order “${m.customer}”`;
+    case "golftown.status":
+      return `marked the Golf Town order “${m.customer}” as ${m.status}`;
+    case "golftown.deleted":
+      return `deleted the Golf Town order “${m.customer}”`;
     case "person.added":
       return `invited ${m.email} to the team`;
     default:
