@@ -186,6 +186,14 @@ export function GolfTownQueue({
         .sort((a, b) => (b.completed_at ?? "").localeCompare(a.completed_at ?? "")),
     [localOrders]
   );
+  // Every contact ever entered on an order, offered as dropdown suggestions.
+  const knownContacts = useMemo(
+    () =>
+      Array.from(
+        new Set(localOrders.map((o) => o.contact?.trim()).filter((c): c is string => Boolean(c)))
+      ).sort(),
+    [localOrders]
+  );
 
   function persistReorder(next: GolfTownOrder[]) {
     const previous = localOrders;
@@ -608,6 +616,7 @@ export function GolfTownQueue({
           order={editing === "new" ? null : editing}
           organizationId={organizationId}
           mode={mode}
+          knownContacts={knownContacts}
           onClose={() => setEditing(null)}
         />
       )}
@@ -619,11 +628,13 @@ function OrderSheet({
   order,
   organizationId,
   mode,
+  knownContacts,
   onClose,
 }: {
   order: GolfTownOrder | null;
   organizationId: string;
   mode: "staff" | "portal";
+  knownContacts: string[];
   onClose: () => void;
 }) {
   const isStaff = mode === "staff";
@@ -918,9 +929,16 @@ function OrderSheet({
             </Label>
             <Input
               id="gtq-contact"
+              list="gtq-contacts"
               value={contact}
               onChange={(e) => setContact(e.target.value)}
+              placeholder={knownContacts.length ? "Pick a saved contact or type a new one" : undefined}
             />
+            <datalist id="gtq-contacts">
+              {knownContacts.map((c) => (
+                <option key={c} value={c} />
+              ))}
+            </datalist>
           </div>
           {isStaff && (
             <div className="flex flex-col gap-1.5">
