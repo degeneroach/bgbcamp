@@ -48,7 +48,7 @@ async function buildOrderEmail(
   order: GolfTownOrder,
   submittedBy: string,
   footer: { href: string; label: string },
-  options: { replyNote?: boolean } = {}
+  options: { replyNote?: boolean; footerAsButton?: boolean } = {}
 ): Promise<{ html: string; text: string }> {
   const balls = order.quantity_dozen * 12;
   const imprint =
@@ -109,7 +109,11 @@ async function buildOrderEmail(
     <p style="margin:4px 0 0;font-size:14px;color:#111;white-space:pre-wrap;">${
       order.notes ? esc(order.notes) : '<span style="color:#666;font-style:italic;">None</span>'
     }</p>
-    <p style="margin:20px 0 0;font-size:14px;"><a href="${footer.href}" style="color:#0b6bcb;">${esc(footer.label)}</a></p>
+    ${
+      options.footerAsButton
+        ? `<p style="margin:20px 0 0;"><a href="${footer.href}" style="display:inline-block;background:#0891b2;color:#ffffff;font-size:14px;font-weight:bold;padding:10px 22px;border-radius:999px;text-decoration:none;">${esc(footer.label)} →</a></p>`
+        : `<p style="margin:20px 0 0;font-size:14px;"><a href="${footer.href}" style="color:#0b6bcb;">${esc(footer.label)}</a></p>`
+    }
     ${
       options.replyNote
         ? '<p style="margin:12px 0 0;font-size:13px;color:#666;">If any detail above looks wrong, reply to this email and we\'ll fix it before printing.</p>'
@@ -181,8 +185,8 @@ export async function sendOrderConfirmationEmail(
     const body = await buildOrderEmail(
       order,
       submittedBy,
-      { href: `${appUrl()}/golftown`, label: "Track this order in the Golf Town portal" },
-      { replyNote: true }
+      { href: `${appUrl()}/golftown`, label: "Open Order Queue" },
+      { replyNote: true, footerAsButton: true }
     );
     await sendViaResend({
       to: [golftownRecipient()],
