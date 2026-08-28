@@ -4,9 +4,11 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { differenceInCalendarDays, format, parseISO, startOfDay } from "date-fns";
 import {
+  Check,
   ChevronDown,
   GripVertical,
   Loader2,
+  Mail,
   Pencil,
   Plus,
   Printer,
@@ -447,7 +449,37 @@ export function GolfTownQueue({
                   </div>
 
                   <div className="flex flex-wrap items-center gap-x-6 gap-y-2 md:pl-[3.75rem]">
-                    {FLAGS.map((flag) => (
+                    {FLAGS.map((flag) => {
+                      // Staff: "Printed / Ready for Pick Up" is a button that
+                      // also emails Golf Town when pressed.
+                      if (isStaff && flag.key === "printed") {
+                        return (
+                          <button
+                            key={flag.key}
+                            type="button"
+                            title={
+                              order.printed
+                                ? "Marked ready — click to undo"
+                                : "Marks printed and emails Golf Town that it's ready for pick up"
+                            }
+                            onClick={() => toggleFlag(order, "printed", !order.printed)}
+                            className={cn(
+                              "flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                              order.printed
+                                ? "border-success/60 bg-success/15 text-success"
+                                : "border-primary/40 text-primary hover:bg-primary/10"
+                            )}
+                          >
+                            {order.printed ? (
+                              <Check className="h-3.5 w-3.5" />
+                            ) : (
+                              <Mail className="h-3.5 w-3.5" />
+                            )}
+                            Printed / Ready for Pick Up
+                          </button>
+                        );
+                      }
+                      return (
                       <label
                         key={flag.key}
                         className={cn(
@@ -474,7 +506,8 @@ export function GolfTownQueue({
                           {flag.label}
                         </span>
                       </label>
-                    ))}
+                      );
+                    })}
                     {/* Portal: pay button when staff has attached an invoice. */}
                     {!isStaff && order.invoice_url && (
                       <a

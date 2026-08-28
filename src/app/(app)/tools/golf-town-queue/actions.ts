@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentUser } from "@/lib/current-user";
-import { sendGolfTownOrderEmail } from "@/lib/order-email";
+import { sendGolfTownOrderEmail, sendReadyForPickupEmail } from "@/lib/order-email";
 import { logActivity } from "@/lib/activity";
 import type { GolfTownOrder } from "@/types/database";
 
@@ -172,9 +172,14 @@ export async function setGolfTownOrderFlag(
     .from("golf_town_orders")
     .update({ [flag]: value, updated_at: new Date().toISOString() } as Partial<GolfTownOrder>)
     .eq("id", orderId)
-    .select("end_customer, shipped, paid, completed_at")
+    .select("id, end_customer, quantity_dozen, ball_type, imprint_sides, shipped, paid, completed_at")
     .single();
   if (error) return { ok: false, error: error.message };
+
+  // Checking Printed / Ready for Pick Up emails Golf Town. Best effort.
+  if (flag === "printed" && value) {
+    await sendReadyForPickupEmail(row);
+  }
 
   // An order is finished once it's both picked up AND paid — picked up but
   // unpaid (or paid but not picked up) stays in the active queue.
