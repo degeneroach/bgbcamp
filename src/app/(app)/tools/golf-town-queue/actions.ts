@@ -3,7 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentUser } from "@/lib/current-user";
-import { sendGolfTownOrderEmail, sendReadyForPickupEmail } from "@/lib/order-email";
+import {
+  sendGolfTownOrderEmail,
+  sendReadyForPickupEmail,
+  sendOrderConfirmationEmail,
+} from "@/lib/order-email";
 import { logActivity } from "@/lib/activity";
 import type { GolfTownOrder } from "@/types/database";
 
@@ -67,6 +71,9 @@ export async function createGolfTownOrder(input: OrderInput): Promise<ActionResu
 
   // Notify after the insert succeeded; a failed email never fails the order.
   await sendGolfTownOrderEmail(created as GolfTownOrder);
+  // Staff-added orders usually came in by email from Golf Town — send Matt
+  // a "we got it" confirmation with a portal nudge.
+  await sendOrderConfirmationEmail(created as GolfTownOrder);
 
   await logActivity(supabase, {
     organizationId: organization.id,
