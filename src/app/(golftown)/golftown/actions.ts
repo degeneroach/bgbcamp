@@ -115,7 +115,7 @@ export async function portalCreateOrder(input: OrderInput): Promise<ActionResult
     .single();
   if (error) return { ok: false, error: error.message };
 
-  await sendGolfTownOrderEmail(created as GolfTownOrder);
+  await sendGolfTownOrderEmail(created as GolfTownOrder, "Matt (Golf Town)");
 
   revalidatePath(PAGE);
   revalidatePath("/tools/golf-town-queue");

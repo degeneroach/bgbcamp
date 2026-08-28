@@ -35,7 +35,7 @@ export interface OrderInput {
 
 export async function createGolfTownOrder(input: OrderInput): Promise<ActionResult> {
   if (!input.endCustomer.trim()) return { ok: false, error: "Enter the customer name." };
-  const { userId, organization } = await requireCurrentUser();
+  const { userId, organization, profile } = await requireCurrentUser();
   const supabase = await createClient();
 
   // Append to the bottom of the active queue.
@@ -70,10 +70,11 @@ export async function createGolfTownOrder(input: OrderInput): Promise<ActionResu
   if (error) return { ok: false, error: error.message };
 
   // Notify after the insert succeeded; a failed email never fails the order.
-  await sendGolfTownOrderEmail(created as GolfTownOrder);
+  const submitterName = (profile.full_name ?? profile.email).trim().split(/\s+/)[0];
+  await sendGolfTownOrderEmail(created as GolfTownOrder, submitterName);
   // Staff-added orders usually came in by email from Golf Town — send Matt
   // a "we got it" confirmation with a portal nudge.
-  await sendOrderConfirmationEmail(created as GolfTownOrder);
+  await sendOrderConfirmationEmail(created as GolfTownOrder, submitterName);
 
   await logActivity(supabase, {
     organizationId: organization.id,
