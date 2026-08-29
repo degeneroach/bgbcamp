@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronDown, Wrench, Calculator, NotebookText, Receipt, ListOrdered } from "lucide-react";
+import { ChevronDown, Wrench, Calculator, NotebookText, Receipt, ListOrdered, Inbox } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 
 // "Tools" nav entry: a dropdown of internal utilities. First tool: the
 // Amazon Margins calculator.
-export function ToolsNavMenu() {
+export function ToolsNavMenu({ showDext = false }: { showDext?: boolean }) {
   const pathname = usePathname();
   const active = pathname.startsWith("/tools");
 
@@ -48,6 +48,12 @@ export function ToolsNavMenu() {
           <NotebookText className="h-4 w-4" />
           SOP Wiki
         </DropdownMenuItem>
+        {showDext && (
+          <DropdownMenuItem render={<Link href="/tools/dext" />} className="h-10 gap-2.5">
+            <Inbox className="h-4 w-4" />
+            Dext Drop
+          </DropdownMenuItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

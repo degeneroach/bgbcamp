@@ -27,6 +27,7 @@ export function AppShell({
   unreadCount,
   unreadBoostCount,
   favoriteProjects,
+  isAdmin = false,
   children,
 }: {
   profile: Profile;
@@ -35,6 +36,7 @@ export function AppShell({
   unreadCount: number;
   unreadBoostCount: number;
   favoriteProjects: FavoriteProject[];
+  isAdmin?: boolean;
   children: React.ReactNode;
 }) {
   const boostNotifications = notifications.filter((n) => n.entity_type === "boost");
@@ -66,7 +68,7 @@ export function AppShell({
             <MyTasksNavMenu />
             <NavLink href="/calendar">Calendar</NavLink>
             <NavLink href="/board">Messages</NavLink>
-            <ToolsNavMenu />
+            <ToolsNavMenu showDext={isAdmin} />
           </nav>
 
           <div className="ml-auto flex min-w-0 items-center gap-2">

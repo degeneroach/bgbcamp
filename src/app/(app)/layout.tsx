@@ -8,7 +8,7 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { userId, profile, organization } = await requireCurrentUser();
+  const { userId, profile, organization, role } = await requireCurrentUser();
   const supabase = await createClient();
   const [{ notifications, unreadCount, unreadBoostCount }, { data: favoriteRows }] =
     await Promise.all([
@@ -42,6 +42,7 @@ export default async function AppLayout({
       unreadCount={unreadCount}
       unreadBoostCount={unreadBoostCount}
       favoriteProjects={favoriteProjects}
+      isAdmin={role === "owner" || role === "admin"}
     >
       {children}
     </AppShell>

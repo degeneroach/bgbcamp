@@ -8,6 +8,11 @@ const nextConfig: NextConfig = {
     staleTimes: {
       dynamic: 30,
     },
+    serverActions: {
+      // Dext Drop sends invoice files (up to 20MB each) through a server
+      // action; the default limit is 1MB.
+      bodySizeLimit: "25mb",
+    },
   },
   images: {
     remotePatterns: [
