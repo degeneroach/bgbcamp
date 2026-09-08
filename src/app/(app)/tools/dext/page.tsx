@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { requireCurrentUser } from "@/lib/current-user";
+import { canUseDext } from "@/lib/dext-access";
 import { DextDrop } from "@/components/dext-drop";
 
 export const metadata = {
@@ -7,8 +8,8 @@ export const metadata = {
 };
 
 export default async function DextPage() {
-  const { role } = await requireCurrentUser();
-  if (role !== "owner" && role !== "admin") notFound();
+  const { role, profile } = await requireCurrentUser();
+  if (!canUseDext(role, profile.email)) notFound();
 
   return (
     <div className="flex flex-col gap-5">

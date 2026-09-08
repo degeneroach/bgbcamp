@@ -2,6 +2,7 @@ import { requireCurrentUser } from "@/lib/current-user";
 import { createClient } from "@/lib/supabase/server";
 import { getRecentNotifications } from "@/lib/notifications";
 import { AppShell } from "@/components/app-shell";
+import { canUseDext } from "@/lib/dext-access";
 
 export default async function AppLayout({
   children,
@@ -42,7 +43,7 @@ export default async function AppLayout({
       unreadCount={unreadCount}
       unreadBoostCount={unreadBoostCount}
       favoriteProjects={favoriteProjects}
-      isAdmin={role === "owner" || role === "admin"}
+      showDext={canUseDext(role, profile.email)}
     >
       {children}
     </AppShell>

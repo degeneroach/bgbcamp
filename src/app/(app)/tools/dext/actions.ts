@@ -1,6 +1,7 @@
 "use server";
 
 import { requireCurrentUser } from "@/lib/current-user";
+import { canUseDext } from "@/lib/dext-access";
 
 interface ActionResult {
   ok: boolean;
@@ -25,9 +26,9 @@ export async function sendInvoicesToDext(
   company: DextCompany,
   formData: FormData
 ): Promise<ActionResult> {
-  const { role } = await requireCurrentUser();
-  if (role !== "owner" && role !== "admin") {
-    return { ok: false, error: "Admins only." };
+  const { role, profile } = await requireCurrentUser();
+  if (!canUseDext(role, profile.email)) {
+    return { ok: false, error: "You don't have access to Dext Drop." };
   }
   const target = DEXT_ADDRESSES[company];
   if (!target) return { ok: false, error: "Unknown company." };
