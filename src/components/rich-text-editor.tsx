@@ -274,6 +274,7 @@ export function RichTextEditor({
   enableImages = false,
   mentionCandidates,
   onEnterSubmit,
+  autoFocus = false,
 }: {
   content: string;
   onChange: (html: string) => void;
@@ -291,6 +292,8 @@ export function RichTextEditor({
    * Ignored while the @mention popup is open or inside a list.
    */
   onEnterSubmit?: () => void;
+  /** Focus the editor (cursor at the end) as soon as it mounts. */
+  autoFocus?: boolean;
 }) {
   const candidatesRef = useRef<MentionCandidate[]>(mentionCandidates ?? []);
   useEffect(() => {
@@ -420,6 +423,7 @@ export function RichTextEditor({
 
   const editor = useEditor({
     immediatelyRender: false,
+    autofocus: autoFocus ? "end" : false,
     extensions: [
       StarterKit,
       Link.configure({ openOnClick: false, autolink: true }),
