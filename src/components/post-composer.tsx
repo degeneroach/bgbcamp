@@ -8,14 +8,19 @@ import { RichTextEditor } from "@/components/rich-text-editor";
 import { Loader2 } from "lucide-react";
 import { createPost } from "@/app/(app)/board/actions";
 import { POST_TAGS } from "@/lib/post-tags";
+import { displayName } from "@/lib/display-name";
 import { cn } from "@/lib/utils";
+import type { Profile } from "@/types/database";
 
 export function PostComposer({
   organizationId,
+  members,
 }: {
   /** Scopes media uploads in the attachments bucket. */
   organizationId: string;
+  members: Profile[];
 }) {
+  const mentionCandidates = members.map((m) => ({ id: m.id, label: displayName(m) }));
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -62,9 +67,10 @@ export function PostComposer({
       <RichTextEditor
         content={body}
         onChange={setBody}
-        placeholder="Share an update... (paste or drop images and videos)"
+        placeholder="Share an update... (@ to mention teammates · paste or drop images and videos)"
         projectId={organizationId}
         enableImages
+        mentionCandidates={mentionCandidates}
       />
       {error && <p className="text-sm text-destructive">{error}</p>}
       <div className="flex flex-wrap items-center justify-between gap-2">

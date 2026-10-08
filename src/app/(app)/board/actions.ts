@@ -28,8 +28,9 @@ export async function createPost(
     return { ok: false, error: "Unknown post tag." };
   }
 
-  const { userId, organization } = await requireCurrentUser();
+  const { userId, organization, profile } = await requireCurrentUser();
   const supabase = await createClient();
+  const cleaned = sanitizeHtml(bodyHtml);
 
   const { data: post, error } = await supabase
     .from("posts")
@@ -37,7 +38,7 @@ export async function createPost(
       organization_id: organization.id,
       author_id: userId,
       title: title.trim(),
-      body_html: sanitizeHtml(bodyHtml),
+      body_html: cleaned,
       tag,
     })
     .select()
@@ -55,6 +56,27 @@ export async function createPost(
     entityId: post.id,
     action: "post.created",
     metadata: { title: post.title },
+  });
+
+  // @mentions in the post body itself. entityType "post_comment" is reused
+  // so no notifications-constraint migration is needed; with post_id set,
+  // the bell links to /board#post-{id} either way.
+  const mentionRecipients = await createMentionNotifications(supabase, {
+    organizationId: organization.id,
+    projectId: null,
+    actorId: userId,
+    mentionedUserIds: extractMentionIds(cleaned),
+    entityType: "post_comment",
+    entityId: post.id,
+    postId: post.id,
+    bodyHtml: cleaned,
+  });
+
+  await sendPushToUsers(mentionRecipients, {
+    title: `${displayName(profile)} mentioned you`,
+    body: `${post.title} — ${htmlToExcerpt(cleaned)}`,
+    url: `/board#post-${post.id}`,
+    tag: `post-${post.id}`,
   });
 
   revalidatePath("/board");

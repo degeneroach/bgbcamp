@@ -63,7 +63,7 @@ export default async function MessageBoardPage({
         </p>
       </div>
 
-      <PostComposer organizationId={organization.id} />
+      <PostComposer organizationId={organization.id} members={members} />
 
       <div className="flex flex-wrap items-center gap-2">
         <Link
