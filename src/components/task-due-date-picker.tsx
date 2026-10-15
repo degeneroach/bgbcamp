@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { format } from "date-fns";
 import { CalendarIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,11 +19,12 @@ export function TaskDueDatePicker({
   projectSlug: string;
   dueDate: string | null;
 }) {
+  const [open, setOpen] = useState(false);
   const [, startTransition] = useTransition();
   const selected = dueDate ? new Date(`${dueDate}T00:00:00`) : undefined;
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger render={<Button variant="outline" className="h-8 w-full justify-start font-normal" />}>
         <CalendarIcon className="h-4 w-4" />
         {selected ? format(selected, "MMM d, yyyy") : "No due date"}
@@ -44,9 +45,19 @@ export function TaskDueDatePicker({
           mode="single"
           selected={selected}
           onSelect={(date) => {
+            // Clicking the already-selected day makes react-day-picker emit
+            // undefined (a deselect toggle); treating that as "clear" wiped
+            // dates people had just set. Clearing is the X button's job —
+            // a day click only ever SETS a date, and the popover closes so
+            // the choice visibly lands.
+            if (!date) {
+              setOpen(false);
+              return;
+            }
+            setOpen(false);
             startTransition(() => {
               updateTask(taskId, projectId, projectSlug, {
-                dueDate: date ? format(date, "yyyy-MM-dd") : null,
+                dueDate: format(date, "yyyy-MM-dd"),
               });
             });
           }}
