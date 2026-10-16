@@ -168,11 +168,19 @@ export function RecurringTasksManager({
   );
 }
 
-function RecurringComposer({
+export interface RecurringInitial {
+  title?: string;
+  descriptionHtml?: string;
+  listId?: string;
+  assigneeIds?: string[];
+}
+
+export function RecurringComposer({
   projectId,
   projectSlug,
   lists,
   members,
+  initial,
   onDone,
   onCancel,
 }: {
@@ -180,15 +188,19 @@ function RecurringComposer({
   projectSlug: string;
   lists: { id: string; name: string }[];
   members: Profile[];
+  /** Pre-fill (e.g. "Make recurring" from an existing task). */
+  initial?: RecurringInitial;
   onDone: () => void;
   onCancel: () => void;
 }) {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [listId, setListId] = useState(lists[0]?.id ?? "");
+  const [title, setTitle] = useState(initial?.title ?? "");
+  const [description, setDescription] = useState(initial?.descriptionHtml ?? "");
+  const [listId, setListId] = useState(initial?.listId ?? lists[0]?.id ?? "");
   const [cadence, setCadence] = useState<"weekly" | "monthly">("monthly");
   const [cadenceDay, setCadenceDay] = useState("1");
-  const [assignees, setAssignees] = useState<Set<string>>(new Set());
+  const [assignees, setAssignees] = useState<Set<string>>(
+    new Set(initial?.assigneeIds ?? [])
+  );
   const [isPending, startTransition] = useTransition();
 
   const listItems: Record<string, React.ReactNode> = Object.fromEntries(

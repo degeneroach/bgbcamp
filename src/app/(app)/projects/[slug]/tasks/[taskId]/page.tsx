@@ -8,6 +8,7 @@ import { TaskAssigneesPicker } from "@/components/task-assignees-picker";
 import { TaskDueDatePicker } from "@/components/task-due-date-picker";
 import { TaskStatusCheckbox } from "@/components/task-status-checkbox";
 import { TaskMenu } from "@/components/task-menu";
+import { MakeRecurringButton } from "@/components/make-recurring-button";
 import { TaskImages } from "@/components/task-images";
 import { TaskFiles } from "@/components/task-files";
 import { TaskCommentSection } from "@/components/task-comment-section";
@@ -44,6 +45,7 @@ export default async function TaskDetailPage({
     { data: events },
     { data: assigneeRows },
     { data: boostRows },
+    { data: taskLists },
   ] = await Promise.all([
       getProjectBySlug(supabase, organization.id, slug),
       getOrganizationMembers(supabase, organization.id),
@@ -75,6 +77,11 @@ export default async function TaskDetailPage({
         .select("*, author:profiles!author_id(*)")
         .eq("task_id", taskId)
         .order("created_at", { ascending: true }),
+      supabase
+        .from("task_lists")
+        .select("id, name, project_id")
+        .is("archived_at", null)
+        .order("position", { ascending: true }),
     ]);
 
   if (!task || task.project_id !== project.id) notFound();
@@ -136,7 +143,19 @@ export default async function TaskDetailPage({
                 dueDate={typedTask.due_date}
               />
             </div>
-            <div className="ml-auto">
+            <div className="ml-auto flex items-center gap-1">
+              <MakeRecurringButton
+                projectId={project.id}
+                projectSlug={slug}
+                lists={(taskLists ?? []).filter((l) => l.project_id === project.id)}
+                members={members}
+                initial={{
+                  title: typedTask.title,
+                  descriptionHtml: typedTask.description_html,
+                  listId: typedTask.task_list_id,
+                  assigneeIds: assignees.map((a) => a.id),
+                }}
+              />
               <TaskMenu
                 taskId={taskId}
                 projectId={project.id}
