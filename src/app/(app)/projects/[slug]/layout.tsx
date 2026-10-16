@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { requireCurrentUser } from "@/lib/current-user";
 import { createClient } from "@/lib/supabase/server";
 import { getProjectBySlug, getProjectMembers } from "@/lib/projects";
@@ -144,19 +145,26 @@ export default async function ProjectLayout({
     </div>
   );
 
-  // Task detail pages: one slim row so the task itself gets the space.
+  // Task detail pages: one slim row, no tabs — just a back button (what
+  // people reach for) and the project name.
   const compactHeader = (
-    <div className="flex flex-col gap-1">
-      <div className="flex items-center justify-between gap-3">
+    <div className="flex items-center justify-between gap-3">
+      <div className="flex min-w-0 items-center gap-1.5">
+        <Link
+          href={`/projects/${slug}`}
+          aria-label="Back to tasks"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        >
+          <ArrowLeft className="h-4.5 w-4.5" />
+        </Link>
         <Link href={`/projects/${slug}`} className="flex min-w-0 items-center gap-2">
           {logoTile("h-7 w-7 shrink-0", "text-xs")}
           <span className="truncate text-base font-semibold tracking-tight hover:underline">
             {project.name}
           </span>
         </Link>
-        {compactControls}
       </div>
-      <ProjectTabs slug={slug} />
+      {compactControls}
     </div>
   );
 
