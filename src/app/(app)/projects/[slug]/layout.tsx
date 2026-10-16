@@ -10,6 +10,8 @@ import { ProjectTabs } from "@/components/project-tabs";
 import { ProjectHeaderSwitcher } from "@/components/project-header-switcher";
 import { RichTextContent } from "@/components/rich-text-editor";
 import { NewTaskListForm } from "@/components/new-task-list-form";
+import { RecurringTasksManager } from "@/components/recurring-tasks-manager";
+import type { RecurringTask } from "@/types/database";
 
 export default async function ProjectLayout({
   children,
@@ -24,15 +26,27 @@ export default async function ProjectLayout({
 
   const project = await getProjectBySlug(supabase, organization.id, slug);
 
-  const [members, { data: favoriteRow }] = await Promise.all([
-    getProjectMembers(supabase, project.id),
-    supabase
-      .from("project_favorites")
-      .select("project_id")
-      .eq("user_id", userId)
-      .eq("project_id", project.id)
-      .maybeSingle(),
-  ]);
+  const [members, { data: favoriteRow }, { data: taskLists }, { data: recurring }] =
+    await Promise.all([
+      getProjectMembers(supabase, project.id),
+      supabase
+        .from("project_favorites")
+        .select("project_id")
+        .eq("user_id", userId)
+        .eq("project_id", project.id)
+        .maybeSingle(),
+      supabase
+        .from("task_lists")
+        .select("id, name")
+        .eq("project_id", project.id)
+        .is("archived_at", null)
+        .order("position", { ascending: true }),
+      supabase
+        .from("recurring_tasks")
+        .select("*")
+        .eq("project_id", project.id)
+        .order("created_at", { ascending: true }),
+    ]);
 
   const currentMembership = members.find((m) => m.user_id === userId);
 
@@ -114,7 +128,18 @@ export default async function ProjectLayout({
       </div>
       <ProjectTabs
         slug={slug}
-        action={<NewTaskListForm projectId={project.id} projectSlug={slug} />}
+        action={
+          <div className="flex items-center gap-2">
+            <RecurringTasksManager
+              projectId={project.id}
+              projectSlug={slug}
+              templates={(recurring ?? []) as RecurringTask[]}
+              lists={taskLists ?? []}
+              members={members.map((m) => m.profiles)}
+            />
+            <NewTaskListForm projectId={project.id} projectSlug={slug} />
+          </div>
+        }
       />
     </div>
   );

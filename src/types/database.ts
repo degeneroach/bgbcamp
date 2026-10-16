@@ -288,6 +288,24 @@ export type GolfTownOrder = {
   updated_at: string;
 };
 
+export type RecurringTask = {
+  id: string;
+  organization_id: string;
+  project_id: string;
+  task_list_id: string;
+  title: string;
+  description_html: string;
+  assignee_ids: string[];
+  /** 'weekly' (cadence_day 0-6, Sun-Sat) or 'monthly' (cadence_day 1-28). */
+  cadence: "weekly" | "monthly";
+  cadence_day: number;
+  /** YYYY-MM-DD — next date a task gets created. */
+  next_run: string;
+  active: boolean;
+  created_by: string | null;
+  created_at: string;
+};
+
 export type GolftownPortalStatus = {
   organization_id: string;
   last_login_at: string | null;
@@ -594,6 +612,49 @@ export type Database = {
           {
             foreignKeyName: "wiki_docs_updated_by_fkey";
             columns: ["updated_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      recurring_tasks: {
+        Row: RecurringTask;
+        Insert: Partial<RecurringTask> & {
+          organization_id: string;
+          project_id: string;
+          task_list_id: string;
+          title: string;
+          cadence: "weekly" | "monthly";
+          cadence_day: number;
+          next_run: string;
+        };
+        Update: Partial<RecurringTask>;
+        Relationships: [
+          {
+            foreignKeyName: "recurring_tasks_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "recurring_tasks_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "recurring_tasks_task_list_id_fkey";
+            columns: ["task_list_id"];
+            isOneToOne: false;
+            referencedRelation: "task_lists";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "recurring_tasks_created_by_fkey";
+            columns: ["created_by"];
             isOneToOne: false;
             referencedRelation: "profiles";
             referencedColumns: ["id"];
