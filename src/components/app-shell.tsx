@@ -133,6 +133,15 @@ export function AppShell({
       <main className="mx-auto w-full max-w-[1150px] flex-1 px-4 py-8 md:px-6 md:py-10">
         <ImageLightboxProvider>{children}</ImageLightboxProvider>
       </main>
+
+      <footer className="border-t print:hidden">
+        <div className="mx-auto flex w-full max-w-[1150px] items-center justify-between px-4 py-3 text-xs text-muted-foreground md:px-6">
+          <span>BGBCamp — built for the team 🌱</span>
+          <Link href="/changelog" className="hover:text-foreground hover:underline">
+            Changelog
+          </Link>
+        </div>
+      </footer>
     </div>
   );
 }
