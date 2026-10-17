@@ -290,6 +290,18 @@ export type GolfTownOrder = {
   updated_at: string;
 };
 
+export type MarginCalc = {
+  id: string;
+  organization_id: string;
+  name: string;
+  sku: string;
+  /** Full calculator input set; shape owned by the calculator UI. */
+  data: Record<string, string>;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type RecurringTask = {
   id: string;
   organization_id: string;
@@ -613,6 +625,27 @@ export type Database = {
           },
           {
             foreignKeyName: "wiki_docs_updated_by_fkey";
+            columns: ["updated_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      margin_calcs: {
+        Row: MarginCalc;
+        Insert: Partial<MarginCalc> & { organization_id: string; name: string };
+        Update: Partial<MarginCalc>;
+        Relationships: [
+          {
+            foreignKeyName: "margin_calcs_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "margin_calcs_updated_by_fkey";
             columns: ["updated_by"];
             isOneToOne: false;
             referencedRelation: "profiles";

@@ -1,11 +1,22 @@
 import { ExternalLink } from "lucide-react";
 import { AmazonMarginsCalculator } from "@/components/amazon-margins-calculator";
+import { requireCurrentUser } from "@/lib/current-user";
+import { createClient } from "@/lib/supabase/server";
+import type { MarginCalc } from "@/types/database";
 
 export const metadata = {
   title: "Amazon Margins · BGBCamp",
 };
 
-export default function AmazonMarginsPage() {
+export default async function AmazonMarginsPage() {
+  const { organization } = await requireCurrentUser();
+  const supabase = await createClient();
+  const { data: saved } = await supabase
+    .from("margin_calcs")
+    .select("*")
+    .eq("organization_id", organization.id)
+    .order("name", { ascending: true });
+
   return (
     <div className="flex flex-col gap-5">
       <div>
@@ -24,7 +35,7 @@ export default function AmazonMarginsPage() {
         </a>
       </div>
 
-      <AmazonMarginsCalculator />
+      <AmazonMarginsCalculator saved={(saved ?? []) as MarginCalc[]} />
     </div>
   );
 }

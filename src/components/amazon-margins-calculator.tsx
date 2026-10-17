@@ -1,6 +1,8 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { Loader2, Plus, Save, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +14,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { estimateFbaFeeUS } from "@/lib/fba-fees";
+import { saveMarginCalc, deleteMarginCalc } from "@/app/(app)/tools/amazon-margins/actions";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import type { MarginCalc } from "@/types/database";
 
 const MARKETPLACES = ["US", "CA", "MX", "UK", "DE", "FR", "IT", "ES", "JP", "AU"];
 
@@ -127,9 +133,11 @@ function marginTone(pct: number): string {
   return "text-destructive";
 }
 
-export function AmazonMarginsCalculator() {
+export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }) {
   // Product
   const [productName, setProductName] = useState("");
+  const [sku, setSku] = useState("");
+  const [loadedId, setLoadedId] = useState<string | null>(null);
   const [marketplace, setMarketplace] = useState("US");
   const [category, setCategory] = useState<string | null>(null);
   // Dimensions & weight
@@ -151,17 +159,35 @@ export function AmazonMarginsCalculator() {
   const [otherCosts, setOtherCosts] = useState("");
 
   const [flash, setFlash] = useState(false);
+  const [isSaving, startSaving] = useTransition();
   const resultsRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   const lengthSuffix = unitSystem === "imperial" ? "in" : "cm";
   const weightSuffix = unitSystem === "imperial" ? "lb" : "kg";
+
+  // Estimated US FBA fulfillment fee from the size/weight fields (metric
+  // converted). Used automatically when the FBA fee field is left blank.
+  const fbaEstimate = useMemo(() => {
+    if (marketplace !== "US") return null;
+    const toIn = (v: number) => (unitSystem === "imperial" ? v : v / 2.54);
+    const toLb = (v: number) => (unitSystem === "imperial" ? v : v * 2.20462);
+    return estimateFbaFeeUS(
+      toIn(num(length)),
+      toIn(num(width)),
+      toIn(num(height)),
+      toLb(num(weight))
+    );
+  }, [marketplace, unitSystem, length, width, height, weight]);
+
+  const effectiveFbaFee = fbaFee.trim() !== "" ? num(fbaFee) : fbaEstimate?.fee ?? 0;
 
   const results = useMemo(() => {
     const priceN = num(price);
     const revenue = priceN + num(shippingCharge);
     const referralFee =
       referralMode === "percent" ? priceN * (num(referralValue) / 100) : num(referralValue);
-    const amazonFees = referralFee + num(fbaFee) + num(storageFee);
+    const amazonFees = referralFee + effectiveFbaFee + num(storageFee);
     const ownCosts = num(cogs) + num(inbound) + num(otherCosts);
     const totalCost = ownCosts + amazonFees;
     const netProfit = revenue - totalCost;
@@ -178,7 +204,88 @@ export function AmazonMarginsCalculator() {
       roi,
       hasOwnCosts: ownCosts > 0,
     };
-  }, [price, shippingCharge, referralMode, referralValue, fbaFee, storageFee, cogs, inbound, otherCosts]);
+  }, [price, shippingCharge, referralMode, referralValue, effectiveFbaFee, storageFee, cogs, inbound, otherCosts]);
+
+  // Full input set, saved/loaded as one blob.
+  function snapshot(): Record<string, string> {
+    return {
+      marketplace,
+      category: category ?? "",
+      unitSystem,
+      length, width, height, weight,
+      price, shippingCharge,
+      cogs, inbound,
+      referralMode, referralValue,
+      fbaFee, storageFee, otherCosts,
+    };
+  }
+
+  function loadCalc(calc: MarginCalc) {
+    const d = calc.data;
+    setLoadedId(calc.id);
+    setProductName(calc.name);
+    setSku(calc.sku);
+    setMarketplace(d.marketplace || "US");
+    setCategory(d.category || null);
+    setUnitSystem((d.unitSystem as "imperial" | "metric") || "imperial");
+    setLength(d.length ?? "");
+    setWidth(d.width ?? "");
+    setHeight(d.height ?? "");
+    setWeight(d.weight ?? "");
+    setPrice(d.price ?? "");
+    setShippingCharge(d.shippingCharge ?? "");
+    setCogs(d.cogs ?? "");
+    setInbound(d.inbound ?? "");
+    setReferralMode((d.referralMode as "percent" | "flat") || "percent");
+    setReferralValue(d.referralValue ?? "15");
+    setFbaFee(d.fbaFee ?? "");
+    setStorageFee(d.storageFee ?? "");
+    setOtherCosts(d.otherCosts ?? "");
+  }
+
+  function resetCalc() {
+    setLoadedId(null);
+    setProductName("");
+    setSku("");
+    setCategory(null);
+    setLength(""); setWidth(""); setHeight(""); setWeight("");
+    setPrice(""); setShippingCharge("");
+    setCogs(""); setInbound("");
+    setReferralMode("percent"); setReferralValue("15");
+    setFbaFee(""); setStorageFee(""); setOtherCosts("");
+  }
+
+  function handleSave() {
+    startSaving(async () => {
+      const result = await saveMarginCalc({
+        id: loadedId,
+        name: productName,
+        sku,
+        data: snapshot(),
+      });
+      if (!result.ok) {
+        toast.error(result.error ?? "Couldn't save.");
+        return;
+      }
+      if (result.id) setLoadedId(result.id);
+      toast.success(loadedId ? "Product updated." : "Product saved.");
+      router.refresh();
+    });
+  }
+
+  function handleDeleteSaved() {
+    if (!loadedId) return;
+    if (!window.confirm(`Delete the saved product "${productName}"?`)) return;
+    startSaving(async () => {
+      const result = await deleteMarginCalc(loadedId);
+      if (!result.ok) {
+        toast.error(result.error ?? "Couldn't delete.");
+        return;
+      }
+      resetCalc();
+      router.refresh();
+    });
+  }
 
   function handleCalculate() {
     setFlash(true);
@@ -202,7 +309,32 @@ export function AmazonMarginsCalculator() {
       {/* Inputs */}
       <Card className="flex flex-col gap-6 p-5">
         <div className="flex flex-col gap-3">
-          <SectionLabel>Product</SectionLabel>
+          <div className="flex items-center justify-between gap-2">
+            <SectionLabel>Product</SectionLabel>
+            {saved.length > 0 && (
+              <Select
+                items={Object.fromEntries(
+                  saved.map((c) => [c.id, c.sku ? `${c.name} · ${c.sku}` : c.name])
+                )}
+                value={loadedId}
+                onValueChange={(id) => {
+                  const calc = saved.find((c) => c.id === id);
+                  if (calc) loadCalc(calc);
+                }}
+              >
+                <SelectTrigger className="h-7 w-[220px] text-xs">
+                  <SelectValue placeholder="Open saved product..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {saved.map((calc) => (
+                    <SelectItem key={calc.id} value={calc.id}>
+                      {calc.sku ? `${calc.name} · ${calc.sku}` : calc.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="am-name" className="text-xs text-muted-foreground">
               Product name
@@ -212,6 +344,17 @@ export function AmazonMarginsCalculator() {
               value={productName}
               onChange={(e) => setProductName(e.target.value)}
               placeholder="e.g. Biodegradable Golf Balls (12 pack)"
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="am-sku" className="text-xs text-muted-foreground">
+              SKU
+            </Label>
+            <Input
+              id="am-sku"
+              value={sku}
+              onChange={(e) => setSku(e.target.value)}
+              placeholder="e.g. NNA-POT-002"
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -355,7 +498,22 @@ export function AmazonMarginsCalculator() {
             </div>
             <div className="flex flex-col gap-1.5">
               <Label className="text-xs text-muted-foreground">FBA fulfillment fee</Label>
-              <MoneyInput value={fbaFee} onChange={setFbaFee} />
+              <MoneyInput
+                value={fbaFee}
+                onChange={setFbaFee}
+                placeholder={fbaEstimate ? fbaEstimate.fee.toFixed(2) : "0.00"}
+              />
+              {fbaFee.trim() === "" && fbaEstimate && (
+                <p className="text-[11px] text-muted-foreground">
+                  Auto: ${fbaEstimate.fee.toFixed(2)} ({fbaEstimate.tier}, estimated from
+                  size/weight) — type to override
+                </p>
+              )}
+              {fbaFee.trim() === "" && !fbaEstimate && marketplace === "US" && (
+                <p className="text-[11px] text-muted-foreground">
+                  Fill in dimensions &amp; weight to auto-estimate
+                </p>
+              )}
             </div>
             <div className="flex flex-col gap-1.5">
               <Label className="text-xs text-muted-foreground">Storage fee / unit</Label>
@@ -365,6 +523,32 @@ export function AmazonMarginsCalculator() {
               <Label className="text-xs text-muted-foreground">Other costs</Label>
               <MoneyInput value={otherCosts} onChange={setOtherCosts} />
             </div>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between border-t pt-3">
+          <div className="flex items-center gap-2">
+            {loadedId && (
+              <button
+                type="button"
+                onClick={handleDeleteSaved}
+                disabled={isSaving}
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Delete saved
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={resetCalc} disabled={isSaving}>
+              <Plus className="h-4 w-4" />
+              New
+            </Button>
+            <Button size="sm" className="rounded-full" onClick={handleSave} disabled={isSaving}>
+              {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+              {loadedId ? "Save changes" : "Save product"}
+            </Button>
           </div>
         </div>
       </Card>
