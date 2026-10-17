@@ -145,3 +145,23 @@ export async function removeMember(targetUserId: string): Promise<TeamActionResu
   revalidatePath("/profile");
   return { ok: true };
 }
+
+// Admin toggle: whether a teammate gets the Monday-morning email digest of
+// their open tasks.
+export async function setWeeklyDigest(
+  targetUserId: string,
+  enabled: boolean
+): Promise<TeamActionResult> {
+  const { role } = await requireCurrentUser();
+  if (role !== "owner" && role !== "admin") {
+    return { ok: false, error: "Only admins can change digest settings." };
+  }
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("profiles")
+    .update({ weekly_digest: enabled })
+    .eq("id", targetUserId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/profile");
+  return { ok: true };
+}

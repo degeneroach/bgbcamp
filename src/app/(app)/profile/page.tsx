@@ -6,6 +6,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { PushNotificationsToggle } from "@/components/push-notifications-toggle";
 import { TeamManager, type TeamMember } from "@/components/team-manager";
 import { OrganizationNameEditor } from "@/components/organization-name-editor";
+import { WeeklyDigestSettings } from "@/components/weekly-digest-settings";
 import { timeAgo } from "@/lib/format";
 import { Card } from "@/components/ui/card";
 import type { Profile, Role } from "@/types/database";
@@ -122,6 +123,14 @@ export default async function ProfilePage() {
             </p>
           </div>
           <TeamManager members={teamMembers} currentUserId={userId} currentRole={role} />
+          <div>
+            <h2 className="mb-1 font-medium">Monday task email</h2>
+            <p className="mb-3 text-sm text-muted-foreground">
+              Checked teammates get an email every Monday at 9am listing the
+              open tasks assigned to them.
+            </p>
+            <WeeklyDigestSettings members={teamMembers.map((m) => m.profile)} />
+          </div>
         </Card>
       )}
     </div>

@@ -17,6 +17,8 @@ export type Profile = {
   full_name: string | null;
   avatar_url: string | null;
   last_seen_at: string | null;
+  /** Receives the Monday-morning open-tasks email. */
+  weekly_digest: boolean;
   created_at: string;
   updated_at: string;
 };
