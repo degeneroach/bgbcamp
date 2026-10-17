@@ -434,6 +434,27 @@ export function RichTextEditor({
       ...(mentionCandidates
         ? [
             Mention.extend({
+              // Stored mentions use data-mention-id and keep the label in
+              // the text ("@Justin"). The default extension parses data-id/
+              // data-label, so re-opening saved content (quote a comment,
+              // edit a description) rendered "@null" without this.
+              addAttributes() {
+                return {
+                  id: {
+                    default: null,
+                    parseHTML: (element: HTMLElement) =>
+                      element.getAttribute("data-mention-id") ??
+                      element.getAttribute("data-id"),
+                  },
+                  label: {
+                    default: null,
+                    parseHTML: (element: HTMLElement) =>
+                      element.getAttribute("data-label") ??
+                      element.textContent?.replace(/^@/, "") ??
+                      null,
+                  },
+                };
+              },
               renderHTML({ node, HTMLAttributes }) {
                 return [
                   "span",
