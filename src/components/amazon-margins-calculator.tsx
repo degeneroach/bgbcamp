@@ -41,6 +41,13 @@ const CATEGORIES = [
   "Other",
 ];
 
+// Amazon brand-registry trademarks products get filed under.
+const BRANDS = [
+  { value: "EverySwing Golf", class: "border-sky-500/50 bg-sky-500/10 text-sky-400" },
+  { value: "Biodegradable Golf Balls", class: "border-emerald-500/50 bg-emerald-500/10 text-emerald-400" },
+  { value: "NONNA", class: "border-amber-500/50 bg-amber-500/10 text-amber-400" },
+];
+
 /** Parse a money/number field: empty -> 0, negatives clamp to 0. */
 function num(value: string): number {
   const parsed = parseFloat(value);
@@ -127,6 +134,31 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
+// Recomputes a saved product's headline numbers from its stored inputs,
+// mirroring the live calculator (including the FBA auto-estimate).
+function computeSnapshot(d: Record<string, string>) {
+  const metric = d.unitSystem === "metric";
+  const toIn = (v: number) => (metric ? v / 2.54 : v);
+  const toLb = (v: number) => (metric ? v * 2.20462 : v);
+  const fbaEstimate =
+    (d.marketplace || "US") === "US"
+      ? estimateFbaFeeUS(toIn(num(d.length ?? "")), toIn(num(d.width ?? "")), toIn(num(d.height ?? "")), toLb(num(d.weight ?? "")))
+      : null;
+  const effFba = (d.fbaFee ?? "").trim() !== "" ? num(d.fbaFee) : fbaEstimate?.fee ?? 0;
+  const priceN = num(d.price ?? "");
+  const revenue = priceN + num(d.shippingCharge ?? "");
+  const referralFee =
+    (d.referralMode || "percent") === "percent"
+      ? priceN * (num(d.referralValue ?? "15") / 100)
+      : num(d.referralValue ?? "");
+  const totalCost =
+    num(d.cogs ?? "") + num(d.inbound ?? "") + num(d.otherCosts ?? "") +
+    referralFee + effFba + num(d.storageFee ?? "");
+  const netProfit = revenue - totalCost;
+  const netMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
+  return { price: priceN, netProfit, netMargin };
+}
+
 function marginTone(pct: number): string {
   if (pct >= 30) return "text-success";
   if (pct >= 15) return "text-foreground";
@@ -137,6 +169,7 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
   // Product
   const [productName, setProductName] = useState("");
   const [sku, setSku] = useState("");
+  const [brand, setBrand] = useState<string | null>(null);
   const [loadedId, setLoadedId] = useState<string | null>(null);
   const [marketplace, setMarketplace] = useState("US");
   const [category, setCategory] = useState<string | null>(null);
@@ -209,6 +242,7 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
   // Full input set, saved/loaded as one blob.
   function snapshot(): Record<string, string> {
     return {
+      brand: brand ?? "",
       marketplace,
       category: category ?? "",
       unitSystem,
@@ -225,6 +259,7 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
     setLoadedId(calc.id);
     setProductName(calc.name);
     setSku(calc.sku);
+    setBrand(d.brand || null);
     setMarketplace(d.marketplace || "US");
     setCategory(d.category || null);
     setUnitSystem((d.unitSystem as "imperial" | "metric") || "imperial");
@@ -247,6 +282,7 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
     setLoadedId(null);
     setProductName("");
     setSku("");
+    setBrand(null);
     setCategory(null);
     setLength(""); setWidth(""); setHeight(""); setWeight("");
     setPrice(""); setShippingCharge("");
@@ -356,6 +392,25 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
               onChange={(e) => setSku(e.target.value)}
               placeholder="e.g. NNA-POT-002"
             />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-xs text-muted-foreground">Brand registry</Label>
+            <div className="flex flex-wrap gap-1.5">
+              {BRANDS.map((b) => (
+                <button
+                  key={b.value}
+                  type="button"
+                  aria-pressed={brand === b.value}
+                  onClick={() => setBrand(brand === b.value ? null : b.value)}
+                  className={cn(
+                    "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                    brand === b.value ? b.class : "text-muted-foreground hover:bg-muted"
+                  )}
+                >
+                  {b.value}
+                </button>
+              ))}
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
@@ -621,6 +676,77 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
           </div>
         )}
       </Card>
+
+      {/* Saved product library, grouped by brand registry. */}
+      {saved.length > 0 && (
+        <Card className="flex flex-col gap-4 p-5 lg:col-span-2">
+          <h2 className="font-medium">Saved products</h2>
+          {[...BRANDS.map((b) => b.value), ""].map((groupBrand) => {
+            const group = saved.filter((c) => (c.data.brand ?? "") === groupBrand);
+            if (group.length === 0) return null;
+            const brandStyle = BRANDS.find((b) => b.value === groupBrand);
+            return (
+              <div key={groupBrand || "none"} className="flex flex-col gap-1.5">
+                <span
+                  className={cn(
+                    "w-fit rounded-full border px-2.5 py-0.5 text-xs font-medium",
+                    brandStyle ? brandStyle.class : "text-muted-foreground"
+                  )}
+                >
+                  {groupBrand || "No brand"}
+                </span>
+                <div className="flex flex-col divide-y rounded-lg border">
+                  {group.map((calc) => {
+                    const stats = computeSnapshot(calc.data);
+                    return (
+                      <button
+                        key={calc.id}
+                        type="button"
+                        onClick={() => {
+                          loadCalc(calc);
+                          window.scrollTo({ top: 0, behavior: "smooth" });
+                        }}
+                        className={cn(
+                          "flex items-center gap-3 px-3 py-2 text-left text-sm transition-colors hover:bg-muted/50",
+                          loadedId === calc.id && "bg-accent/40"
+                        )}
+                      >
+                        <span className="min-w-0 flex-1">
+                          <span className="font-medium">{calc.name}</span>
+                          {calc.sku && (
+                            <span className="ml-2 text-xs text-muted-foreground">{calc.sku}</span>
+                          )}
+                        </span>
+                        <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                          {money(stats.price)}
+                        </span>
+                        <span
+                          className={cn(
+                            "w-16 shrink-0 text-right text-xs font-semibold tabular-nums",
+                            stats.netProfit < 0 ? "text-destructive" : "text-foreground"
+                          )}
+                        >
+                          {stats.netProfit < 0
+                            ? `−${money(Math.abs(stats.netProfit))}`
+                            : money(stats.netProfit)}
+                        </span>
+                        <span
+                          className={cn(
+                            "w-12 shrink-0 text-right text-xs font-semibold tabular-nums",
+                            marginTone(stats.netMargin)
+                          )}
+                        >
+                          {stats.netMargin.toFixed(0)}%
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </Card>
+      )}
     </div>
   );
 }
