@@ -22,7 +22,14 @@ export function WeeklyDigestSettings({ members }: { members: Profile[] }) {
       if (!result.ok) {
         setEnabled((prev) => ({ ...prev, [member.id]: !value }));
         toast.error(result.error ?? "Couldn't save.");
+        return;
       }
+      toast.success(
+        value
+          ? `${displayName(member)} will get the Monday email.`
+          : `${displayName(member)} won't get the Monday email.`,
+        { id: `digest-${member.id}` }
+      );
     });
   }
 
