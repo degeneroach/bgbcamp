@@ -7,7 +7,6 @@ import { UserMenu } from "@/components/user-menu";
 import { GlobalSearch } from "@/components/global-search";
 import { NotificationsBell, BoostsBell } from "@/components/notifications-bell";
 import { DailyGreeting } from "@/components/daily-greeting";
-import { BrandMark } from "@/components/brand-mark";
 import { ImageLightboxProvider } from "@/components/image-lightbox";
 import type { Profile, Organization } from "@/types/database";
 import type { NotificationWithRelations } from "@/lib/notifications";
@@ -49,9 +48,13 @@ export function AppShell({
       <header className="sticky top-0 z-40 border-b border-[#33402a]/10 bg-[#eef1e9]/95 backdrop-blur print:hidden dark:border-white/10 dark:bg-[#0d1320]/95">
         <div className="mx-auto flex h-12 w-full max-w-[1150px] items-center gap-4 px-4 md:px-6">
           <div className="flex items-center gap-2.5">
-            <Link href="/" className="flex items-center gap-2">
-              <BrandMark className="h-7 w-7" />
-              <span className="text-sm font-semibold tracking-tight">BGBCamp</span>
+            <Link href="/" className="flex items-center">
+              <span className="text-sm font-bold tracking-tight">
+                <span className="bg-gradient-to-r from-emerald-600 to-cyan-600 bg-clip-text text-transparent dark:from-emerald-400 dark:to-cyan-400">
+                  BGB
+                </span>
+                CAMP
+              </span>
             </Link>
             <span className="hidden h-4 w-px bg-border min-[1100px]:block" aria-hidden />
             <div className="hidden max-w-60 min-[1100px]:block">
