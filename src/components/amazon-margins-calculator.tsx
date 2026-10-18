@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Plus, Save, Trash2 } from "lucide-react";
+import { Loader2, Pencil, Plus, Save, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -680,7 +680,16 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
       {/* Saved product library, grouped by brand registry. */}
       {saved.length > 0 && (
         <Card className="flex flex-col gap-4 p-5 lg:col-span-2">
-          <h2 className="font-medium">Saved products</h2>
+          <div className="flex flex-col gap-1">
+            <h2 className="font-medium">Saved products</h2>
+            <div className="flex items-center gap-3 px-3 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              <span className="min-w-0 flex-1">Product</span>
+              <span className="w-16 shrink-0 text-right">Price</span>
+              <span className="w-16 shrink-0 text-right">Profit</span>
+              <span className="w-12 shrink-0 text-right">Margin</span>
+              <span className="w-4 shrink-0" aria-hidden />
+            </div>
+          </div>
           {[...BRANDS.map((b) => b.value), ""].map((groupBrand) => {
             const group = saved.filter((c) => (c.data.brand ?? "") === groupBrand);
             if (group.length === 0) return null;
@@ -717,7 +726,7 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
                             <span className="ml-2 text-xs text-muted-foreground">{calc.sku}</span>
                           )}
                         </span>
-                        <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                        <span className="w-16 shrink-0 text-right text-xs tabular-nums text-muted-foreground">
                           {money(stats.price)}
                         </span>
                         <span
@@ -738,6 +747,7 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
                         >
                           {stats.netMargin.toFixed(0)}%
                         </span>
+                        <Pencil className="h-3.5 w-4 shrink-0 text-muted-foreground" />
                       </button>
                     );
                   })}
