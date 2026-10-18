@@ -26,14 +26,16 @@ import type { Profile, TaskComment } from "@/types/database";
 import type { MentionCandidate } from "@/lib/tiptap-mention-suggestion";
 
 // Builds the WhatsApp-style quoted block inserted into the composer.
-// Nested quotes and media are stripped so chains stay readable.
+// Images come along (styled down to thumbnails by the blockquote CSS);
+// nested quotes are stripped so chains stay readable, and videos become a
+// small marker rather than duplicating heavy embeds.
 function buildQuoteHtml(authorName: string, bodyHtml: string): string {
   const cleaned = bodyHtml
     .replace(/<blockquote>[\s\S]*?<\/blockquote>/g, "")
-    .replace(/<img[^>]*>/g, "")
-    .replace(/<video[^>]*>[\s\S]*?<\/video>|<video[^>]*\/>/g, "");
+    .replace(/<video[^>]*>[\s\S]*?<\/video>|<video[^>]*\/>/g, "<p><em>(video)</em></p>");
   const safeAuthor = authorName.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  const quotedBody = htmlToExcerpt(cleaned) ? cleaned : "<p><em>(attachment)</em></p>";
+  const hasContent = htmlToExcerpt(cleaned) || /<img[^>]*>/.test(cleaned);
+  const quotedBody = hasContent ? cleaned : "<p><em>(attachment)</em></p>";
   return `<blockquote><p><strong>${safeAuthor}:</strong></p>${quotedBody}</blockquote><p></p>`;
 }
 
