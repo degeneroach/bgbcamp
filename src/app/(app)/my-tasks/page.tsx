@@ -7,6 +7,7 @@ import { DueDateBadge } from "@/components/due-date-badge";
 import { CommentCountBadge } from "@/components/comment-count-badge";
 import { Card } from "@/components/ui/card";
 import { isTaskCompleted } from "@/lib/tasks";
+import { displayName } from "@/lib/display-name";
 import { cn } from "@/lib/utils";
 import { startOfDay, addDays } from "date-fns";
 import type { Task } from "@/types/database";
@@ -100,18 +101,37 @@ function TaskGroup({
 export default async function MyTasksPage({
   searchParams,
 }: {
-  searchParams: Promise<{ project?: string; sort?: string }>;
+  searchParams: Promise<{ project?: string; sort?: string; person?: string }>;
 }) {
   const filters = await searchParams;
-  const { userId, organization } = await requireCurrentUser();
+  const { userId, organization, role } = await requireCurrentUser();
   const supabase = await createClient();
+  const isAdmin = role === "owner" || role === "admin";
+
+  // Admins can cycle through teammates' plates via ?person=<id>.
+  const { data: memberRows } = isAdmin
+    ? await supabase
+        .from("organization_members")
+        .select("profiles(id, full_name, email)")
+        .eq("organization_id", organization.id)
+        .order("created_at", { ascending: true })
+    : { data: null };
+  const teammates = (memberRows ?? []).map(
+    (row) => row.profiles as unknown as { id: string; full_name: string | null; email: string }
+  );
+  const viewedId =
+    isAdmin && filters.person && teammates.some((t) => t.id === filters.person)
+      ? filters.person
+      : userId;
+  const viewedProfile = teammates.find((t) => t.id === viewedId) ?? null;
+  const viewingSelf = viewedId === userId;
 
   const { data: assignments } = await supabase
     .from("task_assignees")
     .select(
       "created_at, tasks!inner(*, projects!inner(id, name, slug, color, logo_url, organization_id, archived))"
     )
-    .eq("user_id", userId)
+    .eq("user_id", viewedId)
     .eq("tasks.projects.organization_id", organization.id)
     .eq("tasks.projects.archived", false);
 
@@ -167,15 +187,34 @@ export default async function MyTasksPage({
     <div className="mx-auto flex max-w-3xl flex-col gap-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">My Tasks</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {viewingSelf
+              ? "My Tasks"
+              : `${displayName({ full_name: viewedProfile?.full_name ?? null, email: viewedProfile?.email ?? "" }).split(" ")[0]}'s Tasks`}
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Everything on your plate, across all projects.
+            {viewingSelf ? "Everything on your plate" : "Everything on their plate"}, across
+            all projects.
             {open.length > 0 && (
               <span className="font-medium text-foreground"> {open.length} open.</span>
             )}
           </p>
         </div>
-        <MyTasksFilters projects={projectOptions} />
+        <MyTasksFilters
+          projects={projectOptions}
+          people={
+            isAdmin
+              ? teammates.map((t) => ({
+                  id: t.id,
+                  label:
+                    t.id === userId
+                      ? "My tasks"
+                      : displayName({ full_name: t.full_name, email: t.email }).split(" ")[0],
+                  isSelf: t.id === userId,
+                }))
+              : undefined
+          }
+        />
       </div>
 
       {open.length === 0 && completed.length === 0 ? (

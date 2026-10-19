@@ -12,8 +12,11 @@ import {
 
 export function MyTasksFilters({
   projects,
+  people,
 }: {
   projects: { slug: string; name: string }[];
+  /** Admin-only person switcher: view a teammate's plate. */
+  people?: { id: string; label: string; isSelf: boolean }[];
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -22,7 +25,12 @@ export function MyTasksFilters({
 
   function setParam(key: string, value: string | null) {
     const params = new URLSearchParams(searchParams.toString());
-    if (!value || value === "all" || (key === "sort" && value === "due")) {
+    if (
+      !value ||
+      value === "all" ||
+      (key === "sort" && value === "due") ||
+      (key === "person" && value === "self")
+    ) {
       params.delete(key);
     } else {
       params.set(key, value);
@@ -41,8 +49,30 @@ export function MyTasksFilters({
     assigned: "Recently assigned",
   };
 
+  const peopleItems: Record<string, React.ReactNode> | null = people
+    ? Object.fromEntries(people.map((p) => [p.isSelf ? "self" : p.id, p.label]))
+    : null;
+
   return (
     <div className="flex flex-wrap items-center gap-2">
+      {people && peopleItems && (
+        <Select
+          items={peopleItems}
+          value={searchParams.get("person") ?? "self"}
+          onValueChange={(v) => setParam("person", v)}
+        >
+          <SelectTrigger className="h-8 w-[160px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {people.map((person) => (
+              <SelectItem key={person.id} value={person.isSelf ? "self" : person.id}>
+                {person.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
       <Select
         items={projectItems}
         value={searchParams.get("project") ?? "all"}
