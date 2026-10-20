@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Link2, MoreHorizontal, Trash2 } from "lucide-react";
 import { deleteTask } from "@/app/(app)/projects/[slug]/tasks/actions";
+import { copyShareLink } from "@/lib/copy-link";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -43,32 +44,6 @@ export function TaskMenu({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [, startTransition] = useTransition();
   const router = useRouter();
-
-  function copyShareLink() {
-    const url = `${window.location.origin}/projects/${projectSlug}/tasks/${taskId}`;
-    // The clipboard API refuses writes while the document isn't focused, and
-    // when a menu item is picked the browser is mid-way through closing the
-    // menu and moving focus. Wait a beat, then fall back to execCommand.
-    setTimeout(async () => {
-      try {
-        await navigator.clipboard.writeText(url);
-      } catch {
-        const textarea = document.createElement("textarea");
-        textarea.value = url;
-        textarea.style.position = "fixed";
-        textarea.style.opacity = "0";
-        document.body.appendChild(textarea);
-        textarea.select();
-        const ok = document.execCommand("copy");
-        textarea.remove();
-        if (!ok) {
-          toast.error("Couldn't copy the link.");
-          return;
-        }
-      }
-      toast.success("Link copied — paste it to a teammate.");
-    }, 150);
-  }
 
   function handleDelete() {
     startTransition(async () => {
@@ -94,7 +69,13 @@ export function TaskMenu({
           <MoreHorizontal className="h-4 w-4" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-44">
-          <DropdownMenuItem onSelect={copyShareLink}>
+          <DropdownMenuItem
+            onSelect={() =>
+              copyShareLink(
+                `${window.location.origin}/projects/${projectSlug}/tasks/${taskId}`
+              )
+            }
+          >
             <Link2 className="h-4 w-4" />
             Copy share link
           </DropdownMenuItem>

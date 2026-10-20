@@ -12,7 +12,8 @@ import { PostCommentSection } from "@/components/post-comment-section";
 import { updatePost } from "@/app/(app)/board/actions";
 import { getPostTag, POST_TAGS } from "@/lib/post-tags";
 import { cn } from "@/lib/utils";
-import { Loader2, Pencil } from "lucide-react";
+import { Link2, Loader2, Pencil } from "lucide-react";
+import { copyShareLink } from "@/lib/copy-link";
 import type { PostComment, Profile } from "@/types/database";
 
 export interface PostWithAuthor {
@@ -88,15 +89,31 @@ export function PostCard({
             {wasEdited && " · edited"}
           </span>
         </div>
-        {isOwn && !editing && (
-          <button
-            type="button"
-            onClick={startEditing}
-            className="ml-auto rounded-md p-1.5 text-muted-foreground opacity-0 transition-opacity hover:bg-muted hover:text-foreground group-hover/post:opacity-100"
-            aria-label="Edit post"
-          >
-            <Pencil className="h-3.5 w-3.5" />
-          </button>
+        {!editing && (
+          <div className="ml-auto flex items-center gap-0.5">
+            <button
+              type="button"
+              onClick={() =>
+                copyShareLink(`${window.location.origin}/board#post-${post.id}`)
+              }
+              className="rounded-md p-1.5 text-muted-foreground opacity-0 transition-opacity hover:bg-muted hover:text-foreground group-hover/post:opacity-100"
+              aria-label="Copy share link"
+              title="Copy share link"
+            >
+              <Link2 className="h-3.5 w-3.5" />
+            </button>
+            {isOwn && (
+              <button
+                type="button"
+                onClick={startEditing}
+                className="rounded-md p-1.5 text-muted-foreground opacity-0 transition-opacity hover:bg-muted hover:text-foreground group-hover/post:opacity-100"
+                aria-label="Edit post"
+                title="Edit post"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
         )}
       </div>
 
