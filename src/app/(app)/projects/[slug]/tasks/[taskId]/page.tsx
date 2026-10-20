@@ -15,6 +15,7 @@ import { TaskCommentSection } from "@/components/task-comment-section";
 import { UserAvatar } from "@/components/user-avatar";
 import { type BoostWithAuthor } from "@/components/boost-bar";
 import { Card } from "@/components/ui/card";
+import { Tag } from "lucide-react";
 import { isTaskCompleted } from "@/lib/tasks";
 import { taskActivitySummary } from "@/lib/activity-summary";
 import { timeAgo } from "@/lib/format";
@@ -87,6 +88,17 @@ export default async function TaskDetailPage({
   if (!task || task.project_id !== project.id) notFound();
 
   const typedTask = task as Task;
+
+  // Group badge: only hit task_groups when the task is actually grouped.
+  let groupName: string | null = null;
+  if (typedTask.group_id) {
+    const { data: group } = await supabase
+      .from("task_groups")
+      .select("name")
+      .eq("id", typedTask.group_id)
+      .maybeSingle();
+    groupName = group?.name ?? null;
+  }
   const assignees = (assigneeRows ?? []).map((row) => row.profiles as unknown as Profile);
   const commentBoosts = ((boostRows ?? []) as unknown as BoostWithAuthor[]).filter(
     (b) => b.entity_type === "task_comment"
@@ -97,12 +109,20 @@ export default async function TaskDetailPage({
     <div className="grid max-w-5xl grid-cols-1 gap-4 lg:grid-cols-[1fr_260px]">
       <div className="flex flex-col gap-4">
         <Card className="p-4">
-          <TaskTitleEditor
-            taskId={taskId}
-            projectId={project.id}
-            projectSlug={slug}
-            title={typedTask.title}
-          />
+          <div className="flex flex-col gap-1.5">
+            {groupName && (
+              <span className="inline-flex w-fit items-center gap-1 rounded-full border bg-muted/50 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                <Tag className="h-3 w-3" />
+                {groupName}
+              </span>
+            )}
+            <TaskTitleEditor
+              taskId={taskId}
+              projectId={project.id}
+              projectSlug={slug}
+              title={typedTask.title}
+            />
+          </div>
 
           <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border bg-muted/30 px-3 py-2">
             <div className="flex items-center gap-2">
