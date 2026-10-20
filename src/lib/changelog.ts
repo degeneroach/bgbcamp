@@ -10,6 +10,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: "2026-10-20",
+    title: "Groups within task lists",
+    items: [
+      "Add labeled groups inside any task list (e.g. a “Website Edits” group in a Black Friday list) with “+ Add group” at the bottom of the list.",
+      "Drag tasks into a group, between groups, or back out — hover a group's name to rename or delete it (deleting keeps the tasks).",
+    ],
+  },
+  {
     date: "2026-10-16",
     title: "Changelog",
     items: ["This page — every notable BGBCamp update, newest first, linked from the footer."],

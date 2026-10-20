@@ -1,16 +1,22 @@
 "use client";
 
-import { useOptimistic, useState, useTransition } from "react";
+import { useOptimistic, useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { ChevronDown, Check } from "lucide-react";
+import { ChevronDown, Check, Pencil, Plus, X } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { TaskListHeader } from "@/components/task-list-header";
 import { TaskCard } from "@/components/task-card";
 import { AddTaskInput } from "@/components/add-task-input";
-import { reorderTaskLists, reorderTasks } from "@/app/(app)/projects/[slug]/tasks/actions";
+import {
+  createTaskGroup,
+  deleteTaskGroup,
+  renameTaskGroup,
+  reorderTaskLists,
+  reorderTasks,
+} from "@/app/(app)/projects/[slug]/tasks/actions";
 import { isTaskCompleted } from "@/lib/tasks";
 import { cn } from "@/lib/utils";
-import type { Profile, Task } from "@/types/database";
+import type { Profile, Task, TaskGroup } from "@/types/database";
 
 export interface BoardTask extends Task {
   assignees: Profile[];
@@ -21,6 +27,7 @@ export interface BoardList {
   id: string;
   name: string;
   tasks: BoardTask[];
+  groups: TaskGroup[];
 }
 
 export function TaskListsBoard({
@@ -36,18 +43,25 @@ export function TaskListsBoard({
   const [, startTransition] = useTransition();
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [draggedTask, setDraggedTask] = useState<{ id: string; listId: string } | null>(null);
-  const [dropTarget, setDropTarget] = useState<{ listId: string; taskId: string | null } | null>(
-    null
-  );
+  const [dropTarget, setDropTarget] = useState<{
+    listId: string;
+    taskId: string | null;
+    groupId: string | null;
+  } | null>(null);
 
-  // Moves the dragged task before targetTaskId in targetListId (or to the
-  // end of that list when targetTaskId is null), optimistically, then
-  // persists the target list's order.
-  function moveTask(targetListId: string, targetTaskId: string | null) {
+  // Moves the dragged task, optimistically, then persists the target list's
+  // order (and each task's group). Dropping on a task inserts before it and
+  // inherits its group; dropping on a group header appends to that group;
+  // dropping on the list body appends ungrouped.
+  function moveTask(
+    targetListId: string,
+    targetTaskId: string | null,
+    targetGroupId?: string | null
+  ) {
     const dragged = draggedTask;
     setDraggedTask(null);
     setDropTarget(null);
-    if (!dragged || dragged.id === targetTaskId) return;
+    if (!dragged) return;
 
     const current = orderedLists;
     const sourceList = current.find((l) => l.id === dragged.listId);
@@ -55,12 +69,31 @@ export function TaskListsBoard({
     const task = sourceList?.tasks.find((t) => t.id === dragged.id);
     if (!sourceList || !targetList || !task) return;
 
+    const targetTask = targetTaskId
+      ? targetList.tasks.find((t) => t.id === targetTaskId)
+      : null;
+    const groupId =
+      targetGroupId !== undefined ? targetGroupId : targetTask ? targetTask.group_id : null;
+    if (dragged.id === targetTaskId && task.group_id === groupId) return;
+
     const sourceTasks = sourceList.tasks.filter((t) => t.id !== dragged.id);
     const targetTasks =
       dragged.listId === targetListId ? [...sourceTasks] : [...targetList.tasks];
-    const rawIndex = targetTaskId ? targetTasks.findIndex((t) => t.id === targetTaskId) : -1;
-    const insertIndex = rawIndex === -1 ? targetTasks.length : rawIndex;
-    targetTasks.splice(insertIndex, 0, { ...task, task_list_id: targetListId });
+    const moved = { ...task, task_list_id: targetListId, group_id: groupId };
+
+    if (targetTaskId && targetTaskId !== dragged.id) {
+      const rawIndex = targetTasks.findIndex((t) => t.id === targetTaskId);
+      targetTasks.splice(rawIndex === -1 ? targetTasks.length : rawIndex, 0, moved);
+    } else if (groupId) {
+      // Append after the group's last task so it lands at the group's end.
+      let lastIndex = -1;
+      targetTasks.forEach((t, i) => {
+        if (t.group_id === groupId) lastIndex = i;
+      });
+      targetTasks.splice(lastIndex === -1 ? targetTasks.length : lastIndex + 1, 0, moved);
+    } else {
+      targetTasks.push(moved);
+    }
 
     const next = current.map((l) => {
       if (l.id === targetListId) return { ...l, tasks: targetTasks };
@@ -73,7 +106,7 @@ export function TaskListsBoard({
       await reorderTasks(
         projectSlug,
         targetListId,
-        targetTasks.map((t) => t.id)
+        targetTasks.map((t) => ({ id: t.id, groupId: t.group_id }))
       );
     });
   }
@@ -98,86 +131,250 @@ export function TaskListsBoard({
     });
   }
 
+  function taskDragHandlers(task: BoardTask, listId: string) {
+    return {
+      draggable: true,
+      onDragStart: (e: React.DragEvent) => {
+        e.dataTransfer.effectAllowed = "move";
+        setDraggedTask({ id: task.id, listId });
+      },
+      onDragEnd: () => {
+        setDraggedTask(null);
+        setDropTarget(null);
+      },
+      onDragOver: (e: React.DragEvent) => {
+        if (!draggedTask) return;
+        e.preventDefault();
+        e.stopPropagation();
+        if (dropTarget?.taskId !== task.id) {
+          setDropTarget({ listId, taskId: task.id, groupId: task.group_id });
+        }
+      },
+      onDrop: (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        moveTask(listId, task.id);
+      },
+    };
+  }
+
+  function renderTask(task: BoardTask, listId: string) {
+    return (
+      <TaskCard
+        key={task.id}
+        task={task}
+        projectSlug={projectSlug}
+        assignees={task.assignees}
+        commentCount={task.commentCount}
+        dragging={draggedTask?.id === task.id}
+        isDropTarget={dropTarget?.taskId === task.id}
+        dragHandlers={taskDragHandlers(task, listId)}
+      />
+    );
+  }
+
   return (
     <div className="flex flex-wrap items-start gap-5 md:gap-6">
-      {orderedLists.map((list) => (
-        <Card
-          key={list.id}
-          onDragOver={(e) => {
-            e.preventDefault();
-            if (draggedTask && dropTarget?.listId !== list.id) {
-              setDropTarget({ listId: list.id, taskId: null });
-            }
-          }}
-          onDrop={() => (draggedTask ? moveTask(list.id, null) : handleDrop(list.id))}
-          className={cn(
-            "flex w-full shrink-0 flex-col overflow-hidden rounded-2xl p-0 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_2px_8px_rgba(15,23,42,0.05)] ring-black/[0.05] transition-shadow hover:shadow-[0_2px_4px_rgba(15,23,42,0.05),0_4px_12px_rgba(15,23,42,0.07)] sm:w-[340px]",
-            draggedTask &&
-              dropTarget?.listId === list.id &&
-              "ring-2 ring-primary/40"
-          )}
-        >
-          <TaskListHeader
-            taskListId={list.id}
-            projectSlug={projectSlug}
-            listName={list.name}
-            count={list.tasks.length}
-            dragHandleProps={{
-              draggable: true,
-              onDragStart: () => setDraggedId(list.id),
-              onDragEnd: () => setDraggedId(null),
+      {orderedLists.map((list) => {
+        const openTasks = list.tasks.filter((task) => !isTaskCompleted(task));
+        const groupIds = new Set(list.groups.map((g) => g.id));
+        const ungrouped = openTasks.filter(
+          (task) => !task.group_id || !groupIds.has(task.group_id)
+        );
+        return (
+          <Card
+            key={list.id}
+            onDragOver={(e) => {
+              e.preventDefault();
+              if (
+                draggedTask &&
+                (dropTarget?.listId !== list.id ||
+                  dropTarget?.taskId !== null ||
+                  dropTarget?.groupId !== null)
+              ) {
+                setDropTarget({ listId: list.id, taskId: null, groupId: null });
+              }
             }}
-          />
-          <div>
-            {list.tasks.some((task) => !isTaskCompleted(task)) && (
-              <div className="flex flex-col gap-1.5 p-2">
-                {list.tasks
-                  .filter((task) => !isTaskCompleted(task))
-                  .map((task) => (
-                    <TaskCard
-                      key={task.id}
-                      task={task}
-                      projectSlug={projectSlug}
-                      assignees={task.assignees}
-                      commentCount={task.commentCount}
-                      dragging={draggedTask?.id === task.id}
-                      isDropTarget={dropTarget?.taskId === task.id}
-                      dragHandlers={{
-                        draggable: true,
-                        onDragStart: (e) => {
-                          e.dataTransfer.effectAllowed = "move";
-                          setDraggedTask({ id: task.id, listId: list.id });
-                        },
-                        onDragEnd: () => {
-                          setDraggedTask(null);
-                          setDropTarget(null);
-                        },
-                        onDragOver: (e) => {
+            onDrop={() => (draggedTask ? moveTask(list.id, null, null) : handleDrop(list.id))}
+            className={cn(
+              "flex w-full shrink-0 flex-col overflow-hidden rounded-2xl p-0 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_2px_8px_rgba(15,23,42,0.05)] ring-black/[0.05] transition-shadow hover:shadow-[0_2px_4px_rgba(15,23,42,0.05),0_4px_12px_rgba(15,23,42,0.07)] sm:w-[340px]",
+              draggedTask && dropTarget?.listId === list.id && "ring-2 ring-primary/40"
+            )}
+          >
+            <TaskListHeader
+              taskListId={list.id}
+              projectSlug={projectSlug}
+              listName={list.name}
+              count={list.tasks.length}
+              dragHandleProps={{
+                draggable: true,
+                onDragStart: () => setDraggedId(list.id),
+                onDragEnd: () => setDraggedId(null),
+              }}
+            />
+            <div>
+              {(ungrouped.length > 0 || list.groups.length > 0) && (
+                <div className="flex flex-col gap-1.5 p-2">
+                  {ungrouped.map((task) => renderTask(task, list.id))}
+                  {list.groups.map((group) => {
+                    const groupTasks = openTasks.filter((t) => t.group_id === group.id);
+                    const isGroupTarget =
+                      draggedTask !== null &&
+                      dropTarget?.listId === list.id &&
+                      dropTarget?.groupId === group.id &&
+                      dropTarget?.taskId === null;
+                    return (
+                      <div
+                        key={group.id}
+                        onDragOver={(e) => {
                           if (!draggedTask) return;
                           e.preventDefault();
                           e.stopPropagation();
-                          if (dropTarget?.taskId !== task.id) {
-                            setDropTarget({ listId: list.id, taskId: task.id });
+                          if (
+                            dropTarget?.groupId !== group.id ||
+                            dropTarget?.taskId !== null
+                          ) {
+                            setDropTarget({ listId: list.id, taskId: null, groupId: group.id });
                           }
-                        },
-                        onDrop: (e) => {
+                        }}
+                        onDrop={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          moveTask(list.id, task.id);
-                        },
-                      }}
-                    />
-                  ))}
-              </div>
-            )}
-            <CompletedTasksSection
-              tasks={list.tasks.filter((task) => isTaskCompleted(task))}
-              projectSlug={projectSlug}
-            />
-            <AddTaskInput projectId={projectId} projectSlug={projectSlug} taskListId={list.id} />
-          </div>
-        </Card>
-      ))}
+                          moveTask(list.id, null, group.id);
+                        }}
+                        className={cn(
+                          "flex flex-col gap-1.5 rounded-lg transition-shadow",
+                          isGroupTarget && "ring-2 ring-primary/40"
+                        )}
+                      >
+                        <GroupHeader group={group} projectSlug={projectSlug} />
+                        {groupTasks.length > 0 ? (
+                          groupTasks.map((task) => renderTask(task, list.id))
+                        ) : (
+                          <p className="rounded-md border border-dashed px-2 py-1.5 text-center text-[11px] text-muted-foreground/60">
+                            Drag tasks here
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              <CompletedTasksSection
+                tasks={list.tasks.filter((task) => isTaskCompleted(task))}
+                projectSlug={projectSlug}
+              />
+              <AddTaskInput projectId={projectId} projectSlug={projectSlug} taskListId={list.id} />
+              <AddGroupButton taskListId={list.id} projectSlug={projectSlug} />
+            </div>
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
+
+// Small labeled section header inside a list, e.g. "Website Edits" within a
+// Black Friday list. Rename/delete controls appear on hover.
+function GroupHeader({ group, projectSlug }: { group: TaskGroup; projectSlug: string }) {
+  const [isPending, startTransition] = useTransition();
+
+  return (
+    <div className="group/hdr mt-1 flex items-center gap-1.5 px-1 first:mt-0">
+      <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        {group.name}
+      </span>
+      <span className="h-px flex-1 bg-border" />
+      <button
+        type="button"
+        disabled={isPending}
+        onClick={() => {
+          const name = window.prompt("Group name", group.name)?.trim();
+          if (!name || name === group.name) return;
+          startTransition(() => {
+            renameTaskGroup(group.id, projectSlug, name);
+          });
+        }}
+        className="rounded p-0.5 text-muted-foreground opacity-0 hover:bg-muted hover:text-foreground group-hover/hdr:opacity-100 disabled:opacity-50"
+        aria-label={`Rename group ${group.name}`}
+      >
+        <Pencil className="h-3 w-3" />
+      </button>
+      <button
+        type="button"
+        disabled={isPending}
+        onClick={() => {
+          if (
+            !window.confirm(
+              `Delete the "${group.name}" group? Its tasks stay in the list, just ungrouped.`
+            )
+          )
+            return;
+          startTransition(() => {
+            deleteTaskGroup(group.id, projectSlug);
+          });
+        }}
+        className="rounded p-0.5 text-muted-foreground opacity-0 hover:bg-muted hover:text-destructive group-hover/hdr:opacity-100 disabled:opacity-50"
+        aria-label={`Delete group ${group.name}`}
+      >
+        <X className="h-3 w-3" />
+      </button>
+    </div>
+  );
+}
+
+// Inline "+ Add group" affordance at the bottom of each list.
+function AddGroupButton({ taskListId, projectSlug }: { taskListId: string; projectSlug: string }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [isPending, startTransition] = useTransition();
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  function submit() {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      setOpen(false);
+      return;
+    }
+    setName("");
+    setOpen(false);
+    startTransition(() => {
+      createTaskGroup(taskListId, projectSlug, trimmed);
+    });
+  }
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="flex w-full items-center gap-1.5 border-t px-3 py-2 text-xs text-muted-foreground/70 hover:bg-accent/60 hover:text-foreground"
+      >
+        <Plus className="h-3 w-3" />
+        Add group
+      </button>
+    );
+  }
+
+  return (
+    <div className="border-t px-3 py-2">
+      <input
+        ref={inputRef}
+        autoFocus
+        value={name}
+        disabled={isPending}
+        onChange={(e) => setName(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") submit();
+          if (e.key === "Escape") {
+            setName("");
+            setOpen(false);
+          }
+        }}
+        onBlur={submit}
+        placeholder="Group name, e.g. Website Edits"
+        className="w-full rounded-md border bg-background px-2 py-1.5 text-xs outline-none focus:ring-2 focus:ring-primary/30"
+      />
     </div>
   );
 }

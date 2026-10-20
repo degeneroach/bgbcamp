@@ -161,24 +161,78 @@ export async function reorderTaskLists(
   return { ok: true };
 }
 
-// Persists a task drag-and-drop. Writing task_list_id alongside position
-// makes the same call handle both same-list reorders and cross-list moves.
+// Persists a task drag-and-drop. Writing task_list_id and group_id
+// alongside position makes the same call handle same-list reorders,
+// cross-list moves, and dragging into/out of groups.
 export async function reorderTasks(
   projectSlug: string,
   taskListId: string,
-  orderedTaskIds: string[]
+  orderedTasks: { id: string; groupId: string | null }[]
 ): Promise<ActionResult> {
   const supabase = await createClient();
 
   const results = await Promise.all(
-    orderedTaskIds.map((id, index) =>
-      supabase.from("tasks").update({ position: index, task_list_id: taskListId }).eq("id", id)
+    orderedTasks.map((task, index) =>
+      supabase
+        .from("tasks")
+        .update({ position: index, task_list_id: taskListId, group_id: task.groupId })
+        .eq("id", task.id)
     )
   );
 
   const failed = results.find((r) => r.error);
   if (failed?.error) return { ok: false, error: failed.error.message };
 
+  revalidatePath(`/projects/${projectSlug}`);
+  return { ok: true };
+}
+
+export async function createTaskGroup(
+  taskListId: string,
+  projectSlug: string,
+  name: string
+): Promise<ActionResult> {
+  if (name.trim().length < 1) return { ok: false, error: "Give the group a name." };
+  await requireCurrentUser();
+  const supabase = await createClient();
+  const { count } = await supabase
+    .from("task_groups")
+    .select("id", { count: "exact", head: true })
+    .eq("task_list_id", taskListId);
+  const { error } = await supabase
+    .from("task_groups")
+    .insert({ task_list_id: taskListId, name: name.trim(), position: count ?? 0 });
+  if (error) return { ok: false, error: error.message };
+  revalidatePath(`/projects/${projectSlug}`);
+  return { ok: true };
+}
+
+export async function renameTaskGroup(
+  groupId: string,
+  projectSlug: string,
+  name: string
+): Promise<ActionResult> {
+  if (name.trim().length < 1) return { ok: false, error: "Give the group a name." };
+  await requireCurrentUser();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("task_groups")
+    .update({ name: name.trim() })
+    .eq("id", groupId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath(`/projects/${projectSlug}`);
+  return { ok: true };
+}
+
+// Deleting a group un-groups its tasks (FK on delete set null).
+export async function deleteTaskGroup(
+  groupId: string,
+  projectSlug: string
+): Promise<ActionResult> {
+  await requireCurrentUser();
+  const supabase = await createClient();
+  const { error } = await supabase.from("task_groups").delete().eq("id", groupId);
+  if (error) return { ok: false, error: error.message };
   revalidatePath(`/projects/${projectSlug}`);
   return { ok: true };
 }

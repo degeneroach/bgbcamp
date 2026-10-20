@@ -102,10 +102,20 @@ export type TaskList = {
   created_at: string;
 };
 
+export type TaskGroup = {
+  id: string;
+  task_list_id: string;
+  name: string;
+  position: number;
+  created_at: string;
+};
+
 export type Task = {
   id: string;
   project_id: string;
   task_list_id: string;
+  /** Optional group (section) within the list. */
+  group_id: string | null;
   title: string;
   description_html: string;
   created_by: string | null;
@@ -470,6 +480,20 @@ export type Database = {
             columns: ["author_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      task_groups: {
+        Row: TaskGroup;
+        Insert: Partial<TaskGroup> & { task_list_id: string; name: string };
+        Update: Partial<TaskGroup>;
+        Relationships: [
+          {
+            foreignKeyName: "task_groups_task_list_id_fkey";
+            columns: ["task_list_id"];
+            isOneToOne: false;
+            referencedRelation: "task_lists";
             referencedColumns: ["id"];
           },
         ];

@@ -4,7 +4,7 @@ import { getProjectBySlug } from "@/lib/projects";
 import { TaskListsBoard, type BoardList, type BoardTask } from "@/components/task-lists-board";
 import { RecentActivityCard } from "@/components/recent-activity-card";
 import type { ActivityEventWithRelations } from "@/components/activity-item";
-import type { Profile, Task, TaskList } from "@/types/database";
+import type { Profile, Task, TaskGroup, TaskList } from "@/types/database";
 
 export default async function ProjectTasksPage({
   params,
@@ -23,12 +23,23 @@ export default async function ProjectTasksPage({
     .is("archived_at", null)
     .order("position", { ascending: true });
 
-  const { data: tasks } = await supabase
-    .from("tasks")
-    .select("*")
-    .eq("project_id", project.id)
-    .order("position", { ascending: true });
+  const listIds = ((taskLists as TaskList[] | null) ?? []).map((l) => l.id);
+  const [{ data: tasks }, { data: groupRows }] = await Promise.all([
+    supabase
+      .from("tasks")
+      .select("*")
+      .eq("project_id", project.id)
+      .order("position", { ascending: true }),
+    listIds.length
+      ? supabase
+          .from("task_groups")
+          .select("*")
+          .in("task_list_id", listIds)
+          .order("position", { ascending: true })
+      : Promise.resolve({ data: [] as TaskGroup[] }),
+  ]);
   const taskList = (tasks ?? []) as Task[];
+  const groups = (groupRows ?? []) as TaskGroup[];
   const taskIds = taskList.map((t) => t.id);
 
   const [{ data: comments }, { data: assigneeRows }, { data: events }] = await Promise.all([
@@ -76,6 +87,7 @@ export default async function ProjectTasksPage({
     id: list.id,
     name: list.name,
     tasks: tasksByList.get(list.id) ?? [],
+    groups: groups.filter((g) => g.task_list_id === list.id),
   }));
 
   return (
