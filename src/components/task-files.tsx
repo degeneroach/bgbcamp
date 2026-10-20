@@ -14,6 +14,12 @@ import {
   Play,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { createClient } from "@/lib/supabase/client";
 import { recordTaskFile, deleteTaskFile } from "@/app/(app)/projects/[slug]/tasks/actions";
 import { useImageLightbox } from "@/components/image-lightbox";
@@ -62,6 +68,7 @@ export function TaskFiles({
   const [isDeleting, startDelete] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [pdfPreview, setPdfPreview] = useState<{ url: string; name: string } | null>(null);
   const lightbox = useImageLightbox();
 
   function uploadFiles(all: File[]) {
@@ -152,11 +159,16 @@ export function TaskFiles({
             const Icon = iconFor(file.name, file.mime_type);
             const isImage = file.mime_type?.startsWith("image/");
             const isVideo = file.mime_type?.startsWith("video/");
+            const isPdf =
+              file.mime_type === "application/pdf" ||
+              file.name.toLowerCase().endsWith(".pdf");
             const openPreview = isImage
               ? () => lightbox?.open(file.url, file.name, "image")
               : isVideo
                 ? () => lightbox?.open(file.url, file.name, "video")
-                : undefined;
+                : isPdf
+                  ? () => setPdfPreview({ url: file.url, name: file.name })
+                  : undefined;
             return (
               <li key={file.id} className="group flex items-center gap-3 px-3 py-2">
                 {isImage ? (
@@ -232,6 +244,37 @@ export function TaskFiles({
           })}
         </ul>
       )}
+
+      {/* In-app PDF preview: the browser's native viewer in a large modal. */}
+      <Dialog open={pdfPreview !== null} onOpenChange={(open) => !open && setPdfPreview(null)}>
+        <DialogContent className="flex h-[85vh] max-w-4xl flex-col gap-3">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 pr-8">
+              <FileText className="h-4 w-4 shrink-0 text-primary" />
+              <span className="min-w-0 truncate">{pdfPreview?.name}</span>
+              {pdfPreview && (
+                <a
+                  href={pdfPreview.url}
+                  download={pdfPreview.name}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="ml-auto shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                  aria-label="Download PDF"
+                >
+                  <Download className="h-4 w-4" />
+                </a>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          {pdfPreview && (
+            <iframe
+              src={`${pdfPreview.url}#view=FitH`}
+              title={pdfPreview.name}
+              className="min-h-0 w-full flex-1 rounded-md border bg-white"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
