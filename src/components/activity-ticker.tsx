@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
 import { UserAvatar } from "@/components/user-avatar";
 import { getActivityColor, getActivityIcon } from "@/lib/activity-display";
 import { cn } from "@/lib/utils";
@@ -36,14 +37,50 @@ export function ActivityTicker({ items }: { items: TickerItem[] }) {
   const router = useRouter();
   const [now, setNow] = useState(() => Date.now());
 
-  // Tick the "ago" labels, and re-pull server data so new comments anywhere
-  // in BGBCamp appear without a manual reload.
+  // Three freshness layers: Supabase realtime pushes new activity_events
+  // rows the moment they land (needs the table added to the realtime
+  // publication); returning to the tab refreshes immediately (covers doing
+  // something elsewhere and flipping back); a slow interval is the fallback.
   useEffect(() => {
     const tick = setInterval(() => setNow(Date.now()), 10_000);
-    const refresh = setInterval(() => router.refresh(), 45_000);
+    const fallback = setInterval(() => router.refresh(), 45_000);
+
+    // Debounce bursts (e.g. completing several tasks) into one refetch.
+    let pending: ReturnType<typeof setTimeout> | null = null;
+    const refreshSoon = () => {
+      if (pending) return;
+      pending = setTimeout(() => {
+        pending = null;
+        router.refresh();
+      }, 800);
+    };
+
+    const supabase = createClient();
+    const channel = supabase
+      .channel("activity-ticker")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "activity_events" },
+        refreshSoon
+      )
+      .subscribe();
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible") router.refresh();
+    };
+    window.addEventListener("focus", onVisible);
+    document.addEventListener("visibilitychange", onVisible);
+
+    // Bust Next's client-side cache when navigating back to the dashboard.
+    router.refresh();
+
     return () => {
       clearInterval(tick);
-      clearInterval(refresh);
+      clearInterval(fallback);
+      if (pending) clearTimeout(pending);
+      window.removeEventListener("focus", onVisible);
+      document.removeEventListener("visibilitychange", onVisible);
+      supabase.removeChannel(channel);
     };
   }, [router]);
 
