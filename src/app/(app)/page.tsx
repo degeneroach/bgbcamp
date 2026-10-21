@@ -56,7 +56,7 @@ export default async function DashboardPage() {
       .select("*, actor:profiles!actor_id(*)")
       .eq("organization_id", organization.id)
       .order("created_at", { ascending: false })
-      .limit(10),
+      .limit(8),
   ]);
 
   const membersByProject = new Map<string, Profile[]>();

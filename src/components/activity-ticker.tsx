@@ -50,10 +50,7 @@ export function ActivityTicker({ items }: { items: TickerItem[] }) {
   if (items.length === 0) return null;
 
   return (
-    <div
-      className="flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:thin]"
-      aria-label="Latest activity"
-    >
+    <div className="flex items-center gap-2" aria-label="Latest activity">
       <span className="flex shrink-0 items-center gap-1.5 pr-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
         <span className="relative flex h-2 w-2">
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
@@ -61,7 +58,10 @@ export function ActivityTicker({ items }: { items: TickerItem[] }) {
         </span>
         Live
       </span>
-      {items.map((item) => {
+      {/* Scrollbar hidden; the right-edge fade hints that more chips are
+          tucked away (swipe / shift+scroll still works). */}
+      <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto py-0.5 [mask-image:linear-gradient(to_right,black_93%,transparent)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {items.map((item) => {
         const Icon = getActivityIcon(item.action);
         const color = getActivityColor(item.action);
         const firstName = item.actorName.split(" ")[0];
@@ -112,7 +112,8 @@ export function ActivityTicker({ items }: { items: TickerItem[] }) {
             {inner}
           </span>
         );
-      })}
+        })}
+      </div>
     </div>
   );
 }
