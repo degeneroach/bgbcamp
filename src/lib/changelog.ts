@@ -10,6 +10,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: "2026-10-21",
+    title: "Live activity ticker",
+    items: [
+      "The Dashboard now has a live strip above your projects: the last 10 things that happened anywhere in BGBCamp (comments, tasks, posts…), each with who, what, and how long ago. Click a chip to jump straight to it.",
+      "It refreshes itself — new activity appears without reloading the page.",
+    ],
+  },
+  {
     date: "2026-10-20",
     title: "Groups within task lists",
     items: [

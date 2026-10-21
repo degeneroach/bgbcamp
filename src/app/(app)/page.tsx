@@ -3,7 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 import { ProjectCard, type ProjectCardActivity } from "@/components/project-card";
 import { NewProjectDialog } from "@/components/new-project-dialog";
 import { ArchivedProjectsSection } from "@/components/archived-projects-section";
+import { ActivityTicker, type TickerItem } from "@/components/activity-ticker";
 import { activitySummary } from "@/lib/activity-summary";
+import { describeActivity } from "@/lib/activity-display";
 import { displayName } from "@/lib/display-name";
 import type { ActivityEvent, Profile, Project } from "@/types/database";
 
@@ -31,7 +33,7 @@ export default async function DashboardPage() {
   const projectIds = projectList.map((p) => p.id);
   const favoriteIds = new Set((favorites ?? []).map((f) => f.project_id));
 
-  const [{ data: memberRows }, { data: recentEvents }] = await Promise.all([
+  const [{ data: memberRows }, { data: recentEvents }, { data: tickerEvents }] = await Promise.all([
     projectIds.length
       ? supabase
           .from("project_members")
@@ -47,6 +49,14 @@ export default async function DashboardPage() {
           .order("created_at", { ascending: false })
           .limit(150)
       : Promise.resolve({ data: [] as (ActivityEvent & { actor: Pick<Profile, "full_name" | "email"> | null })[] }),
+    // Ticker: org-wide (board posts/comments included — no project filter),
+    // newest first, capped at 10.
+    supabase
+      .from("activity_events")
+      .select("*, actor:profiles!actor_id(*)")
+      .eq("organization_id", organization.id)
+      .order("created_at", { ascending: false })
+      .limit(10),
   ]);
 
   const membersByProject = new Map<string, Profile[]>();
@@ -72,6 +82,30 @@ export default async function DashboardPage() {
   const favoriteProjects = projectList.filter((p) => favoriteIds.has(p.id));
   const otherProjects = projectList.filter((p) => !favoriteIds.has(p.id));
 
+  const slugById = new Map<string, string>();
+  for (const p of [...projectList, ...((archivedProjects as Project[]) ?? [])]) {
+    slugById.set(p.id, p.slug);
+  }
+  const tickerItems: TickerItem[] = (
+    (tickerEvents ?? []) as unknown as (ActivityEvent & { actor: Profile | null })[]
+  ).map((event) => {
+    const d = describeActivity(
+      event,
+      event.project_id ? (slugById.get(event.project_id) ?? null) : null
+    );
+    return {
+      id: event.id,
+      actorName: displayName(event.actor),
+      actorEmail: event.actor?.email ?? "",
+      avatarUrl: event.actor?.avatar_url ?? null,
+      action: event.action,
+      verb: d.verb,
+      itemLabel: d.itemLabel,
+      itemHref: d.itemHref,
+      createdAt: event.created_at,
+    };
+  });
+
   return (
     <div className="flex flex-col gap-10">
       <div className="flex items-center justify-between">
@@ -83,6 +117,8 @@ export default async function DashboardPage() {
         </div>
         <NewProjectDialog />
       </div>
+
+      <ActivityTicker items={tickerItems} />
 
       {projectList.length === 0 ? (
         <EmptyDashboard />
