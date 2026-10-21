@@ -153,6 +153,55 @@
   box-shadow: 0 0 18px color-mix(in oklab, var(--primary) 32%, transparent);
 }
 
+/* Pink: cotton-candy light theme — blush canvas, white cards, hot-pink
+   CTAs. Pairs with the falling-snow canvas (see PinkSnow component),
+   which only renders while this class is on <html>. */
+.pink {
+  --background: #fdf2f8;
+  --foreground: #43112b;
+  --card: #ffffff;
+  --card-foreground: #43112b;
+  --popover: #ffffff;
+  --popover-foreground: #43112b;
+  --primary: #db2777;
+  --primary-foreground: #ffffff;
+  --secondary: #fce7f3;
+  --secondary-foreground: #be185d;
+  --muted: #fce7f3;
+  --muted-foreground: #96637c;
+  --accent: #fce7f3;
+  --accent-foreground: #be185d;
+  --destructive: #dc2626;
+  --border: #f5d0e3;
+  --input: #f5d0e3;
+  --ring: #db2777;
+  --success: #22c55e;
+  --success-foreground: #ffffff;
+  --success-soft: #ecfdf5;
+  --warning: #f59e0b;
+  --warning-foreground: #ffffff;
+  --chart-1: #db2777;
+  --chart-2: #a855f7;
+  --chart-3: #f59e0b;
+  --chart-4: #0ea5e9;
+  --chart-5: #22c55e;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #43112b;
+  --sidebar-primary: #db2777;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #fce7f3;
+  --sidebar-accent-foreground: #be185d;
+  --sidebar-border: #f5d0e3;
+  --sidebar-ring: #db2777;
+  color-scheme: light;
+  --surface-reading: #fef7fb;
+}
+
+/* Soft rosy glow on primary CTAs in pink mode. */
+.pink .bg-primary {
+  box-shadow: 0 0 16px color-mix(in oklab, var(--primary) 28%, transparent);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

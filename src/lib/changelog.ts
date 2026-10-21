@@ -11,6 +11,13 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: "2026-10-21",
+    title: "Pink Theme ❄️",
+    items: [
+      "A third theme in Edit profile → theme switcher: cotton-candy pink with falling snow (and a few pink snowflakes) drifting behind the page.",
+    ],
+  },
+  {
+    date: "2026-10-21",
     title: "Live activity ticker",
     items: [
       "The Dashboard now has a live strip above your projects: the last 10 things that happened anywhere in BGBCamp (comments, tasks, posts…), each with who, what, and how long ago. Click a chip to jump straight to it.",

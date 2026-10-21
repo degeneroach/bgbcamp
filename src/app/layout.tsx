@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { ChunkReload } from "@/components/chunk-reload";
+import { PinkSnow } from "@/components/pink-snow";
 import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 
@@ -27,6 +28,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col font-sans">
         <ThemeProvider>
           <ChunkReload />
+          <PinkSnow />
           <TooltipProvider delay={200}>
             {children}
             <Toaster />

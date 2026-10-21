@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
-import { Sun, Moon, Monitor } from "lucide-react";
+import { Sun, Moon, Snowflake, Monitor } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const OPTIONS = [
   { value: "light", label: "Light", icon: Sun },
   { value: "dark", label: "Dark", icon: Moon },
+  { value: "pink", label: "Pink", icon: Snowflake },
   { value: "system", label: "System", icon: Monitor },
 ] as const;
 
