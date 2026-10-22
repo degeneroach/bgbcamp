@@ -213,6 +213,7 @@ export function TaskListsBoard({
               }}
             />
             <div>
+              <AddGroupButton taskListId={list.id} projectSlug={projectSlug} />
               {(ungrouped.length > 0 || list.groups.length > 0) && (
                 <div className="flex flex-col gap-1.5 p-2">
                   {ungrouped.map((task) => renderTask(task, list.id))}
@@ -265,7 +266,6 @@ export function TaskListsBoard({
                 projectSlug={projectSlug}
               />
               <AddTaskInput projectId={projectId} projectSlug={projectSlug} taskListId={list.id} />
-              <AddGroupButton taskListId={list.id} projectSlug={projectSlug} />
             </div>
           </Card>
         );
@@ -348,7 +348,7 @@ function AddGroupButton({ taskListId, projectSlug }: { taskListId: string; proje
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex w-full items-center gap-1.5 border-t px-3 py-2 text-xs text-muted-foreground/70 hover:bg-accent/60 hover:text-foreground"
+        className="flex w-full items-center gap-1.5 border-b px-3 py-1.5 text-xs text-muted-foreground/70 hover:bg-accent/60 hover:text-foreground"
       >
         <Plus className="h-3 w-3" />
         Add group
@@ -357,7 +357,7 @@ function AddGroupButton({ taskListId, projectSlug }: { taskListId: string; proje
   }
 
   return (
-    <div className="border-t px-3 py-2">
+    <div className="border-b px-3 py-2">
       <input
         ref={inputRef}
         autoFocus
