@@ -10,6 +10,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: "2026-10-22",
+    title: "Revenue dashboard (admin)",
+    items: [
+      "Tools → Revenue: today's NONNA Shopify sales at a glance — revenue, orders, vs yesterday, and a 14-day chart. Admin-only.",
+      "An Amazon tile is ready and waiting for SP-API approval.",
+    ],
+  },
+  {
     date: "2026-10-21",
     title: "Pink Theme ❄️",
     items: [

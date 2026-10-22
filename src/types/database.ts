@@ -110,6 +110,18 @@ export type TaskGroup = {
   created_at: string;
 };
 
+export type RevenueDaily = {
+  id: string;
+  organization_id: string;
+  date: string;
+  /** Sales channel, e.g. "shopify_nonna", "amazon_nonna". */
+  source: string;
+  revenue: number;
+  orders: number;
+  currency: string;
+  updated_at: string;
+};
+
 export type Task = {
   id: string;
   project_id: string;
@@ -716,6 +728,24 @@ export type Database = {
             columns: ["created_by"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      revenue_daily: {
+        Row: RevenueDaily;
+        Insert: Partial<RevenueDaily> & {
+          organization_id: string;
+          date: string;
+          source: string;
+        };
+        Update: Partial<RevenueDaily>;
+        Relationships: [
+          {
+            foreignKeyName: "revenue_daily_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
             referencedColumns: ["id"];
           },
         ];

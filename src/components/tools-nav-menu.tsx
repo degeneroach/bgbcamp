@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronDown, Wrench, Calculator, NotebookText, Receipt, ListOrdered, Inbox } from "lucide-react";
+import { ChevronDown, Wrench, Calculator, NotebookText, Receipt, ListOrdered, Inbox, LineChart } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,7 +13,13 @@ import { cn } from "@/lib/utils";
 
 // "Tools" nav entry: a dropdown of internal utilities. First tool: the
 // Amazon Margins calculator.
-export function ToolsNavMenu({ showDext = false }: { showDext?: boolean }) {
+export function ToolsNavMenu({
+  showDext = false,
+  showRevenue = false,
+}: {
+  showDext?: boolean;
+  showRevenue?: boolean;
+}) {
   const pathname = usePathname();
   const active = pathname.startsWith("/tools");
 
@@ -32,6 +38,12 @@ export function ToolsNavMenu({ showDext = false }: { showDext?: boolean }) {
         <ChevronDown className="h-3.5 w-3.5 transition-transform duration-150 group-aria-expanded:rotate-180" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-52">
+        {showRevenue && (
+          <DropdownMenuItem render={<Link href="/tools/revenue" />} className="h-10 gap-2.5">
+            <LineChart className="h-4 w-4" />
+            Revenue
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem render={<Link href="/tools/amazon-margins" />} className="h-10 gap-2.5">
           <Calculator className="h-4 w-4" />
           Amazon Margins

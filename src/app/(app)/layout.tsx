@@ -44,6 +44,7 @@ export default async function AppLayout({
       unreadBoostCount={unreadBoostCount}
       favoriteProjects={favoriteProjects}
       showDext={canUseDext(role, profile.email)}
+      showRevenue={role === "owner" || role === "admin"}
     >
       {children}
     </AppShell>

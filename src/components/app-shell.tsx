@@ -27,6 +27,7 @@ export function AppShell({
   unreadBoostCount,
   favoriteProjects,
   showDext = false,
+  showRevenue = false,
   children,
 }: {
   profile: Profile;
@@ -36,6 +37,7 @@ export function AppShell({
   unreadBoostCount: number;
   favoriteProjects: FavoriteProject[];
   showDext?: boolean;
+  showRevenue?: boolean;
   children: React.ReactNode;
 }) {
   const boostNotifications = notifications.filter((n) => n.entity_type === "boost");
@@ -71,7 +73,7 @@ export function AppShell({
             <NavLink href="/my-tasks">Tasks</NavLink>
             <CalendarNavMenu />
             <NavLink href="/board">Messages</NavLink>
-            <ToolsNavMenu showDext={showDext} />
+            <ToolsNavMenu showDext={showDext} showRevenue={showRevenue} />
           </nav>
 
           <div className="ml-auto flex min-w-0 items-center gap-2">
