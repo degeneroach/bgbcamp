@@ -96,7 +96,7 @@ export function TaskDescriptionEditor({
       <RichTextEditor
         content={draftHtml}
         onChange={setDraftHtml}
-        placeholder="Add a description... (@ to mention, paste or drop images)"
+        placeholder="Add a description... (@ to mention, drop images, PDFs, or any file)"
         minHeight="6rem"
         projectId={projectId}
         enableImages

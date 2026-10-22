@@ -32,6 +32,7 @@ import { Video } from "@/lib/tiptap-video";
 import { useImageLightbox } from "@/components/image-lightbox";
 import { EMOJIS } from "@/lib/emojis";
 import { canCompressVideo, compressVideo } from "@/lib/compress-video";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 function EmojiPicker({ editor }: { editor: Editor }) {
@@ -300,6 +301,7 @@ export function RichTextEditor({
     candidatesRef.current = mentionCandidates ?? [];
   }, [mentionCandidates]);
   const [isUploading, setIsUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // The paste/drop handlers below live inside editorProps, which TipTap
@@ -415,6 +417,7 @@ export function RichTextEditor({
             { type: "text", text: " " },
           ])
           .run();
+        toast.success(`Attached ${file.name}`);
       }
     } finally {
       setIsUploading(false);
@@ -604,7 +607,34 @@ export function RichTextEditor({
 
   return (
     <div className={className}>
-      <div className="rounded-md border">
+      {/* The whole box (toolbar + padding, not just the text area) accepts
+          file drops — otherwise a PDF dropped an inch off target makes the
+          browser navigate to the file and eat the draft. Drops landing on
+          the ProseMirror area are left to TipTap's own handleDrop. */}
+      <div
+        className={cn(
+          "rounded-md border transition-shadow",
+          dragOver && "ring-2 ring-primary/40"
+        )}
+        onDragOver={(e) => {
+          if (!enableImages || !projectId) return;
+          if (!Array.from(e.dataTransfer?.types ?? []).includes("Files")) return;
+          e.preventDefault();
+          setDragOver(true);
+        }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={(e) => {
+          setDragOver(false);
+          if (!enableImages || !projectId) return;
+          if ((e.target as HTMLElement).closest?.(".ProseMirror")) return;
+          const files = Array.from(e.dataTransfer?.files ?? []);
+          if (files.length === 0) return;
+          e.preventDefault();
+          void (async () => {
+            for (const file of files) await uploadMediaFile(file);
+          })();
+        }}
+      >
         <Toolbar
           editor={editor}
           onUploadImage={enableImages ? () => fileInputRef.current?.click() : undefined}
