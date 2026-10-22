@@ -15,6 +15,15 @@ export function shopifyNonnaConfigured(): boolean {
   return Boolean(process.env.SHOPIFY_NONNA_DOMAIN && process.env.SHOPIFY_NONNA_ADMIN_TOKEN);
 }
 
+export function amazonNonnaConfigured(): boolean {
+  return Boolean(
+    process.env.AMAZON_LWA_CLIENT_ID &&
+      process.env.AMAZON_LWA_CLIENT_SECRET &&
+      process.env.AMAZON_REFRESH_TOKEN &&
+      process.env.AMAZON_MARKETPLACE_ID
+  );
+}
+
 // "YYYY-MM-DD" for a date as seen from Vancouver, plus that calendar day's
 // start/end instants in Shopify query format (local time + UTC offset).
 function vancouverDay(daysAgo: number): { date: string; start: string; end: string } {
@@ -135,6 +144,84 @@ export async function syncShopifyNonna(organizationId: string): Promise<void> {
         revenue: total.revenue,
         orders: total.orders,
         currency: total.currency,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "organization_id,date,source" }
+    );
+  }
+}
+
+// Login-with-Amazon token exchange — SP-API needs only this (no AWS SigV4
+// since late 2023).
+async function lwaAccessToken(): Promise<string> {
+  const res = await fetch("https://api.amazon.com/auth/o2/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "refresh_token",
+      refresh_token: process.env.AMAZON_REFRESH_TOKEN!,
+      client_id: process.env.AMAZON_LWA_CLIENT_ID!,
+      client_secret: process.env.AMAZON_LWA_CLIENT_SECRET!,
+    }),
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Amazon login ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  return (await res.json()).access_token;
+}
+
+// One Sales API getOrderMetrics call returns per-day totals for the whole
+// window — ordered product sales (excl. tax) and order counts.
+export async function syncAmazonNonna(organizationId: string): Promise<void> {
+  if (!amazonNonnaConfigured()) return;
+  const admin = createAdminClient();
+
+  const { data: existing } = await admin
+    .from("revenue_daily")
+    .select("date, updated_at")
+    .eq("organization_id", organizationId)
+    .eq("source", AMAZON_NONNA_SOURCE)
+    .order("date", { ascending: false })
+    .limit(2);
+
+  const today = vancouverDay(0);
+  const todayRow = (existing ?? []).find((r) => r.date === today.date);
+  const fresh = todayRow && Date.now() - Date.parse(todayRow.updated_at) < SYNC_STALE_MS;
+  if (fresh) return;
+
+  const windowDays = (existing ?? []).length === 0 ? BACKFILL_DAYS : 2;
+  const start = vancouverDay(windowDays - 1).start;
+  const end = today.end;
+  const token = await lwaAccessToken();
+
+  const params = new URLSearchParams({
+    marketplaceIds: process.env.AMAZON_MARKETPLACE_ID!,
+    interval: `${start}--${end}`,
+    granularity: "Day",
+    granularityTimeZone: TIMEZONE,
+  });
+  const res = await fetch(
+    `https://sellingpartnerapi-na.amazon.com/sales/v1/orderMetrics?${params}`,
+    { headers: { "x-amz-access-token": token }, cache: "no-store" }
+  );
+  if (!res.ok) throw new Error(`Amazon ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  const json = await res.json();
+
+  const metrics: {
+    interval: string;
+    orderCount: number;
+    totalSales: { amount: string | number; currencyCode: string };
+  }[] = json.payload ?? [];
+
+  for (const m of metrics) {
+    const date = m.interval.slice(0, 10);
+    await admin.from("revenue_daily").upsert(
+      {
+        organization_id: organizationId,
+        date,
+        source: AMAZON_NONNA_SOURCE,
+        revenue: Math.round(Number(m.totalSales?.amount ?? 0) * 100) / 100,
+        orders: m.orderCount ?? 0,
+        currency: m.totalSales?.currencyCode ?? "CAD",
         updated_at: new Date().toISOString(),
       },
       { onConflict: "organization_id,date,source" }

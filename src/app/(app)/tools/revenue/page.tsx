@@ -3,8 +3,10 @@ import { requireCurrentUser } from "@/lib/current-user";
 import {
   AMAZON_NONNA_SOURCE,
   SHOPIFY_NONNA_SOURCE,
+  amazonNonnaConfigured,
   getRevenueRows,
   shopifyNonnaConfigured,
+  syncAmazonNonna,
   syncShopifyNonna,
   todayVancouver,
   yesterdayVancouver,
@@ -32,12 +34,17 @@ export default async function RevenuePage() {
   const { role, organization } = await requireCurrentUser();
   if (role !== "owner" && role !== "admin") notFound();
 
-  let syncError: string | null = null;
-  try {
-    await syncShopifyNonna(organization.id);
-  } catch (error) {
-    syncError = error instanceof Error ? error.message : "Sync failed.";
-  }
+  // Each source syncs (and fails) independently, so one bad API never
+  // blanks the other's numbers.
+  const syncErrors: string[] = [];
+  const [shopSync, amazonSync] = await Promise.allSettled([
+    syncShopifyNonna(organization.id),
+    syncAmazonNonna(organization.id),
+  ]);
+  if (shopSync.status === "rejected")
+    syncErrors.push(`Shopify: ${shopSync.reason instanceof Error ? shopSync.reason.message : "sync failed"}`);
+  if (amazonSync.status === "rejected")
+    syncErrors.push(`Amazon: ${amazonSync.reason instanceof Error ? amazonSync.reason.message : "sync failed"}`);
 
   const rows = await getRevenueRows(organization.id);
   const shopRows = rows.filter((r) => r.source === SHOPIFY_NONNA_SOURCE);
@@ -67,9 +74,9 @@ export default async function RevenuePage() {
         </div>
       </div>
 
-      {syncError && (
+      {syncErrors.length > 0 && (
         <p className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-          Shopify sync hit a snag (showing last saved numbers): {syncError}
+          Sync hit a snag (showing last saved numbers): {syncErrors.join(" · ")}
         </p>
       )}
 
@@ -85,10 +92,10 @@ export default async function RevenuePage() {
         <SourceTile
           label="NONNA · Amazon"
           icon={<Package className="h-4 w-4" />}
-          configured={amazonRows.length > 0}
+          configured={amazonNonnaConfigured() || amazonRows.length > 0}
           todayRow={amazonRows.find((r) => r.date === today)}
           yesterdayRow={amazonRows.find((r) => r.date === yesterday)}
-          notConfiguredHint="Waiting on Amazon SP-API developer approval — this tile lights up once the keys are in."
+          notConfiguredHint="Waiting on the Amazon app keys — this tile lights up once they're in Vercel."
         />
       </div>
 
