@@ -140,11 +140,14 @@ function computeSnapshot(d: Record<string, string>) {
   const metric = d.unitSystem === "metric";
   const toIn = (v: number) => (metric ? v / 2.54 : v);
   const toLb = (v: number) => (metric ? v * 2.20462 : v);
+  const isFbm = d.fulfillment === "FBM";
   const fbaEstimate =
     (d.marketplace || "US") === "US"
       ? estimateFbaFeeUS(toIn(num(d.length ?? "")), toIn(num(d.width ?? "")), toIn(num(d.height ?? "")), toLb(num(d.weight ?? "")))
       : null;
-  const effFba = (d.fbaFee ?? "").trim() !== "" ? num(d.fbaFee) : fbaEstimate?.fee ?? 0;
+  const effFba = isFbm
+    ? 0
+    : (d.fbaFee ?? "").trim() !== "" ? num(d.fbaFee) : fbaEstimate?.fee ?? 0;
   const priceN = num(d.price ?? "");
   const revenue = priceN + num(d.shippingCharge ?? "");
   const referralFee =
@@ -153,7 +156,8 @@ function computeSnapshot(d: Record<string, string>) {
       : num(d.referralValue ?? "");
   const totalCost =
     num(d.cogs ?? "") + num(d.inbound ?? "") + num(d.otherCosts ?? "") +
-    referralFee + effFba + num(d.storageFee ?? "");
+    referralFee + effFba +
+    (isFbm ? num(d.fbmShipping ?? "") : num(d.storageFee ?? ""));
   const netProfit = revenue - totalCost;
   const netMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
   return { price: priceN, netProfit, netMargin };
@@ -183,8 +187,10 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
   const [price, setPrice] = useState("");
   const [shippingCharge, setShippingCharge] = useState("");
   // Costs
+  const [fulfillment, setFulfillment] = useState<"FBA" | "FBM">("FBA");
   const [cogs, setCogs] = useState("");
   const [inbound, setInbound] = useState("");
+  const [fbmShipping, setFbmShipping] = useState("");
   const [referralMode, setReferralMode] = useState<"percent" | "flat">("percent");
   const [referralValue, setReferralValue] = useState("15");
   const [fbaFee, setFbaFee] = useState("");
@@ -213,15 +219,19 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
     );
   }, [marketplace, unitSystem, length, width, height, weight]);
 
-  const effectiveFbaFee = fbaFee.trim() !== "" ? num(fbaFee) : fbaEstimate?.fee ?? 0;
+  const effectiveFbaFee =
+    fulfillment === "FBM" ? 0 : fbaFee.trim() !== "" ? num(fbaFee) : fbaEstimate?.fee ?? 0;
 
   const results = useMemo(() => {
     const priceN = num(price);
     const revenue = priceN + num(shippingCharge);
     const referralFee =
       referralMode === "percent" ? priceN * (num(referralValue) / 100) : num(referralValue);
-    const amazonFees = referralFee + effectiveFbaFee + num(storageFee);
-    const ownCosts = num(cogs) + num(inbound) + num(otherCosts);
+    const amazonFees =
+      referralFee + effectiveFbaFee + (fulfillment === "FBM" ? 0 : num(storageFee));
+    const ownCosts =
+      num(cogs) + num(inbound) + num(otherCosts) +
+      (fulfillment === "FBM" ? num(fbmShipping) : 0);
     const totalCost = ownCosts + amazonFees;
     const netProfit = revenue - totalCost;
     const netMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
@@ -237,7 +247,7 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
       roi,
       hasOwnCosts: ownCosts > 0,
     };
-  }, [price, shippingCharge, referralMode, referralValue, effectiveFbaFee, storageFee, cogs, inbound, otherCosts]);
+  }, [price, shippingCharge, referralMode, referralValue, effectiveFbaFee, storageFee, cogs, inbound, otherCosts, fulfillment, fbmShipping]);
 
   // Full input set, saved/loaded as one blob.
   function snapshot(): Record<string, string> {
@@ -246,9 +256,10 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
       marketplace,
       category: category ?? "",
       unitSystem,
+      fulfillment,
       length, width, height, weight,
       price, shippingCharge,
-      cogs, inbound,
+      cogs, inbound, fbmShipping,
       referralMode, referralValue,
       fbaFee, storageFee, otherCosts,
     };
@@ -263,6 +274,8 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
     setMarketplace(d.marketplace || "US");
     setCategory(d.category || null);
     setUnitSystem((d.unitSystem as "imperial" | "metric") || "imperial");
+    setFulfillment(d.fulfillment === "FBM" ? "FBM" : "FBA");
+    setFbmShipping(d.fbmShipping ?? "");
     setLength(d.length ?? "");
     setWidth(d.width ?? "");
     setHeight(d.height ?? "");
@@ -286,7 +299,8 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
     setCategory(null);
     setLength(""); setWidth(""); setHeight(""); setWeight("");
     setPrice(""); setShippingCharge("");
-    setCogs(""); setInbound("");
+    setFulfillment("FBA");
+    setCogs(""); setInbound(""); setFbmShipping("");
     setReferralMode("percent"); setReferralValue("15");
     setFbaFee(""); setStorageFee(""); setOtherCosts("");
   }
@@ -496,7 +510,27 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
         </div>
 
         <div className="flex flex-col gap-3">
-          <SectionLabel>Costs</SectionLabel>
+          <div className="flex items-center justify-between">
+            <SectionLabel>Costs</SectionLabel>
+            <div className="flex overflow-hidden rounded-lg border">
+              {(["FBA", "FBM"] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  aria-pressed={fulfillment === mode}
+                  onClick={() => setFulfillment(mode)}
+                  className={cn(
+                    "px-3 py-1 text-xs font-medium transition-colors",
+                    fulfillment === mode
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-muted"
+                  )}
+                >
+                  {mode}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <Label className="text-xs text-muted-foreground">Cost of goods</Label>
@@ -551,29 +585,43 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
                 </div>
               </div>
             </div>
-            <div className="flex flex-col gap-1.5">
-              <Label className="text-xs text-muted-foreground">FBA fulfillment fee</Label>
-              <MoneyInput
-                value={fbaFee}
-                onChange={setFbaFee}
-                placeholder={fbaEstimate ? fbaEstimate.fee.toFixed(2) : "0.00"}
-              />
-              {fbaFee.trim() === "" && fbaEstimate && (
+            {fulfillment === "FBA" ? (
+              <>
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-xs text-muted-foreground">FBA fulfillment fee</Label>
+                  <MoneyInput
+                    value={fbaFee}
+                    onChange={setFbaFee}
+                    placeholder={fbaEstimate ? fbaEstimate.fee.toFixed(2) : "0.00"}
+                  />
+                  {fbaFee.trim() === "" && fbaEstimate && (
+                    <p className="text-[11px] text-muted-foreground">
+                      Auto: ${fbaEstimate.fee.toFixed(2)} ({fbaEstimate.tier}, estimated from
+                      size/weight) — type to override
+                    </p>
+                  )}
+                  {fbaFee.trim() === "" && !fbaEstimate && marketplace === "US" && (
+                    <p className="text-[11px] text-muted-foreground">
+                      Fill in dimensions &amp; weight to auto-estimate
+                    </p>
+                  )}
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-xs text-muted-foreground">Storage fee / unit</Label>
+                  <MoneyInput value={storageFee} onChange={setStorageFee} />
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col gap-1.5">
+                <Label className="text-xs text-muted-foreground">
+                  Shipping to customer / unit
+                </Label>
+                <MoneyInput value={fbmShipping} onChange={setFbmShipping} />
                 <p className="text-[11px] text-muted-foreground">
-                  Auto: ${fbaEstimate.fee.toFixed(2)} ({fbaEstimate.tier}, estimated from
-                  size/weight) — type to override
+                  FBM: you ship it — no FBA fulfillment or storage fees, just the referral fee.
                 </p>
-              )}
-              {fbaFee.trim() === "" && !fbaEstimate && marketplace === "US" && (
-                <p className="text-[11px] text-muted-foreground">
-                  Fill in dimensions &amp; weight to auto-estimate
-                </p>
-              )}
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label className="text-xs text-muted-foreground">Storage fee / unit</Label>
-              <MoneyInput value={storageFee} onChange={setStorageFee} />
-            </div>
+              </div>
+            )}
             <div className="flex flex-col gap-1.5">
               <Label className="text-xs text-muted-foreground">Other costs</Label>
               <MoneyInput value={otherCosts} onChange={setOtherCosts} />
