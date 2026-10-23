@@ -460,6 +460,29 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
           </div>
         </div>
 
+        <div className="flex flex-col gap-1.5">
+          <SectionLabel>Fulfillment</SectionLabel>
+          <div className="flex w-fit overflow-hidden rounded-lg border">
+            {(["FBA", "FBM"] as const).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                aria-pressed={fulfillment === mode}
+                onClick={() => setFulfillment(mode)}
+                className={cn(
+                  "px-4 py-1.5 text-xs font-medium transition-colors",
+                  fulfillment === mode
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-muted"
+                )}
+              >
+                {mode === "FBA" ? "FBA · Amazon ships" : "FBM · you ship"}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {fulfillment === "FBA" && (
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <SectionLabel>Dimensions &amp; weight</SectionLabel>
@@ -492,6 +515,7 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
             </div>
           </div>
         </div>
+        )}
 
         <div className="flex flex-col gap-3">
           <SectionLabel>Pricing</SectionLabel>
@@ -510,27 +534,7 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
         </div>
 
         <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <SectionLabel>Costs</SectionLabel>
-            <div className="flex overflow-hidden rounded-lg border">
-              {(["FBA", "FBM"] as const).map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  aria-pressed={fulfillment === mode}
-                  onClick={() => setFulfillment(mode)}
-                  className={cn(
-                    "px-3 py-1 text-xs font-medium transition-colors",
-                    fulfillment === mode
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-muted"
-                  )}
-                >
-                  {mode}
-                </button>
-              ))}
-            </div>
-          </div>
+          <SectionLabel>Costs</SectionLabel>
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <Label className="text-xs text-muted-foreground">Cost of goods</Label>
