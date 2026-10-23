@@ -224,9 +224,12 @@ function InlinePriceInput({
   );
 }
 
+// Margin traffic lights: >30% healthy green, 20–30% yellow, 0–20% orange,
+// losing money red.
 function marginTone(pct: number): string {
-  if (pct >= 30) return "text-success";
-  if (pct >= 15) return "text-foreground";
+  if (pct > 30) return "text-success";
+  if (pct >= 20) return "text-yellow-500 dark:text-yellow-400";
+  if (pct >= 0) return "text-orange-500 dark:text-orange-400";
   return "text-destructive";
 }
 
