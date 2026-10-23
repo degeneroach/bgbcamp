@@ -1,4 +1,5 @@
 import {
+  Calculator,
   CheckCircle2,
   Trash2,
   MessageSquare,
@@ -56,6 +57,9 @@ const ICONS: Record<string, LucideIcon> = {
   "golftown.updated": Pencil,
   "golftown.status": Printer,
   "golftown.deleted": Trash2,
+  "margin.created": Calculator,
+  "margin.updated": Calculator,
+  "margin.deleted": Trash2,
 };
 
 export function getActivityIcon(action: string): LucideIcon {
@@ -104,6 +108,13 @@ const COLOR_FAMILIES: { match: (action: string) => boolean; color: ActivityColor
   {
     match: (a) => a.startsWith("golftown"),
     color: { bg: "bg-cyan-100 dark:bg-cyan-950", text: "text-cyan-600 dark:text-cyan-400" },
+  },
+  {
+    match: (a) => a.startsWith("margin"),
+    color: {
+      bg: "bg-fuchsia-100 dark:bg-fuchsia-950",
+      text: "text-fuchsia-600 dark:text-fuchsia-400",
+    },
   },
   {
     match: (a) => a.startsWith("task") || a.startsWith("project"),
@@ -288,6 +299,22 @@ export function describeActivity(
       };
     case "golftown.deleted":
       return { verb: "deleted the Golf Town order", itemLabel: m.customer ?? null, itemHref: null };
+    case "margin.created":
+      return {
+        verb: "saved the margin product",
+        itemLabel: m.name ?? null,
+        itemHref: "/tools/amazon-margins",
+        detail: m.sku || undefined,
+      };
+    case "margin.updated":
+      return {
+        verb: "updated the margin product",
+        itemLabel: m.name ?? null,
+        itemHref: "/tools/amazon-margins",
+        detail: m.sku || undefined,
+      };
+    case "margin.deleted":
+      return { verb: "deleted the margin product", itemLabel: m.name ?? null, itemHref: null };
     case "person.added":
       return { verb: "invited", itemLabel: m.email ?? null, itemHref: "/people" };
     case "person.removed":
