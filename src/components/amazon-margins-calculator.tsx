@@ -163,6 +163,67 @@ function computeSnapshot(d: Record<string, string>) {
   return { price: priceN, netProfit, netMargin };
 }
 
+// Inline price editor in the saved-products table: type, then Enter or
+// click away to save. Remounted via key when the server value changes.
+function InlinePriceInput({
+  calc,
+  onSaved,
+}: {
+  calc: MarginCalc;
+  onSaved: (price: string) => void;
+}) {
+  const [value, setValue] = useState(calc.data.price ?? "");
+  const [isPending, startTransition] = useTransition();
+
+  function commit() {
+    const v = value.trim();
+    if (v === (calc.data.price ?? "").trim()) return;
+    startTransition(async () => {
+      const result = await saveMarginCalc({
+        id: calc.id,
+        name: calc.name,
+        sku: calc.sku,
+        data: { ...calc.data, price: v },
+      });
+      if (!result.ok) {
+        toast.error(result.error ?? "Couldn't save the price.");
+        setValue(calc.data.price ?? "");
+        return;
+      }
+      toast.success(`Price updated for ${calc.name}.`);
+      onSaved(v);
+    });
+  }
+
+  return (
+    <div
+      className="relative w-20 shrink-0"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <span className="pointer-events-none absolute left-1.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+        $
+      </span>
+      <input
+        type="number"
+        min={0}
+        step="0.01"
+        inputMode="decimal"
+        value={value}
+        placeholder="0.00"
+        disabled={isPending}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+          if (e.key === "Escape") setValue(calc.data.price ?? "");
+        }}
+        className="h-7 w-full rounded-md border bg-background pl-4 pr-1.5 text-right text-xs tabular-nums outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-50"
+        aria-label={`Price for ${calc.name}`}
+      />
+    </div>
+  );
+}
+
 function marginTone(pct: number): string {
   if (pct >= 30) return "text-success";
   if (pct >= 15) return "text-foreground";
@@ -660,7 +721,9 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
         </div>
       </Card>
 
-      {/* Results */}
+      {/* Results. row-span-2 stretches its grid cell down past the saved
+          list, so sticky keeps it pinned for the whole page scroll. */}
+      <div className="lg:row-span-2 lg:self-stretch">
       <Card
         ref={resultsRef}
         className={cn(
@@ -728,15 +791,16 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
           </div>
         )}
       </Card>
+      </div>
 
       {/* Saved product library, grouped by brand registry. */}
       {saved.length > 0 && (
-        <Card className="flex flex-col gap-4 p-5 lg:col-span-2">
+        <Card className="flex flex-col gap-4 p-5">
           <div className="flex flex-col gap-1">
             <h2 className="font-medium">Saved products</h2>
             <div className="flex items-center gap-3 px-3 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
               <span className="min-w-0 flex-1">Product</span>
-              <span className="w-16 shrink-0 text-right">Price</span>
+              <span className="w-20 shrink-0 text-right">Price</span>
               <span className="w-16 shrink-0 text-right">Profit</span>
               <span className="w-12 shrink-0 text-right">Margin</span>
               <span className="w-4 shrink-0" aria-hidden />
@@ -760,15 +824,14 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
                   {group.map((calc) => {
                     const stats = computeSnapshot(calc.data);
                     return (
-                      <button
+                      <div
                         key={calc.id}
-                        type="button"
                         onClick={() => {
                           loadCalc(calc);
                           window.scrollTo({ top: 0, behavior: "smooth" });
                         }}
                         className={cn(
-                          "flex items-center gap-3 px-3 py-2 text-left text-sm transition-colors hover:bg-muted/50",
+                          "flex cursor-pointer items-center gap-3 px-3 py-2 text-left text-sm transition-colors hover:bg-muted/50",
                           loadedId === calc.id && "bg-accent/40"
                         )}
                       >
@@ -778,9 +841,14 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
                             <span className="ml-2 text-xs text-muted-foreground">{calc.sku}</span>
                           )}
                         </span>
-                        <span className="w-16 shrink-0 text-right text-xs tabular-nums text-muted-foreground">
-                          {money(stats.price)}
-                        </span>
+                        <InlinePriceInput
+                          key={`${calc.id}:${calc.data.price ?? ""}`}
+                          calc={calc}
+                          onSaved={(v) => {
+                            if (loadedId === calc.id) setPrice(v);
+                            router.refresh();
+                          }}
+                        />
                         <span
                           className={cn(
                             "w-16 shrink-0 text-right text-xs font-semibold tabular-nums",
@@ -800,7 +868,7 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
                           {stats.netMargin.toFixed(0)}%
                         </span>
                         <Pencil className="h-3.5 w-4 shrink-0 text-muted-foreground" />
-                      </button>
+                      </div>
                     );
                   })}
                 </div>
