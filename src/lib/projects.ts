@@ -1,6 +1,31 @@
 import { notFound } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database, Profile, Project, ProjectMember } from "@/types/database";
+import { requireCurrentUser } from "@/lib/current-user";
+import type { Database, Profile, Project, ProjectMember, Role } from "@/types/database";
+
+// Access rule: owners/admins see every project; members only see projects
+// they're listed on (Settings → Members). Returns null for "all projects".
+export async function accessibleProjectIds(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+  role: Role
+): Promise<Set<string> | null> {
+  if (role === "owner" || role === "admin") return null;
+  const { data } = await supabase
+    .from("project_members")
+    .select("project_id")
+    .eq("user_id", userId);
+  return new Set((data ?? []).map((r) => r.project_id));
+}
+
+// Org-wide items (e.g. message board events) have no project and are
+// visible to everyone.
+export function canAccessProject(
+  ids: Set<string> | null,
+  projectId: string | null
+): boolean {
+  return ids === null || projectId === null || ids.has(projectId);
+}
 
 export async function getProjectBySlug(
   supabase: SupabaseClient<Database>,
@@ -15,6 +40,14 @@ export async function getProjectBySlug(
     .maybeSingle();
 
   if (!project) {
+    notFound();
+  }
+
+  // Every /projects/[slug]/* route resolves its project here, so this one
+  // check gates direct links to boards, tasks, settings, and activity.
+  const { userId, role } = await requireCurrentUser();
+  const ids = await accessibleProjectIds(supabase, userId, role);
+  if (!canAccessProject(ids, project.id)) {
     notFound();
   }
 

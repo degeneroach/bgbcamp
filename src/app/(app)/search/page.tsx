@@ -21,9 +21,12 @@ export default async function SearchPage({
   searchParams: Promise<{ q?: string }>;
 }) {
   const { q = "" } = await searchParams;
-  const { organization } = await requireCurrentUser();
+  const { userId, organization, role } = await requireCurrentUser();
   const supabase = await createClient();
-  const results = q.trim().length >= 2 ? await runSearch(supabase, organization.id, q) : [];
+  const results =
+    q.trim().length >= 2
+      ? await runSearch(supabase, organization.id, q, { userId, role })
+      : [];
 
   return (
     <div className="flex max-w-2xl flex-col gap-4">

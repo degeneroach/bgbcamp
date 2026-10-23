@@ -2,6 +2,7 @@ import { requireCurrentUser } from "@/lib/current-user";
 import { createClient } from "@/lib/supabase/server";
 import { getRecentNotifications } from "@/lib/notifications";
 import { AppShell } from "@/components/app-shell";
+import { accessibleProjectIds, canAccessProject } from "@/lib/projects";
 import { canUseDext } from "@/lib/dext-access";
 
 export default async function AppLayout({
@@ -11,7 +12,7 @@ export default async function AppLayout({
 }) {
   const { userId, profile, organization, role } = await requireCurrentUser();
   const supabase = await createClient();
-  const [{ notifications, unreadCount, unreadBoostCount }, { data: favoriteRows }] =
+  const [{ notifications, unreadCount, unreadBoostCount }, { data: favoriteRows }, accessIds] =
     await Promise.all([
       getRecentNotifications(supabase, userId),
       supabase
@@ -19,6 +20,7 @@ export default async function AppLayout({
         .select("projects!inner(id, name, slug, color, logo_url, archived)")
         .eq("user_id", userId)
         .order("created_at", { ascending: true }),
+      accessibleProjectIds(supabase, userId, role),
     ]);
 
   const favoriteProjects = (favoriteRows ?? [])
@@ -33,7 +35,7 @@ export default async function AppLayout({
           archived: boolean;
         }
     )
-    .filter((p) => !p.archived);
+    .filter((p) => !p.archived && canAccessProject(accessIds, p.id));
 
   return (
     <AppShell

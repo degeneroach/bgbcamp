@@ -1,5 +1,6 @@
 import { requireCurrentUser } from "@/lib/current-user";
 import { createClient } from "@/lib/supabase/server";
+import { accessibleProjectIds, canAccessProject } from "@/lib/projects";
 import { ActivityFilters } from "@/components/activity-filters";
 import { ActivityTimeline } from "@/components/activity-timeline";
 import { NewForYou } from "@/components/new-for-you";
@@ -22,10 +23,11 @@ export default async function GlobalActivityPage({
   }>;
 }) {
   const filters = await searchParams;
-  const { userId, organization } = await requireCurrentUser();
+  const { userId, organization, role } = await requireCurrentUser();
   const supabase = await createClient();
+  const accessIds = await accessibleProjectIds(supabase, userId, role);
 
-  const [{ data: projects }, { data: members }] = await Promise.all([
+  const [{ data: allProjects }, { data: members }] = await Promise.all([
     supabase
       .from("projects")
       .select("*")
@@ -37,6 +39,9 @@ export default async function GlobalActivityPage({
       .select("profiles(*)")
       .eq("organization_id", organization.id),
   ]);
+  const projects = ((allProjects ?? []) as Project[]).filter((p) =>
+    canAccessProject(accessIds, p.id)
+  );
 
   const people = (members ?? []).map((m) => m.profiles as unknown as Profile);
 
@@ -46,7 +51,7 @@ export default async function GlobalActivityPage({
     .eq("organization_id", organization.id);
 
   if (filters.project) {
-    const project = (projects as Project[] | null)?.find((p) => p.slug === filters.project);
+    const project = projects.find((p) => p.slug === filters.project);
     if (project) query = query.eq("project_id", project.id);
   }
 
@@ -68,7 +73,9 @@ export default async function GlobalActivityPage({
 
   const { data: events } = await query.order("created_at", { ascending: false }).limit(FETCH_LIMIT);
 
-  let filteredEvents = (events ?? []) as unknown as ActivityEventFull[];
+  let filteredEvents = ((events ?? []) as unknown as ActivityEventFull[]).filter((event) =>
+    canAccessProject(accessIds, event.project_id)
+  );
 
   if (filters.type && filters.type !== "all") {
     filteredEvents = filteredEvents.filter(
@@ -125,7 +132,7 @@ export default async function GlobalActivityPage({
         </p>
       </div>
 
-      <ActivityFilters projects={(projects as Project[]) ?? []} people={people} />
+      <ActivityFilters projects={projects} people={people} />
 
       <NewForYou events={newForYou} />
 

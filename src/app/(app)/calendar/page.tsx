@@ -1,6 +1,6 @@
 import { requireCurrentUser } from "@/lib/current-user";
 import { createClient } from "@/lib/supabase/server";
-import { getOrganizationMembers } from "@/lib/projects";
+import { accessibleProjectIds, canAccessProject, getOrganizationMembers } from "@/lib/projects";
 import { DueDateCalendar, type CalendarTask } from "@/components/due-date-calendar";
 import { addDays, endOfMonth, endOfWeek, startOfMonth, startOfWeek } from "date-fns";
 import type { CalendarEvent, Profile, Project, Task } from "@/types/database";
@@ -15,8 +15,9 @@ export default async function CalendarPage({
   searchParams: Promise<{ m?: string }>;
 }) {
   const { m } = await searchParams;
-  const { userId, organization } = await requireCurrentUser();
+  const { userId, organization, role } = await requireCurrentUser();
   const supabase = await createClient();
+  const accessIds = await accessibleProjectIds(supabase, userId, role);
 
   // Month being viewed (?m=YYYY-MM), padded to full display weeks so tasks
   // on the leading/trailing days of adjacent months still show.
@@ -45,8 +46,12 @@ export default async function CalendarPage({
       .order("start_time", { ascending: true, nullsFirst: true }),
   ]);
 
-  // Tasks carry no organization_id — scope through the org's projects.
-  const projectIds = ((projects ?? []) as Project[]).map((p) => p.id);
+  // Tasks carry no organization_id — scope through the org's projects
+  // (only the ones this person can open).
+  const visibleProjects = ((projects ?? []) as Project[]).filter((p) =>
+    canAccessProject(accessIds, p.id)
+  );
+  const projectIds = visibleProjects.map((p) => p.id);
   const { data: tasks } = projectIds.length
     ? await supabase
         .from("tasks")
@@ -95,7 +100,7 @@ export default async function CalendarPage({
         monthISO={monthStart.toISOString().slice(0, 10)}
         tasks={calendarTasks}
         events={(events ?? []) as CalendarEvent[]}
-        projects={(projects ?? []) as Project[]}
+        projects={visibleProjects}
         members={members}
         currentUserId={userId}
       />

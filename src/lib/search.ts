@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/types/database";
+import type { Database, Role } from "@/types/database";
+import { accessibleProjectIds, canAccessProject } from "@/lib/projects";
 import { displayName } from "@/lib/display-name";
 
 export interface SearchResult {
@@ -13,11 +14,13 @@ export interface SearchResult {
 export async function runSearch(
   supabase: SupabaseClient<Database>,
   organizationId: string,
-  query: string
+  query: string,
+  viewer: { userId: string; role: Role }
 ): Promise<SearchResult[]> {
   const q = query.trim();
   if (q.length < 2) return [];
 
+  const accessIds = await accessibleProjectIds(supabase, viewer.userId, viewer.role);
   const like = `%${q}%`;
 
   const [projects, tasks, posts, people] = await Promise.all([
@@ -50,10 +53,12 @@ export async function runSearch(
   const results: SearchResult[] = [];
 
   for (const p of projects.data ?? []) {
+    if (!canAccessProject(accessIds, p.id)) continue;
     results.push({ type: "project", id: p.id, title: p.name, href: `/projects/${p.slug}` });
   }
-  for (const t of (tasks.data ?? []) as unknown as Array<{ id: string; title: string; projects: { slug: string; name: string } | null }>) {
+  for (const t of (tasks.data ?? []) as unknown as Array<{ id: string; title: string; project_id: string; projects: { slug: string; name: string } | null }>) {
     if (!t.projects) continue;
+    if (!canAccessProject(accessIds, t.project_id)) continue;
     results.push({
       type: "task",
       id: t.id,

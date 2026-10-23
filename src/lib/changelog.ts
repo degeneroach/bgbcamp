@@ -11,6 +11,13 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: "2026-10-22",
+    title: "Project access control",
+    items: [
+      "Projects are now private to their members: if you're not on a project's member list (Project → Settings → Members), it's hidden from your dashboard, favorites, search, calendars, activity, and direct links. Admins see everything.",
+    ],
+  },
+  {
+    date: "2026-10-22",
     title: "Revenue dashboard (admin)",
     items: [
       "Tools → Revenue: today's NONNA Shopify sales at a glance — revenue, orders, vs yesterday, and a 14-day chart. Admin-only.",

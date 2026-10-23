@@ -4,14 +4,16 @@ import { ProjectCard, type ProjectCardActivity } from "@/components/project-card
 import { NewProjectDialog } from "@/components/new-project-dialog";
 import { ArchivedProjectsSection } from "@/components/archived-projects-section";
 import { ActivityTicker, type TickerItem } from "@/components/activity-ticker";
+import { accessibleProjectIds, canAccessProject } from "@/lib/projects";
 import { activitySummary } from "@/lib/activity-summary";
 import { describeActivity } from "@/lib/activity-display";
 import { displayName } from "@/lib/display-name";
 import type { ActivityEvent, Profile, Project } from "@/types/database";
 
 export default async function DashboardPage() {
-  const { userId, organization } = await requireCurrentUser();
+  const { userId, organization, role } = await requireCurrentUser();
   const supabase = await createClient();
+  const accessIds = await accessibleProjectIds(supabase, userId, role);
 
   const [{ data: projects }, { data: favorites }, { data: archivedProjects }] = await Promise.all([
     supabase
@@ -29,8 +31,13 @@ export default async function DashboardPage() {
       .order("updated_at", { ascending: false }),
   ]);
 
-  const projectList = (projects ?? []) as Project[];
+  const projectList = ((projects ?? []) as Project[]).filter((p) =>
+    canAccessProject(accessIds, p.id)
+  );
   const projectIds = projectList.map((p) => p.id);
+  const visibleArchived = ((archivedProjects as Project[]) ?? []).filter((p) =>
+    canAccessProject(accessIds, p.id)
+  );
   const favoriteIds = new Set((favorites ?? []).map((f) => f.project_id));
 
   const [{ data: memberRows }, { data: recentEvents }, { data: tickerEvents }] = await Promise.all([
@@ -88,7 +95,9 @@ export default async function DashboardPage() {
   }
   const tickerItems: TickerItem[] = (
     (tickerEvents ?? []) as unknown as (ActivityEvent & { actor: Profile | null })[]
-  ).map((event) => {
+  )
+    .filter((event) => canAccessProject(accessIds, event.project_id))
+    .map((event) => {
     const d = describeActivity(
       event,
       event.project_id ? (slugById.get(event.project_id) ?? null) : null
@@ -160,7 +169,7 @@ export default async function DashboardPage() {
         </>
       )}
 
-      <ArchivedProjectsSection projects={(archivedProjects as Project[]) ?? []} />
+      <ArchivedProjectsSection projects={visibleArchived} />
     </div>
   );
 }

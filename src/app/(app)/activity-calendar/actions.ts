@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentUser } from "@/lib/current-user";
+import { accessibleProjectIds, canAccessProject } from "@/lib/projects";
 import type { ActivityEvent, Profile } from "@/types/database";
 
 export type DayActivityEvent = ActivityEvent & {
@@ -16,7 +17,7 @@ export async function getDayActivity(
   endIso: string,
   actorId: string | null
 ): Promise<DayActivityEvent[]> {
-  const { organization } = await requireCurrentUser();
+  const { userId, organization, role } = await requireCurrentUser();
 
   const start = new Date(startIso);
   const end = new Date(endIso);
@@ -37,5 +38,8 @@ export async function getDayActivity(
   if (actorId) query = query.eq("actor_id", actorId);
 
   const { data } = await query;
-  return (data ?? []) as unknown as DayActivityEvent[];
+  const accessIds = await accessibleProjectIds(supabase, userId, role);
+  return ((data ?? []) as unknown as DayActivityEvent[]).filter((event) =>
+    canAccessProject(accessIds, event.project_id)
+  );
 }

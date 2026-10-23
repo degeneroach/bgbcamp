@@ -3,6 +3,7 @@ import { requireCurrentUser } from "@/lib/current-user";
 import { createClient } from "@/lib/supabase/server";
 import { PersonActivityView, type TaskWithProject } from "@/components/person-activity-view";
 import type { ActivityEventWithRelations } from "@/components/activity-item";
+import { accessibleProjectIds, canAccessProject } from "@/lib/projects";
 import { isTaskCompleted } from "@/lib/tasks";
 import { startOfDay } from "date-fns";
 import type { Profile, Role } from "@/types/database";
@@ -13,8 +14,9 @@ export default async function PersonPage({
   params: Promise<{ userId: string }>;
 }) {
   const { userId } = await params;
-  const { organization } = await requireCurrentUser();
+  const { userId: viewerId, organization, role: viewerRole } = await requireCurrentUser();
   const supabase = await createClient();
+  const accessIds = await accessibleProjectIds(supabase, viewerId, viewerRole);
 
   // Membership, assignments, and the actor's activity are independent —
   // one parallel wave, then a small follow-up for comment counts.
@@ -43,9 +45,10 @@ export default async function PersonPage({
     notFound();
   }
 
-  const allTasks = (assignments ?? [])
+  const allTasks = ((assignments ?? [])
     .map((a) => a.tasks)
-    .sort((a, b) => (a.due_date ?? "9999").localeCompare(b.due_date ?? "9999")) as unknown as TaskWithProject[];
+    .sort((a, b) => (a.due_date ?? "9999").localeCompare(b.due_date ?? "9999")) as unknown as TaskWithProject[])
+    .filter((t) => canAccessProject(accessIds, t.project_id));
   const taskIds = allTasks.map((t) => t.id);
 
   const { data: comments } = taskIds.length
@@ -77,7 +80,9 @@ export default async function PersonPage({
       overdueTasks={overdueTasks}
       openTasks={openTasks}
       completedTasks={completedTasks}
-      activityEvents={(events ?? []) as unknown as ActivityEventWithRelations[]}
+      activityEvents={((events ?? []) as unknown as ActivityEventWithRelations[]).filter(
+        (e) => canAccessProject(accessIds, e.project_id)
+      )}
     />
   );
 }
