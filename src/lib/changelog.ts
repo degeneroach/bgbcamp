@@ -10,6 +10,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: "2026-10-27",
+    title: "Multi-currency margins",
+    items: [
+      "Amazon Margins now follows the marketplace's currency (UK → £, DE → €, JP → ¥…): prices and fees in that currency, landed costs enterable in CAD/USD and converted at live ECB daily rates for a true margin, plus a Show-in switch on Results to read profit in £, USD, or CAD.",
+    ],
+  },
+  {
     date: "2026-10-22",
     title: "Project access control",
     items: [

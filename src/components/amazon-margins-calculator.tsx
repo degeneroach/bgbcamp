@@ -15,6 +15,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { estimateFbaFeeUS } from "@/lib/fba-fees";
+import {
+  CURRENCY_SYMBOL,
+  convertCurrency,
+  marketplaceCurrency,
+  type FxRates,
+} from "@/lib/currency";
 import { saveMarginCalc, deleteMarginCalc } from "@/app/(app)/tools/amazon-margins/actions";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -55,8 +61,10 @@ function num(value: string): number {
   return parsed;
 }
 
-function money(value: number): string {
-  return `$${value.toFixed(2)}`;
+function money(value: number, currency = "USD"): string {
+  const symbol = CURRENCY_SYMBOL[currency] ?? "";
+  const digits = currency === "JPY" ? 0 : 2;
+  return `${symbol}${value.toFixed(digits)}`;
 }
 
 function MoneyInput({
@@ -64,16 +72,18 @@ function MoneyInput({
   value,
   onChange,
   placeholder = "0.00",
+  symbol = "$",
 }: {
   id?: string;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  symbol?: string;
 }) {
   return (
     <div className="relative">
       <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-        $
+        {symbol}
       </span>
       <Input
         id={id}
@@ -135,12 +145,17 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 }
 
 // Recomputes a saved product's headline numbers from its stored inputs,
-// mirroring the live calculator (including the FBA auto-estimate).
-function computeSnapshot(d: Record<string, string>) {
+// mirroring the live calculator (FBA auto-estimate and landed-cost
+// currency conversion included). Money values are in the marketplace's
+// currency.
+function computeSnapshot(d: Record<string, string>, rates: FxRates) {
   const metric = d.unitSystem === "metric";
   const toIn = (v: number) => (metric ? v / 2.54 : v);
   const toLb = (v: number) => (metric ? v * 2.20462 : v);
   const isFbm = d.fulfillment === "FBM";
+  const marketCur = marketplaceCurrency(d.marketplace || "US");
+  const costCur = d.costCurrency || marketCur;
+  const toMarket = (v: number) => convertCurrency(v, costCur, marketCur, rates);
   const fbaEstimate =
     (d.marketplace || "US") === "US"
       ? estimateFbaFeeUS(toIn(num(d.length ?? "")), toIn(num(d.width ?? "")), toIn(num(d.height ?? "")), toLb(num(d.weight ?? "")))
@@ -155,12 +170,45 @@ function computeSnapshot(d: Record<string, string>) {
       ? priceN * (num(d.referralValue ?? "15") / 100)
       : num(d.referralValue ?? "");
   const totalCost =
-    num(d.cogs ?? "") + num(d.inbound ?? "") + num(d.otherCosts ?? "") +
+    toMarket(num(d.cogs ?? "") + num(d.inbound ?? "") + num(d.otherCosts ?? "") +
+      (isFbm ? num(d.fbmShipping ?? "") : 0)) +
     referralFee + effFba +
-    (isFbm ? num(d.fbmShipping ?? "") : num(d.storageFee ?? ""));
+    (isFbm ? 0 : num(d.storageFee ?? ""));
   const netProfit = revenue - totalCost;
   const netMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
-  return { price: priceN, netProfit, netMargin };
+  return { price: priceN, netProfit, netMargin, currency: marketCur };
+}
+
+// Small pill row for picking a currency (e.g. CAD / USD / £ GBP).
+function CurrencyChips({
+  options,
+  value,
+  onChange,
+}: {
+  options: string[];
+  value: string;
+  onChange: (currency: string) => void;
+}) {
+  return (
+    <div className="flex overflow-hidden rounded-lg border">
+      {options.map((cur) => (
+        <button
+          key={cur}
+          type="button"
+          aria-pressed={value === cur}
+          onClick={() => onChange(cur)}
+          className={cn(
+            "px-2.5 py-1 text-xs font-medium transition-colors",
+            value === cur
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:bg-muted"
+          )}
+        >
+          {cur}
+        </button>
+      ))}
+    </div>
+  );
 }
 
 // Inline price editor in the saved-products table: type, then Enter or
@@ -168,9 +216,11 @@ function computeSnapshot(d: Record<string, string>) {
 function InlinePriceInput({
   calc,
   onSaved,
+  symbol = "$",
 }: {
   calc: MarginCalc;
   onSaved: (price: string) => void;
+  symbol?: string;
 }) {
   const [value, setValue] = useState(calc.data.price ?? "");
   const [isPending, startTransition] = useTransition();
@@ -201,7 +251,7 @@ function InlinePriceInput({
       onClick={(e) => e.stopPropagation()}
     >
       <span className="pointer-events-none absolute left-1.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-        $
+        {symbol}
       </span>
       <input
         type="number"
@@ -233,7 +283,13 @@ function marginTone(pct: number): string {
   return "text-destructive";
 }
 
-export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }) {
+export function AmazonMarginsCalculator({
+  saved = [],
+  rates,
+}: {
+  saved?: MarginCalc[];
+  rates: FxRates;
+}) {
   // Product
   const [productName, setProductName] = useState("");
   const [sku, setSku] = useState("");
@@ -252,6 +308,11 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
   const [shippingCharge, setShippingCharge] = useState("");
   // Costs
   const [fulfillment, setFulfillment] = useState<"FBA" | "FBM">("FBA");
+  // Currency the landed costs (COGS, inbound, other, FBM shipping) are
+  // entered in; converted to the marketplace currency for the margin math.
+  const [costCurrency, setCostCurrency] = useState("USD");
+  // Currency the Results card displays in.
+  const [displayCurrency, setDisplayCurrency] = useState("USD");
   const [cogs, setCogs] = useState("");
   const [inbound, setInbound] = useState("");
   const [fbmShipping, setFbmShipping] = useState("");
@@ -268,6 +329,19 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
 
   const lengthSuffix = unitSystem === "imperial" ? "in" : "cm";
   const weightSuffix = unitSystem === "imperial" ? "lb" : "kg";
+
+  const marketCur = marketplaceCurrency(marketplace);
+  const marketSym = CURRENCY_SYMBOL[marketCur] ?? "$";
+  const costCurrencyOptions = Array.from(new Set(["CAD", "USD", marketCur]));
+  const displayCurrencyOptions = Array.from(new Set([marketCur, "CAD", "USD"]));
+
+  // Marketplace change re-anchors both currency pickers to that market.
+  function changeMarketplace(next: string) {
+    setMarketplace(next);
+    const cur = marketplaceCurrency(next);
+    setDisplayCurrency(cur);
+    setCostCurrency((prev) => (["CAD", "USD", cur].includes(prev) ? prev : cur));
+  }
 
   // Estimated US FBA fulfillment fee from the size/weight fields (metric
   // converted). Used automatically when the FBA fee field is left blank.
@@ -286,6 +360,9 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
   const effectiveFbaFee =
     fulfillment === "FBM" ? 0 : fbaFee.trim() !== "" ? num(fbaFee) : fbaEstimate?.fee ?? 0;
 
+  // All math happens in the marketplace currency: landed costs convert from
+  // costCurrency first, so the margin is real even when you buy in USD/CAD
+  // and sell in £/€/¥.
   const results = useMemo(() => {
     const priceN = num(price);
     const revenue = priceN + num(shippingCharge);
@@ -293,9 +370,13 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
       referralMode === "percent" ? priceN * (num(referralValue) / 100) : num(referralValue);
     const amazonFees =
       referralFee + effectiveFbaFee + (fulfillment === "FBM" ? 0 : num(storageFee));
-    const ownCosts =
+    const ownCosts = convertCurrency(
       num(cogs) + num(inbound) + num(otherCosts) +
-      (fulfillment === "FBM" ? num(fbmShipping) : 0);
+        (fulfillment === "FBM" ? num(fbmShipping) : 0),
+      costCurrency,
+      marketCur,
+      rates
+    );
     const totalCost = ownCosts + amazonFees;
     const netProfit = revenue - totalCost;
     const netMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
@@ -311,7 +392,7 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
       roi,
       hasOwnCosts: ownCosts > 0,
     };
-  }, [price, shippingCharge, referralMode, referralValue, effectiveFbaFee, storageFee, cogs, inbound, otherCosts, fulfillment, fbmShipping]);
+  }, [price, shippingCharge, referralMode, referralValue, effectiveFbaFee, storageFee, cogs, inbound, otherCosts, fulfillment, fbmShipping, costCurrency, marketCur, rates]);
 
   // Full input set, saved/loaded as one blob.
   function snapshot(): Record<string, string> {
@@ -321,6 +402,7 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
       category: category ?? "",
       unitSystem,
       fulfillment,
+      costCurrency,
       length, width, height, weight,
       price, shippingCharge,
       cogs, inbound, fbmShipping,
@@ -340,6 +422,9 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
     setUnitSystem((d.unitSystem as "imperial" | "metric") || "imperial");
     setFulfillment(d.fulfillment === "FBM" ? "FBM" : "FBA");
     setFbmShipping(d.fbmShipping ?? "");
+    const loadedCur = marketplaceCurrency(d.marketplace || "US");
+    setCostCurrency(d.costCurrency || loadedCur);
+    setDisplayCurrency(loadedCur);
     setLength(d.length ?? "");
     setWidth(d.width ?? "");
     setHeight(d.height ?? "");
@@ -364,6 +449,8 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
     setLength(""); setWidth(""); setHeight(""); setWeight("");
     setPrice(""); setShippingCharge("");
     setFulfillment("FBA");
+    setCostCurrency(marketplaceCurrency(marketplace));
+    setDisplayCurrency(marketplaceCurrency(marketplace));
     setCogs(""); setInbound(""); setFbmShipping("");
     setReferralMode("percent"); setReferralValue("15");
     setFbaFee(""); setStorageFee(""); setOtherCosts("");
@@ -493,7 +580,7 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <Label className="text-xs text-muted-foreground">Marketplace</Label>
-              <Select items={marketplaceItems} value={marketplace} onValueChange={(v) => v && setMarketplace(v)}>
+              <Select items={marketplaceItems} value={marketplace} onValueChange={(v) => v && changeMarketplace(v)}>
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
@@ -582,31 +669,54 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
         )}
 
         <div className="flex flex-col gap-3">
-          <SectionLabel>Pricing</SectionLabel>
+          <div className="flex items-center justify-between">
+            <SectionLabel>Pricing</SectionLabel>
+            <span className="rounded-full border px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+              {marketSym} {marketCur}
+            </span>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="am-price" className="text-xs text-muted-foreground">
                 Item price
               </Label>
-              <MoneyInput id="am-price" value={price} onChange={setPrice} />
+              <MoneyInput id="am-price" value={price} onChange={setPrice} symbol={marketSym} />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label className="text-xs text-muted-foreground">Shipping charge</Label>
-              <MoneyInput value={shippingCharge} onChange={setShippingCharge} />
+              <MoneyInput value={shippingCharge} onChange={setShippingCharge} symbol={marketSym} />
             </div>
           </div>
         </div>
 
         <div className="flex flex-col gap-3">
-          <SectionLabel>Costs</SectionLabel>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <SectionLabel>Costs</SectionLabel>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-muted-foreground">Landed costs in</span>
+              <CurrencyChips
+                options={costCurrencyOptions}
+                value={costCurrency}
+                onChange={setCostCurrency}
+              />
+            </div>
+          </div>
+          {costCurrency !== marketCur && (
+            <p className="text-[11px] text-muted-foreground">
+              Converting at 1 {costCurrency} ={" "}
+              {convertCurrency(1, costCurrency, marketCur, rates).toFixed(3)} {marketCur}{" "}
+              (ECB daily rate) — applies to cost of goods, inbound
+              {fulfillment === "FBM" ? ", shipping to customer," : ""} and other costs.
+            </p>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <Label className="text-xs text-muted-foreground">Cost of goods</Label>
-              <MoneyInput value={cogs} onChange={setCogs} />
+              <MoneyInput value={cogs} onChange={setCogs} symbol={CURRENCY_SYMBOL[costCurrency] ?? "$"} />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label className="text-xs text-muted-foreground">Inbound shipping / unit</Label>
-              <MoneyInput value={inbound} onChange={setInbound} />
+              <MoneyInput value={inbound} onChange={setInbound} symbol={CURRENCY_SYMBOL[costCurrency] ?? "$"} />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label className="text-xs text-muted-foreground">Amazon referral fee</Label>
@@ -628,7 +738,7 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
                   </div>
                 ) : (
                   <div className="flex-1">
-                    <MoneyInput value={referralValue} onChange={setReferralValue} />
+                    <MoneyInput value={referralValue} onChange={setReferralValue} symbol={marketSym} />
                   </div>
                 )}
                 <div className="flex overflow-hidden rounded-lg border">
@@ -647,7 +757,7 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
                           : "text-muted-foreground hover:bg-muted"
                       )}
                     >
-                      {mode === "percent" ? "%" : "$"}
+                      {mode === "percent" ? "%" : marketSym}
                     </button>
                   ))}
                 </div>
@@ -661,6 +771,7 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
                     value={fbaFee}
                     onChange={setFbaFee}
                     placeholder={fbaEstimate ? fbaEstimate.fee.toFixed(2) : "0.00"}
+                    symbol={marketSym}
                   />
                   {fbaFee.trim() === "" && fbaEstimate && (
                     <p className="text-[11px] text-muted-foreground">
@@ -676,7 +787,7 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <Label className="text-xs text-muted-foreground">Storage fee / unit</Label>
-                  <MoneyInput value={storageFee} onChange={setStorageFee} />
+                  <MoneyInput value={storageFee} onChange={setStorageFee} symbol={marketSym} />
                 </div>
               </>
             ) : (
@@ -684,7 +795,11 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
                 <Label className="text-xs text-muted-foreground">
                   Shipping to customer / unit
                 </Label>
-                <MoneyInput value={fbmShipping} onChange={setFbmShipping} />
+                <MoneyInput
+                  value={fbmShipping}
+                  onChange={setFbmShipping}
+                  symbol={CURRENCY_SYMBOL[costCurrency] ?? "$"}
+                />
                 <p className="text-[11px] text-muted-foreground">
                   FBM: you ship it — no FBA fulfillment or storage fees, just the referral fee.
                 </p>
@@ -692,7 +807,11 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
             )}
             <div className="flex flex-col gap-1.5">
               <Label className="text-xs text-muted-foreground">Other costs</Label>
-              <MoneyInput value={otherCosts} onChange={setOtherCosts} />
+              <MoneyInput
+                value={otherCosts}
+                onChange={setOtherCosts}
+                symbol={CURRENCY_SYMBOL[costCurrency] ?? "$"}
+              />
             </div>
           </div>
         </div>
@@ -745,19 +864,29 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
           <p className="py-10 text-center text-sm italic text-muted-foreground">
             Enter product details to see margins
           </p>
-        ) : (
+        ) : (() => {
+          const disp = (v: number) => convertCurrency(v, marketCur, displayCurrency, rates);
+          return (
           <div className="flex flex-col gap-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] text-muted-foreground">Show in</span>
+              <CurrencyChips
+                options={displayCurrencyOptions}
+                value={displayCurrency}
+                onChange={setDisplayCurrency}
+              />
+            </div>
             <div className="flex items-baseline justify-between text-sm">
               <span className="text-muted-foreground">Revenue</span>
-              <span className="font-medium tabular-nums">{money(results.revenue)}</span>
+              <span className="font-medium tabular-nums">{money(disp(results.revenue), displayCurrency)}</span>
             </div>
             <div className="flex items-baseline justify-between text-sm">
               <span className="text-muted-foreground">Total Amazon fees</span>
-              <span className="font-medium tabular-nums">−{money(results.amazonFees)}</span>
+              <span className="font-medium tabular-nums">−{money(disp(results.amazonFees), displayCurrency)}</span>
             </div>
             <div className="flex items-baseline justify-between text-sm">
               <span className="text-muted-foreground">Total cost</span>
-              <span className="font-medium tabular-nums">−{money(results.totalCost)}</span>
+              <span className="font-medium tabular-nums">−{money(disp(results.totalCost), displayCurrency)}</span>
             </div>
 
             <div className="my-1 border-t" />
@@ -770,7 +899,9 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
                   results.netProfit < 0 && "text-destructive"
                 )}
               >
-                {results.netProfit < 0 ? `−${money(Math.abs(results.netProfit))}` : money(results.netProfit)}
+                {results.netProfit < 0
+                  ? `−${money(Math.abs(disp(results.netProfit)), displayCurrency)}`
+                  : money(disp(results.netProfit), displayCurrency)}
               </span>
             </div>
 
@@ -791,8 +922,16 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
                 {results.hasOwnCosts ? `${results.roi.toFixed(1)}%` : "—"}
               </span>
             </div>
+            {displayCurrency !== marketCur && (
+              <p className="text-[11px] text-muted-foreground">
+                Converted from {marketCur} at 1 {marketCur} ={" "}
+                {convertCurrency(1, marketCur, displayCurrency, rates).toFixed(3)}{" "}
+                {displayCurrency} (ECB daily rate).
+              </p>
+            )}
           </div>
-        )}
+          );
+        })()}
       </Card>
       </div>
 
@@ -825,7 +964,7 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
                 </span>
                 <div className="flex flex-col divide-y rounded-lg border">
                   {group.map((calc) => {
-                    const stats = computeSnapshot(calc.data);
+                    const stats = computeSnapshot(calc.data, rates);
                     return (
                       <div
                         key={calc.id}
@@ -847,6 +986,7 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
                         <InlinePriceInput
                           key={`${calc.id}:${calc.data.price ?? ""}`}
                           calc={calc}
+                          symbol={CURRENCY_SYMBOL[stats.currency] ?? "$"}
                           onSaved={(v) => {
                             if (loadedId === calc.id) setPrice(v);
                             router.refresh();
@@ -859,8 +999,8 @@ export function AmazonMarginsCalculator({ saved = [] }: { saved?: MarginCalc[] }
                           )}
                         >
                           {stats.netProfit < 0
-                            ? `−${money(Math.abs(stats.netProfit))}`
-                            : money(stats.netProfit)}
+                            ? `−${money(Math.abs(stats.netProfit), stats.currency)}`
+                            : money(stats.netProfit, stats.currency)}
                         </span>
                         <span
                           className={cn(

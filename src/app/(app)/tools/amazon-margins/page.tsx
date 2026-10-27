@@ -2,6 +2,7 @@ import { ExternalLink } from "lucide-react";
 import { AmazonMarginsCalculator } from "@/components/amazon-margins-calculator";
 import { requireCurrentUser } from "@/lib/current-user";
 import { createClient } from "@/lib/supabase/server";
+import { FALLBACK_RATES, type FxRates } from "@/lib/currency";
 import type { MarginCalc } from "@/types/database";
 
 export const metadata = {
@@ -16,6 +17,22 @@ export default async function AmazonMarginsPage() {
     .select("*")
     .eq("organization_id", organization.id)
     .order("name", { ascending: true });
+
+  // ECB daily FX rates (units per 1 USD), cached half a day. Falls back to
+  // baked-in approximations if the API is unreachable.
+  let rates: FxRates = FALLBACK_RATES;
+  try {
+    const res = await fetch(
+      "https://api.frankfurter.dev/v1/latest?base=USD&symbols=CAD,MXN,GBP,EUR,JPY,AUD",
+      { next: { revalidate: 43200 } }
+    );
+    if (res.ok) {
+      const json = await res.json();
+      if (json?.rates) rates = { USD: 1, ...json.rates };
+    }
+  } catch {
+    // keep fallbacks
+  }
 
   return (
     <div className="flex flex-col gap-5">
@@ -35,7 +52,7 @@ export default async function AmazonMarginsPage() {
         </a>
       </div>
 
-      <AmazonMarginsCalculator saved={(saved ?? []) as MarginCalc[]} />
+      <AmazonMarginsCalculator saved={(saved ?? []) as MarginCalc[]} rates={rates} />
     </div>
   );
 }
