@@ -17,6 +17,22 @@ export const MARKETPLACE_CURRENCY: Record<string, string> = {
   AU: "AUD",
 };
 
+// Marketplaces where the listing price INCLUDES sales tax that Amazon
+// collects and remits for overseas sellers (VAT/GST/IVA/consumption tax).
+// US/CA are 0: tax there is added on top of the listed price.
+export const MARKETPLACE_VAT: Record<string, number> = {
+  US: 0,
+  CA: 0,
+  MX: 16,
+  UK: 20,
+  DE: 19,
+  FR: 20,
+  IT: 22,
+  ES: 21,
+  JP: 10,
+  AU: 10,
+};
+
 export const CURRENCY_SYMBOL: Record<string, string> = {
   USD: "$",
   CAD: "$",

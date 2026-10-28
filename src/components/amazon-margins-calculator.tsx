@@ -17,6 +17,7 @@ import {
 import { estimateFbaFeeUS } from "@/lib/fba-fees";
 import {
   CURRENCY_SYMBOL,
+  MARKETPLACE_VAT,
   convertCurrency,
   marketplaceCurrency,
   type FxRates,
@@ -176,10 +177,14 @@ function computeSnapshot(d: Record<string, string>, rates: FxRates) {
       (isFbm ? num(d.fbmShipping ?? "") : 0)) +
     referralFee + effFba +
     (isFbm ? 0 : num(d.storageFee ?? ""));
-  // Saved rows show profit AFTER average TACOS ad spend — the true number.
+  // Saved rows show profit AFTER included VAT and average TACOS ad spend —
+  // the true number.
+  const vatPct = d.vatEnabled === "0" ? 0 : MARKETPLACE_VAT[d.marketplace || "US"] ?? 0;
+  const vat = revenue * (vatPct / (100 + vatPct));
+  const netRevenue = revenue - vat;
   const adSpend = revenue * (num(d.tacos ?? "") / 100);
-  const netProfit = revenue - totalCost - adSpend;
-  const netMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
+  const netProfit = netRevenue - totalCost - adSpend;
+  const netMargin = netRevenue > 0 ? (netProfit / netRevenue) * 100 : 0;
   return { price: priceN, netProfit, netMargin, currency: marketCur };
 }
 
@@ -328,6 +333,9 @@ export function AmazonMarginsCalculator({
   // Average TACOS (total ad spend ÷ total revenue, %): applied to revenue
   // to show profit after advertising.
   const [tacos, setTacos] = useState("");
+  // Deduct the marketplace's included VAT/GST from revenue (Amazon collects
+  // and remits it for overseas sellers). Only meaningful where VAT > 0.
+  const [vatEnabled, setVatEnabled] = useState(true);
 
   const [flash, setFlash] = useState(false);
   const [isSaving, startSaving] = useTransition();
@@ -342,12 +350,15 @@ export function AmazonMarginsCalculator({
   const costCurrencyOptions = Array.from(new Set(["CAD", "USD", marketCur]));
   const displayCurrencyOptions = Array.from(new Set([marketCur, "CAD", "USD"]));
 
+  const vatRatePct = MARKETPLACE_VAT[marketplace] ?? 0;
+
   // Marketplace change re-anchors both currency pickers to that market.
   function changeMarketplace(next: string) {
     setMarketplace(next);
     const cur = marketplaceCurrency(next);
     setDisplayCurrency(cur);
     setCostCurrency((prev) => (["CAD", "USD", cur].includes(prev) ? prev : cur));
+    setVatEnabled(true);
   }
 
   // Estimated FBA fulfillment fee from the size/weight fields (metric
@@ -392,16 +403,23 @@ export function AmazonMarginsCalculator({
       rates
     );
     const totalCost = ownCosts + amazonFees;
-    const netProfit = revenue - totalCost;
-    const netMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
+    // The listed price includes VAT on UK/EU/JP/AU/MX — Amazon collects it
+    // off the top, so profit and margin work from ex-VAT revenue.
+    const effVatPct = vatEnabled ? vatRatePct : 0;
+    const vat = revenue * (effVatPct / (100 + effVatPct));
+    const netRevenue = revenue - vat;
+    const netProfit = netRevenue - totalCost;
+    const netMargin = netRevenue > 0 ? (netProfit / netRevenue) * 100 : 0;
     const roi = ownCosts > 0 ? (netProfit / ownCosts) * 100 : 0;
     const tacosPct = num(tacos);
     const adSpend = revenue * (tacosPct / 100);
     const profitAfterAds = netProfit - adSpend;
-    const marginAfterAds = revenue > 0 ? (profitAfterAds / revenue) * 100 : 0;
+    const marginAfterAds = netRevenue > 0 ? (profitAfterAds / netRevenue) * 100 : 0;
     return {
       hasPrice: priceN > 0,
       revenue,
+      vat,
+      vatPct: effVatPct,
       referralFee,
       amazonFees,
       totalCost,
@@ -414,7 +432,7 @@ export function AmazonMarginsCalculator({
       profitAfterAds,
       marginAfterAds,
     };
-  }, [price, shippingCharge, referralMode, referralValue, effectiveFbaFee, storageFee, cogs, inbound, otherCosts, fulfillment, fbmShipping, costCurrency, marketCur, rates, tacos]);
+  }, [price, shippingCharge, referralMode, referralValue, effectiveFbaFee, storageFee, cogs, inbound, otherCosts, fulfillment, fbmShipping, costCurrency, marketCur, rates, tacos, vatEnabled, vatRatePct]);
 
   // Full input set, saved/loaded as one blob.
   function snapshot(): Record<string, string> {
@@ -431,6 +449,7 @@ export function AmazonMarginsCalculator({
       referralMode, referralValue,
       fbaFee, storageFee, otherCosts,
       tacos,
+      vatEnabled: vatEnabled ? "1" : "0",
     };
   }
 
@@ -462,6 +481,7 @@ export function AmazonMarginsCalculator({
     setStorageFee(d.storageFee ?? "");
     setOtherCosts(d.otherCosts ?? "");
     setTacos(d.tacos ?? "");
+    setVatEnabled(d.vatEnabled !== "0");
   }
 
   function resetCalc() {
@@ -479,6 +499,7 @@ export function AmazonMarginsCalculator({
     setReferralMode("percent"); setReferralValue("15");
     setFbaFee(""); setStorageFee(""); setOtherCosts("");
     setTacos("");
+    setVatEnabled(true);
   }
 
   function handleSave() {
@@ -712,6 +733,18 @@ export function AmazonMarginsCalculator({
               <MoneyInput value={shippingCharge} onChange={setShippingCharge} symbol={marketSym} />
             </div>
           </div>
+          {vatRatePct > 0 && (
+            <label className="flex cursor-pointer items-center gap-2 text-[11px] text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={vatEnabled}
+                onChange={(e) => setVatEnabled(e.target.checked)}
+                className="h-3.5 w-3.5 accent-[var(--primary)]"
+              />
+              Price includes {vatRatePct}% VAT — Amazon collects &amp; remits it, so it&apos;s
+              deducted from revenue in Results
+            </label>
+          )}
         </div>
 
         <div className="flex flex-col gap-3">
@@ -921,6 +954,16 @@ export function AmazonMarginsCalculator({
               <span className="text-muted-foreground">Revenue</span>
               <span className="font-medium tabular-nums">{money(disp(results.revenue), displayCurrency)}</span>
             </div>
+            {results.vat > 0 && (
+              <div className="flex items-baseline justify-between text-sm">
+                <span className="text-muted-foreground">
+                  VAT ({results.vatPct}%, Amazon remits)
+                </span>
+                <span className="font-medium tabular-nums">
+                  −{money(disp(results.vat), displayCurrency)}
+                </span>
+              </div>
+            )}
             <div className="flex items-baseline justify-between text-sm">
               <span className="text-muted-foreground">Total Amazon fees</span>
               <span className="font-medium tabular-nums">−{money(disp(results.amazonFees), displayCurrency)}</span>
