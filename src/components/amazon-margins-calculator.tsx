@@ -156,13 +156,15 @@ function computeSnapshot(d: Record<string, string>, rates: FxRates) {
   const marketCur = marketplaceCurrency(d.marketplace || "US");
   const costCur = d.costCurrency || marketCur;
   const toMarket = (v: number) => convertCurrency(v, costCur, marketCur, rates);
-  const fbaEstimate =
-    (d.marketplace || "US") === "US"
-      ? estimateFbaFeeUS(toIn(num(d.length ?? "")), toIn(num(d.width ?? "")), toIn(num(d.height ?? "")), toLb(num(d.weight ?? "")))
-      : null;
+  const usEstimate = estimateFbaFeeUS(
+    toIn(num(d.length ?? "")), toIn(num(d.width ?? "")), toIn(num(d.height ?? "")), toLb(num(d.weight ?? ""))
+  );
+  const estimatedFee = usEstimate
+    ? convertCurrency(usEstimate.fee, "USD", marketCur, rates)
+    : 0;
   const effFba = isFbm
     ? 0
-    : (d.fbaFee ?? "").trim() !== "" ? num(d.fbaFee) : fbaEstimate?.fee ?? 0;
+    : (d.fbaFee ?? "").trim() !== "" ? num(d.fbaFee) : estimatedFee;
   const priceN = num(d.price ?? "");
   const revenue = priceN + num(d.shippingCharge ?? "");
   const referralFee =
@@ -174,7 +176,9 @@ function computeSnapshot(d: Record<string, string>, rates: FxRates) {
       (isFbm ? num(d.fbmShipping ?? "") : 0)) +
     referralFee + effFba +
     (isFbm ? 0 : num(d.storageFee ?? ""));
-  const netProfit = revenue - totalCost;
+  // Saved rows show profit AFTER average TACOS ad spend — the true number.
+  const adSpend = revenue * (num(d.tacos ?? "") / 100);
+  const netProfit = revenue - totalCost - adSpend;
   const netMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
   return { price: priceN, netProfit, netMargin, currency: marketCur };
 }
@@ -321,6 +325,9 @@ export function AmazonMarginsCalculator({
   const [fbaFee, setFbaFee] = useState("");
   const [storageFee, setStorageFee] = useState("");
   const [otherCosts, setOtherCosts] = useState("");
+  // Average TACOS (total ad spend ÷ total revenue, %): applied to revenue
+  // to show profit after advertising.
+  const [tacos, setTacos] = useState("");
 
   const [flash, setFlash] = useState(false);
   const [isSaving, startSaving] = useTransition();
@@ -343,19 +350,26 @@ export function AmazonMarginsCalculator({
     setCostCurrency((prev) => (["CAD", "USD", cur].includes(prev) ? prev : cur));
   }
 
-  // Estimated US FBA fulfillment fee from the size/weight fields (metric
-  // converted). Used automatically when the FBA fee field is left blank.
+  // Estimated FBA fulfillment fee from the size/weight fields (metric
+  // converted). Based on the US fee table; for other marketplaces the USD
+  // fee converts to local currency as a rough guide. Used automatically
+  // when the FBA fee field is left blank.
   const fbaEstimate = useMemo(() => {
-    if (marketplace !== "US") return null;
     const toIn = (v: number) => (unitSystem === "imperial" ? v : v / 2.54);
     const toLb = (v: number) => (unitSystem === "imperial" ? v : v * 2.20462);
-    return estimateFbaFeeUS(
+    const est = estimateFbaFeeUS(
       toIn(num(length)),
       toIn(num(width)),
       toIn(num(height)),
       toLb(num(weight))
     );
-  }, [marketplace, unitSystem, length, width, height, weight]);
+    if (!est) return null;
+    return {
+      ...est,
+      fee: convertCurrency(est.fee, "USD", marketCur, rates),
+      approximate: marketCur !== "USD",
+    };
+  }, [unitSystem, length, width, height, weight, marketCur, rates]);
 
   const effectiveFbaFee =
     fulfillment === "FBM" ? 0 : fbaFee.trim() !== "" ? num(fbaFee) : fbaEstimate?.fee ?? 0;
@@ -381,6 +395,10 @@ export function AmazonMarginsCalculator({
     const netProfit = revenue - totalCost;
     const netMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
     const roi = ownCosts > 0 ? (netProfit / ownCosts) * 100 : 0;
+    const tacosPct = num(tacos);
+    const adSpend = revenue * (tacosPct / 100);
+    const profitAfterAds = netProfit - adSpend;
+    const marginAfterAds = revenue > 0 ? (profitAfterAds / revenue) * 100 : 0;
     return {
       hasPrice: priceN > 0,
       revenue,
@@ -391,8 +409,12 @@ export function AmazonMarginsCalculator({
       netMargin,
       roi,
       hasOwnCosts: ownCosts > 0,
+      tacosPct,
+      adSpend,
+      profitAfterAds,
+      marginAfterAds,
     };
-  }, [price, shippingCharge, referralMode, referralValue, effectiveFbaFee, storageFee, cogs, inbound, otherCosts, fulfillment, fbmShipping, costCurrency, marketCur, rates]);
+  }, [price, shippingCharge, referralMode, referralValue, effectiveFbaFee, storageFee, cogs, inbound, otherCosts, fulfillment, fbmShipping, costCurrency, marketCur, rates, tacos]);
 
   // Full input set, saved/loaded as one blob.
   function snapshot(): Record<string, string> {
@@ -408,6 +430,7 @@ export function AmazonMarginsCalculator({
       cogs, inbound, fbmShipping,
       referralMode, referralValue,
       fbaFee, storageFee, otherCosts,
+      tacos,
     };
   }
 
@@ -438,6 +461,7 @@ export function AmazonMarginsCalculator({
     setFbaFee(d.fbaFee ?? "");
     setStorageFee(d.storageFee ?? "");
     setOtherCosts(d.otherCosts ?? "");
+    setTacos(d.tacos ?? "");
   }
 
   function resetCalc() {
@@ -454,6 +478,7 @@ export function AmazonMarginsCalculator({
     setCogs(""); setInbound(""); setFbmShipping("");
     setReferralMode("percent"); setReferralValue("15");
     setFbaFee(""); setStorageFee(""); setOtherCosts("");
+    setTacos("");
   }
 
   function handleSave() {
@@ -775,11 +800,13 @@ export function AmazonMarginsCalculator({
                   />
                   {fbaFee.trim() === "" && fbaEstimate && (
                     <p className="text-[11px] text-muted-foreground">
-                      Auto: ${fbaEstimate.fee.toFixed(2)} ({fbaEstimate.tier}, estimated from
-                      size/weight) — type to override
+                      Auto: {money(fbaEstimate.fee, marketCur)} ({fbaEstimate.tier}, from
+                      size/weight
+                      {fbaEstimate.approximate ? ", US rates converted — rough guide" : ""}) —
+                      type to override
                     </p>
                   )}
-                  {fbaFee.trim() === "" && !fbaEstimate && marketplace === "US" && (
+                  {fbaFee.trim() === "" && !fbaEstimate && (
                     <p className="text-[11px] text-muted-foreground">
                       Fill in dimensions &amp; weight to auto-estimate
                     </p>
@@ -812,6 +839,20 @@ export function AmazonMarginsCalculator({
                 onChange={setOtherCosts}
                 symbol={CURRENCY_SYMBOL[costCurrency] ?? "$"}
               />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <SectionLabel>Advertising</SectionLabel>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs text-muted-foreground">Average TACOS</Label>
+              <SuffixInput value={tacos} onChange={setTacos} suffix="%" />
+              <p className="text-[11px] text-muted-foreground">
+                Total ad spend ÷ total revenue — from your Amazon ads console. Results
+                show profit after ads.
+              </p>
             </div>
           </div>
         </div>
@@ -922,6 +963,44 @@ export function AmazonMarginsCalculator({
                 {results.hasOwnCosts ? `${results.roi.toFixed(1)}%` : "—"}
               </span>
             </div>
+
+            {results.tacosPct > 0 && (
+              <>
+                <div className="my-1 border-t" />
+                <div className="flex items-baseline justify-between text-sm">
+                  <span className="text-muted-foreground">
+                    Ad spend ({results.tacosPct}% TACOS)
+                  </span>
+                  <span className="font-medium tabular-nums">
+                    −{money(disp(results.adSpend), displayCurrency)}
+                  </span>
+                </div>
+                <div className="flex items-baseline justify-between">
+                  <span className="text-sm text-muted-foreground">Profit after ads</span>
+                  <span
+                    className={cn(
+                      "text-xl font-semibold tabular-nums tracking-tight",
+                      results.profitAfterAds < 0 && "text-destructive"
+                    )}
+                  >
+                    {results.profitAfterAds < 0
+                      ? `−${money(Math.abs(disp(results.profitAfterAds)), displayCurrency)}`
+                      : money(disp(results.profitAfterAds), displayCurrency)}
+                  </span>
+                </div>
+                <div className="flex items-baseline justify-between text-sm">
+                  <span className="text-muted-foreground">Margin after ads</span>
+                  <span
+                    className={cn(
+                      "font-semibold tabular-nums",
+                      marginTone(results.marginAfterAds)
+                    )}
+                  >
+                    {results.marginAfterAds.toFixed(1)}%
+                  </span>
+                </div>
+              </>
+            )}
             {displayCurrency !== marketCur && (
               <p className="text-[11px] text-muted-foreground">
                 Converted from {marketCur} at 1 {marketCur} ={" "}
