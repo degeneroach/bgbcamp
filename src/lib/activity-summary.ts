@@ -25,6 +25,12 @@ export function activitySummary(event: Pick<ActivityEvent, "action" | "metadata"
       return `completed ${title}`;
     case "task.reopened":
       return `reopened ${title}`;
+    case "task.edited":
+      return m.changed === "title"
+        ? `renamed a task to ${title}`
+        : m.changed === "description"
+          ? `updated the description of ${title}`
+          : `updated the task ${title}`;
     case "task_comment.created":
       return `commented on “${m.taskTitle}”`;
     case "task.due_date_changed":
@@ -85,6 +91,12 @@ export function taskActivitySummary(event: Pick<ActivityEvent, "action" | "metad
       return "reopened this task";
     case "task.assigned":
       return m.assigneeName ? `assigned this to ${m.assigneeName}` : "updated assignees";
+    case "task.edited":
+      return m.changed === "title"
+        ? `renamed this task${m.previousTitle ? ` (was “${m.previousTitle}”)` : ""}`
+        : m.changed === "description"
+          ? "updated the description"
+          : "updated this task";
     case "task.due_date_changed":
       return m.dueDate ? `set the due date to ${m.dueDate}` : "cleared the due date";
     case "task.image_added":

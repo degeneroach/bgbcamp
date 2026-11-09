@@ -398,6 +398,33 @@ export async function updateTask(
     }
   }
 
+  // Title/description edits show in the activity feeds — but only when the
+  // content actually changed, so re-saving untouched text stays silent.
+  const titleChanged = input.title !== undefined && input.title.trim() !== existing.title;
+  const descriptionChanged =
+    update.description_html !== undefined &&
+    update.description_html !== (existing.description_html ?? "");
+  if (titleChanged || descriptionChanged) {
+    await logActivity(supabase, {
+      organizationId: organization.id,
+      projectId,
+      actorId: userId,
+      entityType: "task",
+      entityId: taskId,
+      action: "task.edited",
+      metadata: {
+        title,
+        changed:
+          titleChanged && descriptionChanged
+            ? "both"
+            : titleChanged
+              ? "title"
+              : "description",
+        ...(titleChanged ? { previousTitle: existing.title } : {}),
+      },
+    });
+  }
+
   if (input.dueDate !== undefined && input.dueDate !== existing.due_date) {
     await logActivity(supabase, {
       organizationId: organization.id,
