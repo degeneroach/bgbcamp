@@ -117,9 +117,15 @@ export function ContributionCalendar({
     return { total, activeDays, best, streak };
   }, [counts, today, monthKey]);
 
-  // Heat scale uses the max across the whole fetched window so a quiet month
-  // doesn't look artificially busy.
-  const max = useMemo(() => Math.max(0, ...counts.values()), [counts]);
+  // Heat scale is relative to the displayed month, so each month uses the
+  // full color range and busy months don't wash out quieter ones.
+  const max = useMemo(() => {
+    let best = 0;
+    for (const [key, count] of counts) {
+      if (key.startsWith(monthKey) && count > best) best = count;
+    }
+    return best;
+  }, [counts, monthKey]);
   const bestKey = stats.best?.key;
 
   return (
